@@ -4,6 +4,35 @@ local natives = {
     wanted_found = false,
     required_native = false,
 }
+local update = false
+
+async_http.init("raw.githubusercontent.com", "4d72526f626f74/Stand-Recovery/main/Update", function(body, headers, status_code)
+    if status_code == 200 then
+        body = body:gsub("%s+", "")
+        if body == "true" then body = true else body = false end
+
+        if body then
+            update = true
+            root:action("Update Script", {}, "Downloads the latest version of the script", function()
+                async_http.init("raw.githubusercontent.com", "4d72526f626f74/Stand-Recovery/main/Recovery.lua", function(body, headers, status_code)
+                    if status_code == 200 then
+                        local file = io.open(filesystem.scripts_dir() .. SCRIPT_RELPATH, "w")
+                        file:write(body)
+                        file:close(0)
+
+                        util.restart_script()
+                    end
+                end)
+
+                async_http.dispatch()
+            end)
+        end
+    end
+end)
+
+async_http.dispatch()
+
+while not update do util.yield() end
 
 for i, path in ipairs(filesystem.list_files(filesystem.scripts_dir() .. "\\lib")) do
     if filesystem.is_regular_file(path) then
