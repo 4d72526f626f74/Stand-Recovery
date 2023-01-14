@@ -1,9 +1,29 @@
 local root = menu.my_root()
 local natives_list = {}
-local natives = {
-    wanted_found = false,
-    required_native = false,
-}
+local natives = { wanted_found = false, required_native = false }
+local update = false
+
+async_http.init("raw.githubusercontent.com", "4d72526f626f74/Stand-Recovery/main/Recovery.lua", function(body, headers, status_code)
+    local file = io.open(filesystem.scripts_dir() .. SCRIPT_RELPATH, "rb")
+    local local_size = file:seek("end")
+    file:close()
+    
+    if status_code == 200 then
+        if string.len(body) ~= local_size then
+            root:action("Update", {}, "Update script", function()
+                local file = io.open(filesystem.scripts_dir() .. SCRIPT_RELPATH, "wb")
+                file:write(body)
+                file:close()
+            end)
+
+            update = true
+        end
+    end
+end)
+
+async_http.dispatch()
+
+while not update do util.yield() end
 
 for i, path in ipairs(filesystem.list_files(filesystem.scripts_dir() .. "\\lib")) do
     if filesystem.is_regular_file(path) then
