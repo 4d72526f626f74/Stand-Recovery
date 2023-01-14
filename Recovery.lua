@@ -34,6 +34,10 @@ async_http.dispatch()
 
 while not update do util.yield() end
 
+root:action("test", {}, "", function()
+        
+end)
+
 for i, path in ipairs(filesystem.list_files(filesystem.scripts_dir() .. "\\lib")) do
     if filesystem.is_regular_file(path) then
         local split = path:split("\\")
