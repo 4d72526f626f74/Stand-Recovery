@@ -14,6 +14,8 @@ async_http.init("raw.githubusercontent.com", "4d72526f626f74/Stand-Recovery/main
                 local file = io.open(filesystem.scripts_dir() .. SCRIPT_RELPATH, "wb")
                 file:write(body)
                 file:close()
+
+                util.restart_script()
             end)
 
             update = true
