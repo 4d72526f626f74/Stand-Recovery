@@ -1,6 +1,34 @@
+local version = "1.0"
 local root = menu.my_root()
 local natives_list = {}
 local natives = { wanted_found = false, required_native = false }
+
+local update_button = root:action("Update Script", {}, "Update the script to the latest version", function()
+    async_http.init("raw.githubusercontent.com", "4d72526f626f74/Stand-Recovery/main/Recovery.lua", function(body, headers, status_code)
+        if status_code == 200 then
+            local file = io.open(filesystem.scripts_dir() .. SCRIPT_RELPATH, "wb")
+            file:write(body)
+            file:close()
+
+            util.toast("Updated to v" .. version .. ".")
+            util.restart_script()
+        end
+    end)
+    async_http.dispatch()
+end)
+
+update_button.visible = false
+
+async_http.init("raw.githubusercontent.com", "4d72526f626f74/Stand-Recovery/main/Version", function(body, headers, status_code)
+    if status_code == 200 then
+        body = body:gsub("%s+", "")
+        if body ~= version then
+            update_button.visible = true
+            util.toast("New version available")
+        end
+    end
+end)
+async_http.dispatch()
 
 for i, path in ipairs(filesystem.list_files(filesystem.scripts_dir() .. "\\lib")) do
     if filesystem.is_regular_file(path) then
