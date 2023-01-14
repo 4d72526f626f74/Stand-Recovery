@@ -3,6 +3,8 @@ local root = menu.my_root()
 local natives_list = {}
 local natives = { wanted_found = false, required_native = false }
 
+util.toast("ez")
+
 local update_button = root:action("Update Script", {}, "Update the script to the latest version", function()
     async_http.init("raw.githubusercontent.com", "4d72526f626f74/Stand-Recovery/main/Recovery.lua", function(body, headers, status_code)
         if status_code == 200 then
