@@ -19,6 +19,8 @@ async_http.init("raw.githubusercontent.com", "4d72526f626f74/Stand-Recovery/main
             end)
 
             update = true
+        else
+            update = true
         end
     end
 end)
