@@ -1,4 +1,4 @@
-local version = "1.0"
+local version = "1.0.0"
 local root = menu.my_root()
 local natives_list = {}
 local natives = { wanted_found = false, required_native = false }
@@ -59,6 +59,7 @@ if not natives.required_native and not natives.wanted_found then
 end
 
 util.toast("WARNING: All features are considered risky and may result in a ban. Use at your own risk.")
+util.show_corner_help("If you have do not have enough money to buy a property twice then use the Dax Mission option to make enough money.")
 
 -- dbase = facility
 -- businesshub = bunker
@@ -111,6 +112,9 @@ local items = {
         facility = {
             root = nil
         }
+    },
+    dax_mission = {
+        root = nil,
     }
 }
 
@@ -174,6 +178,10 @@ local function is_owned(stat)
     end
 
     return false
+end
+
+local function tunable(value)
+    return memory.script_global(262145 + value)
 end
 
 local show_usage = {
@@ -553,5 +561,37 @@ items.custom.facility.root:toggle_loop("Enable", {}, "", function()
     if show_usage.facility - os.time() <= 0 then
         show_usage.facility = os.time() + 15
         util.show_corner_help("Goto mazebank foreclosure website and purchase a new facility to get the money")
+    end
+end)
+
+items.dax_mission.root = root:list("Dax Mission", {"daxmission"}, "Make easy money from the dax mission required to unlock the freakshop")
+items.dax_mission.root:action("How To Use", {}, "", function()
+    util.show_corner_help("Check enable cash boost and start the dax mission. Skip the cutscene then kill yourself and you will get $1,000,000 (restart and repeat for another $1,000,000)")
+end)
+
+items.dax_mission.root:action("Start Mission", {}, "This will teleport you to the mission trigger and start it", function()
+    local ped = PLAYER.PLAYER_PED_ID()
+    ENTITY.SET_ENTITY_COORDS(ped, 1394.4620361328, 3598.4528808594, 34.990489959717)
+    util.yield(200)
+    PAD.SET_CONTROL_VALUE_NEXT_FRAME(0, 51, 1)
+end)
+
+items.dax_mission.root:toggle_loop("Enable Cash Boost", {}, "", function()
+    local cash = tunable(0)
+    local ref = menu.ref_by_rel_path(items.dax_mission.root, "Enable RP Boost")
+    
+    if not ref.value then
+        memory.write_float(cash, 5000.0) -- setting this value higher causes you to get no money
+    end
+end)
+
+items.dax_mission.root:toggle_loop("Enable RP Boost", {}, "", function()
+    local cash = tunable(0)
+    local rp = tunable(1)
+    local ref = menu.ref_by_rel_path(items.dax_mission.root, "Enable Cash Boost")
+    
+    memory.write_float(rp, 2000.0)
+    if ref.value then
+        memory.write_float(cash, 500.0)
     end
 end)
