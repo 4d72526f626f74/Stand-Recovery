@@ -59,7 +59,7 @@ if not natives.required_native and not natives.wanted_found then
 end
 
 util.toast("WARNING: All features are considered risky and may result in a ban. Use at your own risk.")
-util.show_corner_help("If you have do not have enough money to buy a property twice then use the Dax Mission option to make enough money.")
+util.show_corner_help("If you do not have enough money to buy a property twice then use the Dax Mission option (3 runs should be plenty).")
 
 -- dbase = facility
 -- businesshub = bunker
@@ -196,12 +196,14 @@ local show_usage = {
 items.presets.root = root:list("Presets", {}, "Preset values for convenience (not all presets will be the exact value")
 items.custom.root = root:list("Custom", {}, "Customisable values for fine-tuning to your own liking")
 
+items.presets.root:divider("MazeBank Properties", "MazeBank Properties")
 items.presets.nightclub.root = items.presets.root:list("Nightclub", {}, "Preset values for nightclub")
 items.presets.arcade.root = items.presets.root:list("Arcade", {}, "Preset values for arcade")
 items.presets.autoshop.root = items.presets.root:list("Autoshop", {}, "Preset values for autoshop")
-items.presets.agency.root = items.presets.root:list("Agency", {}, "Preset values for agency")
 items.presets.hanger.root = items.presets.root:list("Hanger", {}, "Preset values for hanger")
 items.presets.facility.root = items.presets.root:list("Facility", {}, "Preset values for facility")
+items.presets.root:divider("Dynasty8Executive Properties", "Dynasty8Executive Properties")
+items.presets.agency.root = items.presets.root:list("Agency", {}, "Preset values for agency")
 
 items.presets.nightclub.choice = items.presets.nightclub.root:list_select("Money", {}, "The nightclub trade-in price", options, 1, function(index) end)
 items.presets.nightclub.root:toggle_loop("Enable", {}, "Enable the preset value for your nightclub", function()
@@ -269,28 +271,6 @@ items.presets.autoshop.root:toggle_loop("Enable", {}, "Enable the preset value f
     end
 end)
 
-items.presets.agency.choice = items.presets.agency.root:list_select("Money", {}, "The agency trade-in price", options, 1, function() end)
-items.presets.agency.root:toggle_loop("Enable", {}, "Enable the preset value for your agency", function()
-    local ref = menu.ref_by_rel_path(items.presets.agency.root, "Enable")
-    local value = convert_value(options[items.presets.agency.choice.value])
-    
-    if not is_owned(stats.agency_owned) then
-        ref.value = false
-        util.toast("[Recovery]: You do not own an agency")
-        return
-    end
-
-    if not STATS.STAT_SET_INT(stats.agency, ((value - 897500) * 2) + 4500000, true) then
-        menu.ref_by_rel_path(items.presets.agency.root, "Enable").value = false
-        util.toast("[Recovery]: Failed to set agency trade-in price")
-    end
-
-    if show_usage.agency - os.time() <= 0 then
-        show_usage.agency = os.time() + 15
-        util.show_corner_help("Goto dynasty8executive website and purchase a new agency to get the money")
-    end
-end)
-
 items.presets.hanger.choice = items.presets.hanger.root:list_select("Money", {}, "The hanger trade-in price", options, 1, function() end)
 items.presets.hanger.root:toggle_loop("Enable", {}, "Enable the preset value for your hanger", function()
     local ref = menu.ref_by_rel_path(items.presets.hanger.root, "Enable")
@@ -335,12 +315,36 @@ items.presets.facility.root:toggle_loop("Enable", {}, "Enable the preset value f
     end
 end)
 
+items.presets.agency.choice = items.presets.agency.root:list_select("Money", {}, "The agency trade-in price", options, 1, function() end)
+items.presets.agency.root:toggle_loop("Enable", {}, "Enable the preset value for your agency", function()
+    local ref = menu.ref_by_rel_path(items.presets.agency.root, "Enable")
+    local value = convert_value(options[items.presets.agency.choice.value])
+    
+    if not is_owned(stats.agency_owned) then
+        ref.value = false
+        util.toast("[Recovery]: You do not own an agency")
+        return
+    end
+
+    if not STATS.STAT_SET_INT(stats.agency, ((value - 897500) * 2) + 4500000, true) then
+        menu.ref_by_rel_path(items.presets.agency.root, "Enable").value = false
+        util.toast("[Recovery]: Failed to set agency trade-in price")
+    end
+
+    if show_usage.agency - os.time() <= 0 then
+        show_usage.agency = os.time() + 15
+        util.show_corner_help("Goto dynasty8executive website and purchase a new agency to get the money")
+    end
+end)
+
+items.custom.root:divider("MazeBank Properties", "MazeBank Properties")
 items.custom.nightclub.root = items.custom.root:list("Nightclub", {}, "Customisable values for nightclub")
 items.custom.arcade.root = items.custom.root:list("Arcade", {}, "Customisable values for arcade")
 items.custom.autoshop.root = items.custom.root:list("Autoshop", {}, "Customisable values for autoshop")
-items.custom.agency.root = items.custom.root:list("Agency", {}, "Customisable values for agency")
 items.custom.hanger.root = items.custom.root:list("Hanger", {}, "Customisable values for hanger")
 items.custom.facility.root = items.custom.root:list("Facility", {}, "Customisable values for facility")
+items.custom.root:divider("Dynasty8Executive Properties", "Dynasty8Executive Properties")
+items.custom.agency.root = items.custom.root:list("Agency", {}, "Customisable values for agency")
 
 items.custom.nightclub.root:text_input("Money", {"nightclubvalue"}, "The nightclub trade-in price", function(value) 
     if not is_owned(stats.nightclub_owned) then
@@ -453,43 +457,6 @@ items.custom.autoshop.root:toggle_loop("Enable", {}, "", function()
     end
 end)
 
-items.custom.agency.root:text_input("Money", {"agencyvalue"}, "The agency trade-in price", function(value) 
-    if not is_owned(stats.agency_owned) then
-        util.toast("[Recovery]: You do not own an agency")
-        return
-    end
-
-    value = tonumber(value)
-
-    if not STATS.STAT_SET_INT(stats.agency, ((value - 645000) * 2) + 4500000, true) then
-        ref.value = false
-        util.toast("[Recovery]: Failed to set agency trade-in price")
-    end
-
-    util.show_corner_help("Goto mazebank foreclosure website and purchase a new agency to get the money")
-end, "0")
-
-items.custom.agency.root:toggle_loop("Enable", {}, "", function()
-    local ref = menu.ref_by_rel_path(items.custom.agency.root, "Enable")
-    local value = tonumber(menu.ref_by_rel_path(items.custom.agency.root, "Money").value)
-    
-    if not is_owned(stats.agency_owned) then
-        ref.value = false
-        util.toast("[Recovery]: You do not own an agency")
-        return
-    end
-
-    if not STATS.STAT_SET_INT(stats.agency, ((value - 645000) * 2) + 4500000, true) then
-        ref.value = false
-        util.toast("[Recovery]: Failed to set agency trade-in price")
-    end
-
-    if show_usage.agency - os.time() <= 0 then
-        show_usage.agency = os.time() + 15
-        util.show_corner_help("Goto dynasty8executive website and purchase a new agency to get the money")
-    end
-end)
-
 items.custom.hanger.root:text_input("Money", {"hangervalue"}, "The hanger trade-in price", function(value) 
     if not is_owned(stats.hanger_owned) then
         util.toast("[Recovery]: You do not own a hanger")
@@ -564,11 +531,50 @@ items.custom.facility.root:toggle_loop("Enable", {}, "", function()
     end
 end)
 
+items.custom.agency.root:text_input("Money", {"agencyvalue"}, "The agency trade-in price", function(value) 
+    if not is_owned(stats.agency_owned) then
+        util.toast("[Recovery]: You do not own an agency")
+        return
+    end
+
+    value = tonumber(value)
+
+    if not STATS.STAT_SET_INT(stats.agency, ((value - 645000) * 2) + 4500000, true) then
+        ref.value = false
+        util.toast("[Recovery]: Failed to set agency trade-in price")
+    end
+
+    util.show_corner_help("Goto mazebank foreclosure website and purchase a new agency to get the money")
+end, "0")
+
+items.custom.agency.root:toggle_loop("Enable", {}, "", function()
+    local ref = menu.ref_by_rel_path(items.custom.agency.root, "Enable")
+    local value = tonumber(menu.ref_by_rel_path(items.custom.agency.root, "Money").value)
+    
+    if not is_owned(stats.agency_owned) then
+        ref.value = false
+        util.toast("[Recovery]: You do not own an agency")
+        return
+    end
+
+    if not STATS.STAT_SET_INT(stats.agency, ((value - 645000) * 2) + 4500000, true) then
+        ref.value = false
+        util.toast("[Recovery]: Failed to set agency trade-in price")
+    end
+
+    if show_usage.agency - os.time() <= 0 then
+        show_usage.agency = os.time() + 15
+        util.show_corner_help("Goto dynasty8executive website and purchase a new agency to get the money")
+    end
+end)
+
 items.dax_mission.root = root:list("Dax Mission", {"daxmission"}, "Make easy money from the dax mission required to unlock the freakshop")
+items.dax_mission.root:divider("Help", "How to use this menu")
 items.dax_mission.root:action("How To Use", {}, "", function()
     util.show_corner_help("Check enable cash boost and start the dax mission. Skip the cutscene then kill yourself and you will get $1,000,000 (restart and repeat for another $1,000,000)")
 end)
 
+items.dax_mission.root:divider("Options", "Recovery options using Dax Mission")
 items.dax_mission.root:action("Start Mission", {}, "This will teleport you to the mission trigger and start it", function()
     local ped = PLAYER.PLAYER_PED_ID()
     ENTITY.SET_ENTITY_COORDS(ped, 1394.4620361328, 3598.4528808594, 34.990489959717)
@@ -581,7 +587,7 @@ items.dax_mission.root:toggle_loop("Enable Cash Boost", {}, "", function()
     local ref = menu.ref_by_rel_path(items.dax_mission.root, "Enable RP Boost")
     
     if not ref.value then
-        memory.write_float(cash, 5000.0) -- setting this value higher causes you to get no money
+        memory.write_float(cash, 5000.0) -- setting this value higher causes you to get no money (1m is the limit)
     end
 end)
 
