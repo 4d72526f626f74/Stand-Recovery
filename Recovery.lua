@@ -605,7 +605,7 @@ items.dax_mission.root:toggle_loop("Enable RP Boost", {}, "", function()
 end)
 
 items.casino_figures.root = root:list("Casino Figures", {"casinofigures"}, "Changes the amount of money you recieve from 1 figure to $200,000")
-items.casino_figures.root:toggle_loop("Enable", {}, "Changes the value of figures to $200,000", function()
+items.casino_figures.root:toggle_loop("Enable", {}, "Drops figures that give you $200,000", function()
     local cash = tunable(27123)
 
     memory.write_int(cash, 200000)
