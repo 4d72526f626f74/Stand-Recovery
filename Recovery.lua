@@ -1,7 +1,7 @@
-local version = "1.0.0"
+local version = "1.0.1"
 local root = menu.my_root()
-local natives_list = {}
-local natives = { wanted_found = false, required_native = false }
+--[[local natives_list = {}
+local natives = { wanted_found = false, required_native = false }--]]
 
 local update_button = root:action("Update Script", {}, "Update the script to the latest version", function()
     async_http.init("raw.githubusercontent.com", "4d72526f626f74/Stand-Recovery/main/Recovery.lua", function(body, headers, status_code)
@@ -30,7 +30,7 @@ async_http.init("raw.githubusercontent.com", "4d72526f626f74/Stand-Recovery/main
 end)
 async_http.dispatch()
 
-for i, path in ipairs(filesystem.list_files(filesystem.scripts_dir() .. "\\lib")) do
+--[[for i, path in ipairs(filesystem.list_files(filesystem.scripts_dir() .. "\\lib")) do
     if filesystem.is_regular_file(path) then
         local split = path:split("\\")
         local name = string.match(split[#split], "(.*)%.lua")
@@ -45,18 +45,20 @@ for i, path in ipairs(filesystem.list_files(filesystem.scripts_dir() .. "\\lib")
             end
         end
     end
-end
+end--]]
 
 util.keep_running()
-if natives.wanted_found then
+util.require_natives(1672190175)
+
+--[[if natives.wanted_found then
     util.require_natives(1672190175)
     natives.required_native = true
-end
+end--]]
 
-if not natives.required_native and not natives.wanted_found then
+--[[if not natives.required_native and not natives.wanted_found then
     util.require_natives(natives_list[#natives_list])
     util.show_corner_help("Required native not found. Using " .. natives_list[#natives_list] .. " instead.")
-end
+end--]]
 
 util.toast("WARNING: All features are considered risky and may result in a ban. Use at your own risk.")
 
