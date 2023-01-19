@@ -59,7 +59,6 @@ if not natives.required_native and not natives.wanted_found then
 end
 
 util.toast("WARNING: All features are considered risky and may result in a ban. Use at your own risk.")
-util.show_corner_help("If you do not have enough money to buy a property twice then use the Dax Mission option (3 runs should be plenty).")
 
 -- dbase = facility
 -- businesshub = bunker
@@ -115,6 +114,9 @@ local items = {
     },
     dax_mission = {
         root = nil,
+    },
+    casino_figures = {
+        root = nil
     }
 }
 
@@ -568,14 +570,14 @@ items.custom.agency.root:toggle_loop("Enable", {}, "", function()
     end
 end)
 
-items.dax_mission.root = root:list("Dax Mission", {"daxmission"}, "Make easy money from the dax mission required to unlock the freakshop")
+items.dax_mission.root = root:list("Dax Mission", {"daxmission"}, "Make easy money from the dax mission required to unlock the freakshop", function() util.show_corner_help("Check 'enable cash boost' option and start one of the new dax missions (if you haven't completed the first mission the 'Start Mission' will automatically start the first mission for you, the R on the map at sandy shores), once the mission has started you need to kill yourself immediately to fail the mission and you will recieve $1,000,000, take too long to kill yourself during the mission and you won\'t get any money") end)
 items.dax_mission.root:divider("Help", "How to use this menu")
 items.dax_mission.root:action("How To Use", {}, "", function()
-    util.show_corner_help("Check enable cash boost and start the dax mission. Skip the cutscene then kill yourself and you will get $1,000,000 (restart and repeat for another $1,000,000)")
+    util.show_corner_help("Check 'enable cash boost' option and start one of the new dax missions (if you haven't completed the first mission the 'Start Mission' will automatically start the first mission for you, the R on the map at sandy shores), once the mission has started you need to kill yourself immediately to fail the mission and you will recieve $1,000,000, take too long to kill yourself during the mission and you won\'t get any money")
 end)
 
 items.dax_mission.root:divider("Options", "Recovery options using Dax Mission")
-items.dax_mission.root:action("Start Mission", {}, "This will teleport you to the mission trigger and start it", function()
+items.dax_mission.root:action("Start Mission", {}, "This will teleport you to the mission trigger and start it (if you've not completed the job already)", function()
     local ped = PLAYER.PLAYER_PED_ID()
     ENTITY.SET_ENTITY_COORDS(ped, 1394.4620361328, 3598.4528808594, 34.990489959717)
     util.yield(200)
@@ -599,5 +601,28 @@ items.dax_mission.root:toggle_loop("Enable RP Boost", {}, "", function()
     memory.write_float(rp, 2000.0)
     if ref.value then
         memory.write_float(cash, 500.0)
+    end
+end)
+
+items.casino_figures.root = root:list("Casino Figures", {"casinofigures"}, "Changes the amount of money you recieve from 1 figure to $200,000")
+items.casino_figures.root:toggle_loop("Enable", {}, "Changes the value of figures to $200,000", function()
+    local cash = tunable(27123)
+
+    memory.write_int(cash, 200000)
+    menu.trigger_commands("rp" .. players.get_name(players.user()) .. " on")
+end, function()
+    local cash = tunable(27123)
+
+    memory.write_int(cash, 1000)
+    menu.trigger_commands("rp" .. players.get_name(players.user()) .. " off")
+end)
+
+items.casino_figures.root:toggle("Disable RP", {}, "Disables RP from casino figures", function(state)
+    local rp = tunable(1)
+
+    if state then
+        memory.write_float(rp, 0)
+    else
+        memory.write_float(rp, 1.0)
     end
 end)
