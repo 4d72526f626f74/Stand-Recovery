@@ -421,7 +421,7 @@ end)
 local nc_owned = get_owned_property("Nightclub", true)
 local nc_options = {
     first = {"La Mesa", "Mission Row", "West Vinewood", "Cypress Flats", "LSIA", "Elysian Island", "Downtown Vinewood", "Del Perro", "Vespucci Canals"},
-    second = {"La Mesa", "Mission Row", "West Vinewood", "Cypress Flats", "LSIA", "Elysian Island", "Downtown Vinewood", "Del Perro", "Vespucci Canals"}
+    second = {"Vespucci Canals", "Del Perro", "Downtown Vinewood", "Elysian Island", "LSIA", "Cypress Flats", "West Vinewood", "Mission Row", "La Mesa"}
 }
 
 table.remove(nc_options.first, nc_owned)
