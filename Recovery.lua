@@ -122,6 +122,259 @@ local stats = {
     facility_owned = util.joaat("mp" .. util.get_char_slot() .. "_dbase_owned")
 }
 
+local afk_meta = setmetatable({nc={locations={}, offset=0.05, ragdoll_timer=1}}, {})
+
+local function SIMULATE_CONTROL_KEY(key, times, control=0, delay=300)
+    for i = 1, times do
+        PAD.SET_CONTROL_VALUE_NEXT_FRAME(control, key, 1)
+        util.yield(delay)
+    end
+
+    util.yield(100)
+end
+
+local function MOVE_CURSOR(x, y, delay=300, autoclick=false)
+    PAD.SET_CURSOR_POSITION(x, y)
+    util.yield(delay)
+
+    if autoclick then
+        SIMULATE_CONTROL_KEY(201, 1)
+    end
+end
+
+function afk_meta:add_nightclub(x, y, name, id, purchase)
+    local location = {x=x, y=y, name=name, id=id, purchase=purchase}
+    table.insert(self.nc.locations, location)
+end
+
+function afk_meta:purchase_nightclub(name, notify=false)
+    if nofify then
+        util.toast("Purchasing nightclub: " .. name)
+    end
+
+    for key, value in pairs(self.nc.locations) do
+        if value.name == name then
+            value.purchase()
+            break
+        end
+    end
+
+    if notify then
+        util.toast("Nightclub purchased: " .. name)
+    end
+end
+
+-- add locations for nightclubs
+afk_meta:add_nightclub(0.69, 0.58, "La Mesa", 1, function()
+    -- purchase the nightclub
+    local xptr, yptr = memory.alloc(4), memory.alloc(4)
+    GRAPHICS.GET_ACTUAL_SCREEN_RESOLUTION(xptr, yptr)
+    local x, y = tonumber(memory.read_int(xptr)), tonumber(memory.read_int(yptr))
+
+    local purchase = function(offsets=nil)
+        offsets = offsets or {selection=0, first_buy=0, second_buy=0, third_buy=0}
+        MOVE_CURSOR(0.69, 0.58, 300, true) -- select the nightclub
+        MOVE_CURSOR(0.30, 0.73, 300, true) -- press the first buy button
+        MOVE_CURSOR(0.30, 0.93, 300, true) -- press the second buy button
+        MOVE_CURSOR(0.78, 0.91, 300, true) -- press the third buy button
+        SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
+        SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
+        util.yield(1500) -- wait for transaction to complete
+        PED.SET_PED_TO_RAGDOLL(players.user_ped(), afk_meta.nc.ragdoll_timer, afk_meta.nc.ragdoll_timer, 2, 0, 0, 0) -- ragdoll to close browser
+    end
+
+    purchase()
+
+    -- commented out because it's not needed, but keeping just in case there are issues with purchase()
+    --[[switch x do
+        case 1920:
+            purchase()
+            break
+        case 1680:
+            purchase()
+            break
+        case 1600:  
+            if y == 1024 then
+                purchase()
+            end
+
+            if y == 900 then
+                purchase()
+            end
+            break
+        case 1440:
+            purchase()
+            break
+        case 1366:
+            purchase()
+            break
+        case 1360:
+            purchase()
+            break
+        case 1280:
+            if y == 1024 then
+                purchase()
+            end
+
+            if y == 960 then
+                purchase()
+            end
+
+            if y == 800 then
+                purchase()
+            end
+
+            if y == 768 then
+                purchase()
+            end
+
+            if y == 720 then
+                purchase()
+            end
+            break
+        case 1176:
+            purchase()
+            break
+        case 1152:
+            purchase()
+            break
+        case 1024:
+            purchase()
+            break
+        case 800:
+            purchase()
+            break
+        default:
+            util.toast("Unsupported resolution: " .. x .. "x" .. y)
+            break
+    end]]
+end)
+
+afk_meta:add_nightclub(0.644, 0.51, "Mission Row", 2, function()
+    -- purchase the nightclub
+    local xptr, yptr = memory.alloc(4), memory.alloc(4)
+    GRAPHICS.GET_ACTUAL_SCREEN_RESOLUTION(xptr, yptr)
+    local x, y = tonumber(memory.read_int(xptr)), tonumber(memory.read_int(yptr))
+
+    local purchase = function(offsets=nil)
+        offsets = offsets or {selection=0, first_buy=0, second_buy=0, third_buy=0}
+        MOVE_CURSOR(0.64, 0.51, 300, true) -- select the nightclub
+        MOVE_CURSOR(0.30, 0.73, 300, true) -- press the first buy button
+        MOVE_CURSOR(0.30, 0.93, 300, true) -- press the second buy button
+        MOVE_CURSOR(0.78, 0.91, 300, true) -- press the third buy button
+        SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
+        SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
+        util.yield(1500) -- wait for transaction to complete
+        PED.SET_PED_TO_RAGDOLL(players.user_ped(), afk_meta.nc.ragdoll_timer, afk_meta.nc.ragdoll_timer, 2, 0, 0, 0) -- ragdoll to close browser
+    end
+
+    purchase()
+end)
+
+afk_meta:add_nightclub(0.479, 0.54, "Vespucci Canals", 10, function()
+    -- purchase the nightclub
+    local xptr, yptr = memory.alloc(4), memory.alloc(4)
+    GRAPHICS.GET_ACTUAL_SCREEN_RESOLUTION(xptr, yptr)
+    local x, y = tonumber(memory.read_int(xptr)), tonumber(memory.read_int(yptr))
+
+    local purchase = function(offsets=nil)
+        offsets = offsets or {selection=0, first_buy=0, second_buy=0, third_buy=0}
+        MOVE_CURSOR(0.479, 0.54, 300, true) -- select the nightclub
+        MOVE_CURSOR(0.30, 0.73, 300, true) -- press the first buy button
+        MOVE_CURSOR(0.30, 0.93, 300, true) -- press the second buy button
+        MOVE_CURSOR(0.78, 0.91, 300, true) -- press the third buy button
+        SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
+        SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
+        util.yield(1500) -- wait for transaction to complete
+        PED.SET_PED_TO_RAGDOLL(players.user_ped(), afk_meta.nc.ragdoll_timer, afk_meta.nc.ragdoll_timer, 2, 0, 0, 0) -- ragdoll to close browser
+    end
+
+    purchase()
+end)
+
+function afk_meta:open_internet(is_loop=false)
+    while menu.is_open() do
+        if is_loop then
+            util.toast("[Recovery] Close Stand menu to start AFK loop")
+        end
+        util.yield()
+    end
+
+    local xptr, yptr = memory.alloc(4), memory.alloc(4)
+    GRAPHICS.GET_ACTUAL_SCREEN_RESOLUTION(xptr, yptr)
+    local x, y = tonumber(memory.read_int(xptr)), tonumber(memory.read_int(yptr))
+
+    SIMULATE_CONTROL_KEY(27, 1) -- open phone
+    SIMULATE_CONTROL_KEY(173, 2) -- scroll down
+    SIMULATE_CONTROL_KEY(176, 1) -- select internet
+    MOVE_CURSOR(0.25, 0.70, 300, true) -- mazebank hyperlink
+    MOVE_CURSOR(0.5, 0.83, 300, true) -- enter mazebank button
+    
+    switch x do
+        case 1920:
+            MOVE_CURSOR(0.78, 0.28) -- nightclub filter
+            break
+        case 1680:
+            MOVE_CURSOR(0.78 - afk_meta.nc.offset, 0.28) -- nightclub filter
+            break
+        case 1600:
+            if y == 1024 then
+                MOVE_CURSOR(0.78 - (afk_meta.nc.offset + 0.01), 0.28) -- nightclub filter
+            end
+
+            if y == 900 then
+                MOVE_CURSOR(0.78, 0.28) -- nightclub filter
+            end
+            break
+        case 1440:
+            MOVE_CURSOR(0.78 - afk_meta.nc.offset, 0.28) -- nightclub filter
+            break
+        case 1366:
+            MOVE_CURSOR(0.78, 0.28) -- nightclub filter
+            break
+        case 1360:
+            MOVE_CURSOR(0.78, 0.28) -- nightclub filter
+            break
+        case 1280: 
+            if y == 1024 then
+                MOVE_CURSOR(0.78 - (afk_meta.nc.offset * 3), 0.28) -- nightclub filter
+            end
+
+            if y == 960 then
+                MOVE_CURSOR(0.78 - (afk_meta.nc.offset * 2.5), 0.28) -- nightclub filter
+            end
+
+            if y == 800 then
+                MOVE_CURSOR(0.78 - afk_meta.nc.offset, 0.28) -- nightclub filter
+            end
+
+            if y == 768 then
+                MOVE_CURSOR(0.78 - (afk_meta.nc.offset / 2), 0.28) -- nightclub filter
+            end
+
+            if y == 720 then
+                MOVE_CURSOR(0.78, 0.28) -- nightclub filter
+            end
+            break
+        case 1176:
+            MOVE_CURSOR(0.78, 0.28) -- nightclub filter
+            break
+        case 1152:
+            MOVE_CURSOR(0.78 - (afk_meta.nc.offset * 2.5), 0.28) -- nightclub filter
+            break
+        case 1024:
+            MOVE_CURSOR(0.78 - (afk_meta.nc.offset * 2.5), 0.28) -- nightclub filter
+            break
+        case 800:
+            MOVE_CURSOR(0.78 - (afk_meta.nc.offset * 2.5), 0.28) -- nightclub filter
+            break
+        default: 
+            util.toast("Unsupported resolution: " .. x .. "x" .. y)
+    end
+
+    SIMULATE_CONTROL_KEY(201, 1) -- select nightclub filter
+end
+
 local property_ids = {
     nightclubs = {
         ["La Mesa"] = 1,
@@ -176,94 +429,6 @@ local property_ids = {
     }
 }
 
-local function simulate_control_key(key, times, control=0)
-    for i = 1, times do
-        PAD.SET_CONTROL_VALUE_NEXT_FRAME(control, key, 1)
-        util.yield(300)
-    end
-
-    util.yield(100)
-end
-
-local function move_cursor(x, y)
-    PAD.SET_CURSOR_POSITION(x, y)
-    util.yield(200)
-end
-
-local function purchase_property()
-    simulate_control_key(201, 1)
-    move_cursor(0.30, 0.73) -- buy button
-    simulate_control_key(201, 1)
-    move_cursor(0.30, 0.93) -- buy button
-    simulate_control_key(201, 1)
-    move_cursor(0.78, 0.91) -- buy button
-    simulate_control_key(201, 1)
-    simulate_control_key(176, 1)
-    simulate_control_key(201, 1, 2)
-end
-
-local function purchase_mazebank_property(property_curloc_func)
-    local purchase = function()
-        simulate_control_key(201, 1)
-        move_cursor(0.30, 0.73) -- buy button
-        simulate_control_key(201, 1)
-        move_cursor(0.30, 0.93) -- buy button
-        simulate_control_key(201, 1)
-        move_cursor(0.78, 0.91) -- buy button
-        simulate_control_key(201, 1)
-        simulate_control_key(176, 1)
-        simulate_control_key(201, 1, 2)
-    end
-
-    simulate_control_key(27, 1) -- bring up the phone
-    simulate_control_key(172, 3) -- go to the internet
-    simulate_control_key(176, 1) -- open internet
-    move_cursor(0.25, 0.7) -- mazebank foreclosure
-    simulate_control_key(201, 1) -- press enter
-    move_cursor(0.5, 0.83) -- enter button
-    simulate_control_key(201, 1) -- press enter
-    move_cursor(0.78, 0.28) -- nightclub filter
-    simulate_control_key(201, 1) -- press enter
-    property_curloc_func() -- move cursor to property
-    purchase() -- purchase property
-    move_cursor(0.81, 0.10) -- close browser
-    util.yield(1500) -- wait for transaction to complete
-    simulate_control_key(201, 1) -- press enter
-end
-
-local nightclub_curloc = {
-    [1] = function() -- la mesa
-        move_cursor(0.69, 0.58)
-    end,
-    [2] = function() -- mission row
-        move_cursor(0.644, 0.51)
-    end,
-    [3] = function() -- Strawberry
-        move_cursor(0.59, 0.56)
-    end,
-    [4] = function()-- west vinewood
-        move_cursor(0.61, 0.28) 
-    end,
-    [5] = function()-- cypress flats
-        move_cursor(0.70, 0.74) 
-    end,
-    [6] = function()-- LSIA
-        move_cursor(0.53, 0.80) 
-    end,
-    [7] = function() -- Elysian Island
-        move_cursor(0.63, 0.94) 
-    end,
-    [8] = function() -- downtown vinewood
-        move_cursor(0.647, 0.28)
-    end,
-    [9] = function() -- del perro
-        move_cursor(0.46, 0.457)
-    end,
-    [10] = function() -- vespucci canals
-        move_cursor(0.479, 0.54)
-    end
-}
-
 local options = {
     "50,000,000", "100,000,000", "150,000,000", "200,000,000",
     "250,000,000", "300,000,000", "350,000,000", "400,000,000",
@@ -316,20 +481,6 @@ local function tunable(value)
     return memory.script_global(262145 + value)
 end
 
-local function simulate_control_key(key, times)
-    for i = 1, times do
-        PAD.SET_CONTROL_VALUE_NEXT_FRAME(0, key, 1)
-        util.yield(300)
-    end
-
-    util.yield(100)
-end
-
-local function move_cursor(x, y)
-    PAD.SET_CURSOR_POSITION(x, y)
-    util.yield(200)
-end
-
 local function get_owned_property(property, as_id)
     local ptr = memory.alloc(4)
 
@@ -339,7 +490,11 @@ local function get_owned_property(property, as_id)
                 local prop_id = memory.read_int(ptr)
                 if prop_id > 0 then
                     if not as_id then
-                        return property_ids.nightclubs[prop_id]
+                        for name, id in pairs(property_ids.nightclubs) do
+                            if id == prop_id then
+                                return name
+                            end
+                        end
                     else
                         return prop_id
                     end
@@ -376,10 +531,18 @@ local show_usage = {
     facility = os.time(),
 }
 
+local globals = {
+    nightclub_prices = {
+        ["La Mesa"] = tunable(24838),
+        ["Mission Row"] = tunable(24843),
+        ["Vespucci Canals"] = tunable(24845)
+    }
+}
+
 local usage_timer = 20
 
 items.settings.root = root:list("Settings", {}, "Settings for the script")
-items.presets.root = root:list("Presets", {}, "Preset values for convenience (not all presets will be the exact value")
+items.presets.root = root:list("Presets", {}, "Preset values for convenience (not all presets will be the exact value", function() util.show_corner_help("If you haven\'t unlocked arcades and autoshops on mazebank foreclosure yet then AFK money loop will not work properly") end)
 items.custom.root = root:list("Custom", {}, "Customisable values for fine-tuning to your own liking")
 
 items.settings.root:toggle("Disable Ownership Check", {}, "Disable ownership check for properties (useful if reading the stat is failing)", function(state) settings.ownership_check = state end)
@@ -418,13 +581,50 @@ items.presets.nightclub.root:toggle_loop("Enable", {}, "Enable the preset value 
     end
 end)
 
-local nc_owned = get_owned_property("Nightclub", true)
+local nc_owned = get_owned_property("Nightclub", false)
 local nc_options = {
-    first = {"La Mesa", "Mission Row", "West Vinewood", "Cypress Flats", "LSIA", "Elysian Island", "Downtown Vinewood", "Del Perro", "Vespucci Canals"},
-    second = {"Vespucci Canals", "Del Perro", "Downtown Vinewood", "Elysian Island", "LSIA", "Cypress Flats", "West Vinewood", "Mission Row", "La Mesa"}
+    first = {"La Mesa", "Mission Row", "Vespucci Canals"},
+    second = {"Vespucci Canals", "Mission Row", "La Mesa"}
 }
 
-table.remove(nc_options.first, nc_owned)
+items.presets.nightclub.root:action("Buy Nightclub", {}, "Automatically purchases a nightclub", function()
+    local nc = nc_options.first[math.random(#nc_options.first)]
+    local value = convert_value(options[items.presets.nightclub.choice.value])
+    local wallet = players.get_wallet(players.user())
+    local bank = players.get_bank(players.user())
+
+    while nc == nc_owned do
+        nc = nc_options.first[math.random(#nc_options.first)]
+    end
+
+    local price = memory.read_int(globals.nightclub_prices[nc])
+    
+    if wallet ~= nil and bank ~= nil then
+        if wallet + bank < price then
+            util.toast("[Recovery]: You need $" .. price .. " to purchase " .. nc .. " nightclub")
+            return
+        end
+    end
+
+    value = (value * 2) + price * 2
+    if nc == "La Mesa" then value = value - 400000 end
+
+    if not STATS.STAT_SET_INT(stats.nightclub, value, true) then
+        ref.value = false
+        util.toast("[Recovery]: Failed to set nightclub trade-in price")
+        return
+    end
+
+    while menu.is_open() do
+        util.toast("[Recovery]: Close Stand menu to continue")
+        util.yield()
+    end
+
+    afk_meta:open_internet()
+    afk_meta:purchase_nightclub(nc)
+
+    nc_owned = get_owned_property("Nightclub", false)
+end)
 
 items.presets.nightclub.root:divider("AFK Money Loop", "AFK Money Loop")
 items.presets.nightclub.first_nightclub = items.presets.nightclub.root:list_select("First Nightclub", {}, "First nightclub to purchase", nc_options.first, "1", function(index) end)
@@ -434,25 +634,62 @@ items.presets.nightclub.root:toggle_loop("Modify Value $1.07B", {}, "Modify the 
 end)
 
 items.presets.nightclub.root:toggle_loop("AFK Loop", {}, "AFK money loop", function()
-    while menu.is_open() do
-        util.toast("[Recovery]: Please close Stand menu.")
-        util.yield()
-    end
-
+    local afk_loop =  menu.ref_by_rel_path(items.presets.nightclub.root, "AFK Loop")
+    local first_nc_name = nc_options.first[tonumber(items.presets.nightclub.first_nightclub.value)]
+    local second_nc_name = nc_options.second[tonumber(items.presets.nightclub.second_nightclub.value)]
     local enable =  menu.ref_by_rel_path(items.presets.nightclub.root, "Enable")
     enable.value = false
 
-    local afk_loop =  menu.ref_by_rel_path(items.presets.nightclub.root, "AFK Loop")
-    local value = convert_value(options[items.presets.nightclub.choice.value])
-    local first_nc_name = nc_options.first[tonumber(items.presets.nightclub.first_nightclub.value)]
-    local second_nc_name = nc_options.second[tonumber(items.presets.nightclub.second_nightclub.value)]
-    local first_nc = property_ids.nightclubs[first_nc_name]
-    local second_nc = property_ids.nightclubs[second_nc_name]
+    if first_nc_name == nc_owned then
+        util.show_corner_help("You already own " .. nc_owned .. " choose another nightclub")
+        afk_loop.value = false
+        return
+    end
 
-    purchase_mazebank_property(nightclub_curloc[first_nc])
+    if first_nc_name == second_nc_name then
+        util.show_corner_help("First and second nightclub cannot be the same, choose another nightclub")
+        afk_loop.value = false
+        return
+    end
+
+    if not afk_loop.value then return end
+
+    afk_meta:open_internet(true)
+    afk_meta:purchase_nightclub(first_nc_name)
     util.yield(1000)
-    purchase_mazebank_property(nightclub_curloc[second_nc])
+    afk_meta:open_internet(true)
+    afk_meta:purchase_nightclub(second_nc_name)
     util.yield(1000)
+end)
+
+items.presets.nightclub.root:divider("Tools", "Tools")
+items.presets.nightclub.root:action("Unlock Arcades On MazeBank", {}, "Unlocks arcades", function()
+    local current_pos = ENTITY.GET_ENTITY_COORDS(players.user_ped(), true)
+    local lester_blip = HUD.GET_NEXT_BLIP_INFO_ID(77)
+    local casino_blip = HUD.GET_NEXT_BLIP_INFO_ID(804)
+
+    if HUD.DOES_BLIP_EXIST(lester_blip) == 0 or HUD.DOES_BLIP_EXIST(casino_blip) == 0 then
+        util.toast("[Recovery]: Failed to find blip(s)")
+        return
+    end
+
+    local lester_coords = HUD.GET_BLIP_COORDS(lester_blip)
+    local casino_coords = HUD.GET_BLIP_COORDS(casino_blip)
+
+    ENTITY.SET_ENTITY_COORDS(players.user_ped(), casino_coords.x, casino_coords.y, casino_coords.z, true, true, true, true)
+    PAD.SET_CONTROL_VALUE_NEXT_FRAME(0, 51, 1)
+    ENTITY.SET_ENTITY_COORDS(players.user_ped(), lester_coords.x, lester_coords.y, lester_coords.z, true, true, true, true)
+    util.yield(500)
+    menu.trigger_commands("skipcutscene")
+    util.yield(100)
+    ENTITY.SET_ENTITY_COORDS(players.user_ped(), current_pos.x, current_pos.y, current_pos.z, true, true, true, true)
+
+    util.toast("[Recovery]: Unlocked arcades")
+end)
+
+items.presets.nightclub.root:action("Unlock Autoshops On MazeBank", {}, "Unlock Autoshops", function()
+    local pos = v3.new(778.99708076172, -1867.5257568359, 28.296264648438)
+    ENTITY.SET_ENTITY_COORDS(players.user_ped(), pos.x, pos.y, pos.z, true, true, true, true)
 end)
 
 items.presets.arcade.choice = items.presets.arcade.root:list_select("Money", {}, "The arcade trade-in price", options, 1, function() end)
