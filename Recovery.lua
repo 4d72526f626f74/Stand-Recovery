@@ -1,4 +1,4 @@
-local version = "1.1.1"
+local version = "1.2.1"
 local root = menu.my_root()
 
 local update_button = root:action("Update Script", {}, "Update the script to the latest version", function()
@@ -39,6 +39,9 @@ local items = {
     settings = {
         root = nil
     },
+    tools = {
+        root = nil
+    },
     presets = {
         root = nil,
         nightclub = {
@@ -50,7 +53,10 @@ local items = {
         },
         arcade = {
             root = nil,
-            choice = nil
+            choice = nil,
+            afk = nil,
+            first_arcade = nil,
+            second_arcade = nil,
         },
         autoshop = {
             root = nil,
@@ -58,15 +64,24 @@ local items = {
         },
         agency = {
             root = nil,
-            choice = nil
+            choice = nil,
+            afk = nil,
+            first_agency = nil,
+            second_agency = nil,
         },
-        hanger = {
+        hangar = {
             root = nil,
-            choice = nil
+            choice = nil,
+            afk = nil,
+            first_hangar = nil,
+            second_hangar = nil,
         },
         facility = {
             root = nil,
-            choice = nil
+            choice = nil,
+            afk = nil,
+            first_facility = nil,
+            second_facility = nil,
         }
     },
     custom = {
@@ -83,7 +98,7 @@ local items = {
         agency = {
             root = nil
         },
-        hanger = {
+        hangar = {
             root = nil
         },
         facility = {
@@ -95,6 +110,15 @@ local items = {
     },
     casino_figures = {
         root = nil
+    },
+    heists = {
+        root = nil,
+        casino = {
+            root = nil
+        },
+        cayo_perico = {
+            root = nil
+        }
     }
 }
 
@@ -108,7 +132,7 @@ local stats = {
     arcade = util.joaat("mp" .. util.get_char_slot() .. "_prop_arcade_value"),
     autoshop = util.joaat("mp" .. util.get_char_slot() .. "_prop_auto_shop_value"),
     agency = util.joaat("mp" .. util.get_char_slot() .. "_prop_fixer_hq_value"),
-    hanger = util.joaat("mp" .. util.get_char_slot() .. "_prop_hangar_value"),
+    hangar = util.joaat("mp" .. util.get_char_slot() .. "_prop_hangar_value"),
     office = util.joaat("mp" .. util.get_char_slot() .. "_prop_office_value"),
     bunker = util.joaat("mp" .. util.get_char_slot() .. "_prop_businesshub_value"), -- might not be correct
     facility = util.joaat("mp" .. util.get_char_slot() .. "_prop_defuncbase_value"),
@@ -116,13 +140,42 @@ local stats = {
     arcade_owned = util.joaat("mp" .. util.get_char_slot() .. "_arcade_owned"),
     autoshop_owned = util.joaat("mp" .. util.get_char_slot() .. "_auto_shop_owned"),
     agency_owned = util.joaat("mp" .. util.get_char_slot() .. "_fixer_hq_owned"),
-    hanger_owned = util.joaat("mp" .. util.get_char_slot() .. "_hangar_owned"),
+    hangar_owned = util.joaat("mp" .. util.get_char_slot() .. "_hangar_owned"),
     office_owned = util.joaat("mp" .. util.get_char_slot() .. "_office_owned"),
     bunker_owned = util.joaat("mp" .. util.get_char_slot() .. "_businesshub_owned"), -- might not be correct
     facility_owned = util.joaat("mp" .. util.get_char_slot() .. "_dbase_owned")
 }
 
-local afk_meta = setmetatable({nc={locations={}, offset=0.05, ragdoll_timer=1}}, {})
+local afk_meta = setmetatable(
+    {
+        nc = {
+            locations = {}, 
+            offset = 0.05, 
+            ragdoll_timer = 1
+        },
+        arcade = {
+            locations = {},
+            offset = 0.05,
+            ragdoll_timer = 1
+        },
+        autoshop = {
+            locations = {},
+            offset = 0.05,
+            ragdoll_timer = 1
+        },
+        hangar = {
+            locations = {},
+            offset = 0.05,
+            ragdoll_timer = 1
+        },
+        facility = {
+            locations = {},
+            offset = 0.05,
+            ragdoll_timer = 1
+        },
+    }, 
+    {}
+)
 
 local function SIMULATE_CONTROL_KEY(key, times, control=0, delay=300)
     for i = 1, times do
@@ -228,9 +281,151 @@ afk_meta:add_nightclub(0.479, 0.54, "Vespucci Canals", 10, function()
     purchase()
 end)
 
-function afk_meta:open_internet(is_loop=false)
+function afk_meta:purchase_arcade(name, notify=false)
+    if nofify then
+        util.toast("Purchasing arcade: " .. name)
+    end
+
+    for key, value in pairs(self.arcade.locations) do
+        if value.name == name then
+            value.purchase()
+            break
+        end
+    end
+
+    if notify then
+        util.toast("Arcade purchased: " .. name)
+    end
+end
+
+function afk_meta:add_arcade(x, y, name, id, purchase)
+    local location = {x=x, y=y, name=name, id=id, purchase=purchase}
+    table.insert(self.arcade.locations, location)
+end
+
+afk_meta:add_arcade(0.0, 0.0, "La Mesa", 6, function()
+    local purchase = function(offsets=nil)
+        offsets = offsets or {selection=0, first_buy=0, second_buy=0, third_buy=0}
+        MOVE_CURSOR(0.687, 0.48, 300, true) -- select the arcade
+        MOVE_CURSOR(0.30, 0.78, 300, true) -- press the first buy button
+        MOVE_CURSOR(0.30, 0.92, 300, true) -- press the second buy button
+        MOVE_CURSOR(0.78, 0.91, 300, true) -- press the third buy button
+        SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
+        SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
+        util.yield(1500) -- wait for transaction to complete
+        PED.SET_PED_TO_RAGDOLL(players.user_ped(), afk_meta.arcade.ragdoll_timer, afk_meta.arcade.ragdoll_timer, 2, 0, 0, 0) -- ragdoll to close browser
+    end
+
+    purchase()
+end)
+
+afk_meta:add_arcade(0.0, 0.0, "Davis", 3, function()
+    local purchase = function(offsets=nil)
+        offsets = offsets or {selection=0, first_buy=0, second_buy=0, third_buy=0}
+        MOVE_CURSOR(0.593, 0.67, 300, true) -- select the arcade
+        MOVE_CURSOR(0.30, 0.81, 300, true) -- press the first buy button
+        MOVE_CURSOR(0.30, 0.92, 300, true) -- press the second buy button
+        MOVE_CURSOR(0.78, 0.91, 300, true) -- press the third buy button
+        SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
+        SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
+        util.yield(1500) -- wait for transaction to complete
+        PED.SET_PED_TO_RAGDOLL(players.user_ped(), afk_meta.arcade.ragdoll_timer, afk_meta.arcade.ragdoll_timer, 2, 0, 0, 0) -- ragdoll to close browser
+    end
+
+    purchase()
+end)
+
+afk_meta:add_arcade(0.0, 0.0, "Eight Bit", 4, function()
+    local purchase = function(offsets=nil)
+        offsets = offsets or {selection=0, first_buy=0, second_buy=0, third_buy=0}
+        MOVE_CURSOR(0.54, 0.27, 300, true) -- select the arcade
+        MOVE_CURSOR(0.30, 0.81, 300, true) -- press the first buy button
+        MOVE_CURSOR(0.30, 0.92, 300, true) -- press the second buy button
+        MOVE_CURSOR(0.78, 0.91, 300, true) -- press the third buy button
+        SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
+        SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
+        util.yield(1500) -- wait for transaction to complete
+        PED.SET_PED_TO_RAGDOLL(players.user_ped(), afk_meta.arcade.ragdoll_timer, afk_meta.arcade.ragdoll_timer, 2, 0, 0, 0) -- ragdoll to close browser
+    end
+
+    purchase()
+end)
+
+function afk_meta:purchase_autoshop(name, notify=false)
+    if nofify then
+        util.toast("Purchasing autoshop: " .. name)
+    end
+
+    for key, value in pairs(self.autoshop.locations) do
+        if value.name == name then
+            value.purchase()
+            break
+        end
+    end
+
+    if notify then
+        util.toast("Autoshop purchased: " .. name)
+    end
+end
+
+function afk_meta:add_autoshop(x, y, name, id, purchase)
+    local location = {x=x, y=y, name=name, id=id, purchase=purchase}
+    table.insert(self.autoshop.locations, location)
+end
+
+afk_meta:add_autoshop(0.0, 0.0, "La Mesa", 1, function()
+    local purchase = function(offsets=nil)
+        offsets = offsets or {selection=0, first_buy=0, second_buy=0, third_buy=0}
+        MOVE_CURSOR(0.687, 0.455, 300, true) -- select the autoshop
+        MOVE_CURSOR(0.30, 0.75, 300, true) -- press the first buy button
+        MOVE_CURSOR(0.30, 0.92, 300, true) -- press the second buy button
+        MOVE_CURSOR(0.78, 0.94, 300, true) -- press the third buy button
+        SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
+        SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
+        util.yield(1500) -- wait for transaction to complete
+        PED.SET_PED_TO_RAGDOLL(players.user_ped(), afk_meta.autoshop.ragdoll_timer, afk_meta.autoshop.ragdoll_timer, 2, 0, 0, 0) -- ragdoll to close browser
+    end
+
+    purchase()
+end)
+
+afk_meta:add_autoshop(0.0, 0.0, "Mission Row", 1, function()
+    local purchase = function(offsets=nil)
+        offsets = offsets or {selection=0, first_buy=0, second_buy=0, third_buy=0}
+        MOVE_CURSOR(0.66, 0.49, 300, true) -- select the autoshop
+        MOVE_CURSOR(0.30, 0.75, 300, true) -- press the first buy button
+        MOVE_CURSOR(0.30, 0.92, 300, true) -- press the second buy button
+        MOVE_CURSOR(0.78, 0.94, 300, true) -- press the third buy button
+        SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
+        SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
+        util.yield(1500) -- wait for transaction to complete
+        PED.SET_PED_TO_RAGDOLL(players.user_ped(), afk_meta.autoshop.ragdoll_timer, afk_meta.autoshop.ragdoll_timer, 2, 0, 0, 0) -- ragdoll to close browser
+    end
+
+    purchase()
+end)
+
+afk_meta:add_autoshop(0.0, 0.0, "Burton", 1, function()
+    local purchase = function(offsets=nil)
+        offsets = offsets or {selection=0, first_buy=0, second_buy=0, third_buy=0}
+        MOVE_CURSOR(0.585, 0.32, 300, true) -- select the autoshop
+        MOVE_CURSOR(0.30, 0.75, 300, true) -- press the first buy button
+        MOVE_CURSOR(0.30, 0.92, 300, true) -- press the second buy button
+        MOVE_CURSOR(0.78, 0.94, 300, true) -- press the third buy button
+        SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
+        SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
+        util.yield(1500) -- wait for transaction to complete
+        PED.SET_PED_TO_RAGDOLL(players.user_ped(), afk_meta.autoshop.ragdoll_timer, afk_meta.autoshop.ragdoll_timer, 2, 0, 0, 0) -- ragdoll to close browser
+    end
+
+    purchase()
+end)
+
+function afk_meta:open_internet(is_afk_loop, filter)
+    is_afk_loop = is_afk_loop or false
+
     while menu.is_open() do
-        if is_loop then
+        if is_afk_loop then
             util.toast("[Recovery] Close Stand menu to start AFK loop")
         end
         util.yield()
@@ -248,67 +443,115 @@ function afk_meta:open_internet(is_loop=false)
     
     switch x do
         case 1920:
-            MOVE_CURSOR(0.78, 0.28) -- nightclub filter
+            if filter == "nightclub" then MOVE_CURSOR(0.78, 0.28) end -- nightclub filter
+            if filter == "arcade" then MOVE_CURSOR(0.86, 0.28) end -- arcade filter
+            if filter == "autoshop" then MOVE_CURSOR(0.94, 0.28) end -- autoshop filter
+            if filter == "facility" then MOVE_CURSOR(0.70, 0.28) end -- facility filter
             break
         case 1680:
-            MOVE_CURSOR(0.78 - afk_meta.nc.offset, 0.28) -- nightclub filter
+            if filter == "nightclub" then MOVE_CURSOR(0.78 - afk_meta.nc.offset, 0.28) end -- nightclub filter
+            if filter == "arcade" then MOVE_CURSOR(0.86 - afk_meta.arcade.offset, 0.28) end -- arcade filter
+            if filter == "autoshop" then MOVE_CURSOR(0.94 - afk_meta.autoshop.offset, 0.28) end -- autoshop filter
+            if filter == "facility" then MOVE_CURSOR(0.70 - afk_meta.facility.offset, 0.28) end -- facility filter
             break
         case 1600:
             if y == 1024 then
-                MOVE_CURSOR(0.78 - (afk_meta.nc.offset + 0.01), 0.28) -- nightclub filter
+                if filter == "nightclub" then MOVE_CURSOR(0.78 - (afk_meta.nc.offset + 0.01), 0.28) end -- nightclub filter
+                if filter == "arcade" then MOVE_CURSOR(0.86 - (afk_meta.arcade.offset + 0.01), 0.28) end -- arcade filter
+                if filter == "autoshop" then MOVE_CURSOR(0.94 - (afk_meta.autoshop.offset + 0.01), 0.28) end -- autoshop filter
+                if filter == "facility" then MOVE_CURSOR(0.70 - (afk_meta.facility.offset + 0.01), 0.28) end -- facility filter
             end
 
             if y == 900 then
-                MOVE_CURSOR(0.78, 0.28) -- nightclub filter
+                if filter == "nightclub" then MOVE_CURSOR(0.78, 0.28) end -- nightclub filter
+                if filter == "arcade" then MOVE_CURSOR(0.86, 0.28) end -- arcade filter
+                if filter == "autoshop" then MOVE_CURSOR(0.94, 0.28) end -- autoshop filter
+                if filter == "facility" then MOVE_CURSOR(0.70, 0.28) end -- facility filter
             end
             break
         case 1440:
-            MOVE_CURSOR(0.78 - afk_meta.nc.offset, 0.28) -- nightclub filter
+            if filter == "nightclub" then MOVE_CURSOR(0.78 - afk_meta.nc.offset, 0.28) end -- nightclub filter
+            if filter == "arcade" then MOVE_CURSOR(0.86 - afk_meta.arcade.offset, 0.28) end -- arcade filter
+            if filter == "autoshop" then MOVE_CURSOR(0.94 - afk_meta.autoshop.offset, 0.28) end -- autoshop filter
+            if filter == "facility" then MOVE_CURSOR(0.70 - afk_meta.facility.offset, 0.28) end -- facility filter
             break
         case 1366:
-            MOVE_CURSOR(0.78, 0.28) -- nightclub filter
+            if filter == "nightclub" then MOVE_CURSOR(0.78, 0.28) end -- nightclub filter
+            if filter == "arcade" then MOVE_CURSOR(0.86, 0.28) end -- arcade filter
+            if filter == "autoshop" then MOVE_CURSOR(0.94, 0.28) end -- autoshop filter
+            if filter == "facility" then MOVE_CURSOR(0.70, 0.28) end -- facility filter
             break
         case 1360:
-            MOVE_CURSOR(0.78, 0.28) -- nightclub filter
+            if filter == "nightclub" then MOVE_CURSOR(0.78, 0.28) end -- nightclub filter
+            if filter == "arcade" then MOVE_CURSOR(0.86, 0.28) end -- arcade filter
+            if filter == "autoshop" then MOVE_CURSOR(0.94, 0.28) end -- autoshop filter
+            if filter == "facility" then MOVE_CURSOR(0.70, 0.28) end -- facility filter
             break
         case 1280: 
             if y == 1024 then
-                MOVE_CURSOR(0.78 - (afk_meta.nc.offset * 3), 0.28) -- nightclub filter
+                if filter == "nightclub" then MOVE_CURSOR(0.78 - (afk_meta.nc.offset * 3), 0.28) end -- nightclub filter
+                if filter == "arcade" then MOVE_CURSOR(0.86 - (afk_meta.arcade.offset * 3), 0.28) end -- arcade filter
+                if filter == "autoshop" then MOVE_CURSOR(0.94 - (afk_meta.autoshop.offset * 3), 0.28) end -- autoshop filter
+                if filter == "facility" then MOVE_CURSOR(0.70 - (afk_meta.facility.offset * 3), 0.28) end -- facility filter
             end
 
             if y == 960 then
-                MOVE_CURSOR(0.78 - (afk_meta.nc.offset * 2.5), 0.28) -- nightclub filter
+                if filter == "nightclub" then MOVE_CURSOR(0.78 - (afk_meta.nc.offset * 2.5), 0.28) end -- nightclub filter
+                if filter == "arcade" then MOVE_CURSOR(0.86 - (afk_meta.arcade.offset * 2.5), 0.28) end -- arcade filter
+                if filter == "autoshop" then MOVE_CURSOR(0.94 - (afk_meta.autoshop.offset * 2.5), 0.28) end -- autoshop filter
+                if filter == "facility" then MOVE_CURSOR(0.70 - (afk_meta.facility.offset * 2.5), 0.28) end -- facility filter
             end
 
             if y == 800 then
-                MOVE_CURSOR(0.78 - afk_meta.nc.offset, 0.28) -- nightclub filter
+                if filter == "nightclub" then MOVE_CURSOR(0.78 - afk_meta.nc.offset, 0.28) end -- nightclub filter
+                if filter == "arcade" then MOVE_CURSOR(0.86 - afk_meta.arcade.offset, 0.28) end -- arcade filter
+                if filter == "autoshop" then MOVE_CURSOR(0.94 - afk_meta.autoshop.offset, 0.28) end -- autoshop filter
+                if filter == "facility" then MOVE_CURSOR(0.70 - afk_meta.facility.offset, 0.28) end -- facility filter
             end
 
             if y == 768 then
-                MOVE_CURSOR(0.78 - (afk_meta.nc.offset / 2), 0.28) -- nightclub filter
+                if filter == "nightclub" then MOVE_CURSOR(0.78 - (afk_meta.nc.offset / 2), 0.28) end -- nightclub filter
+                if filter == "arcade" then MOVE_CURSOR(0.86 - (afk_meta.arcade.offset / 2), 0.28) end -- arcade filter
+                if filter == "autoshop" then MOVE_CURSOR(0.94 - (afk_meta.autoshop.offset / 2), 0.28) end -- autoshop filter    
+                if filter == "facility" then MOVE_CURSOR(0.70 - (afk_meta.facility.offset / 2), 0.28) end -- facility filter
             end
 
             if y == 720 then
-                MOVE_CURSOR(0.78, 0.28) -- nightclub filter
+                if filter == "nightclub" then MOVE_CURSOR(0.78, 0.28) end -- nightclub filter
+                if filter == "arcade" then MOVE_CURSOR(0.86, 0.28) end -- arcade filter
+                if filter == "autoshop" then MOVE_CURSOR(0.94, 0.28) end -- autoshop filter 
+                if filter == "facility" then MOVE_CURSOR(0.70, 0.28) end -- facility filter
             end
             break
         case 1176:
-            MOVE_CURSOR(0.78, 0.28) -- nightclub filter
+            if filter == "nightclub" then MOVE_CURSOR(0.78, 0.28) end -- nightclub filter
+            if filter == "arcade" then MOVE_CURSOR(0.86, 0.28) end -- arcade filter
+            if filter == "autoshop" then MOVE_CURSOR(0.94, 0.28) end -- autoshop filter
+            if filter == "facility" then MOVE_CURSOR(0.70, 0.28) end -- facility filter
             break
         case 1152:
-            MOVE_CURSOR(0.78 - (afk_meta.nc.offset * 2.5), 0.28) -- nightclub filter
+            if filter == "nightclub" then MOVE_CURSOR(0.78 - (afk_meta.nc.offset * 2.5), 0.28) end -- nightclub filter
+            if filter == "arcade" then MOVE_CURSOR(0.86 - (afk_meta.arcade.offset * 2.5), 0.28) end -- arcade filter
+            if filter == "autoshop" then MOVE_CURSOR(0.94 - (afk_meta.autoshop.offset * 2.5), 0.28) end -- autoshop filter
+            if filter == "facility" then MOVE_CURSOR(0.70 - (afk_meta.facility.offset * 2.5), 0.28) end -- facility filter
             break
         case 1024:
-            MOVE_CURSOR(0.78 - (afk_meta.nc.offset * 2.5), 0.28) -- nightclub filter
+            if filter == "nightclub" then MOVE_CURSOR(0.78 - (afk_meta.nc.offset * 2.5), 0.28) end -- nightclub filter
+            if filter == "arcade" then MOVE_CURSOR(0.86 - (afk_meta.arcade.offset * 2.5), 0.28) end -- arcade filter
+            if filter == "autoshop" then MOVE_CURSOR(0.94 - (afk_meta.autoshop.offset * 2.5), 0.28) end -- autoshop filter
+            if filter == "facility" then MOVE_CURSOR(0.70 - (afk_meta.facility.offset * 2.5), 0.28) end -- facility filter
             break
         case 800:
-            MOVE_CURSOR(0.78 - (afk_meta.nc.offset * 2.5), 0.28) -- nightclub filter
+            if filter == "nightclub" then MOVE_CURSOR(0.78 - (afk_meta.nc.offset * 2.5), 0.28) end -- nightclub filter
+            if filter == "arcade" then MOVE_CURSOR(0.86 - (afk_meta.arcade.offset * 2.5), 0.28) end -- arcade filter
+            if filter == "autoshop" then MOVE_CURSOR(0.94 - (afk_meta.autoshop.offset * 2.5), 0.28) end -- autoshop filter
+            if filter == "facility" then MOVE_CURSOR(0.70 - (afk_meta.facility.offset * 2.5), 0.28) end -- facility filter
             break
         default: 
             util.toast("Unsupported resolution: " .. x .. "x" .. y)
     end
 
-    SIMULATE_CONTROL_KEY(201, 1) -- select nightclub filter
+    SIMULATE_CONTROL_KEY(201, 1) -- select filter
 end
 
 local property_ids = {
@@ -325,7 +568,7 @@ local property_ids = {
         ["Vespucci Canals"] = 10
     },
     arcades = {
-        ["Warehouse - Davis"] = 3,
+        ["Davis"] = 3,
         ["Eight Bit"] = 4,
         ["Insert Coin - Rockford Hills"] = 5,
         ["La Mesa"] = 6
@@ -343,7 +586,7 @@ local property_ids = {
         ["Little Seoul"] = 3,
         ["Vespucci Canals"] = 4
     },
-    hangers = {
+    hangars = {
         ["LSIA 1"] = 1,
         ["LSIA A17"] = 2,
         ["Fort Zancudo Hangar A2"] = 3,
@@ -370,7 +613,7 @@ local options = {
     "250,000,000", "300,000,000", "350,000,000", "400,000,000",
     "450,000,000", "500,000,000", "550,000,000", "600,000,000",
     "650,000,000", "700,000,000", "750,000,000", "800,000,000", 
-    "850,000,000", "900,000,000", "950,000,000","1,000,000,000",
+    "850,000,000", "900,000,000", "950,000,000","1,000,000,000"
 }
 
 local function convert_value(value)
@@ -417,27 +660,56 @@ local function tunable(value)
     return memory.script_global(262145 + value)
 end
 
-local function get_owned_property(property, as_id)
+local function get_owned_property(property)
     local ptr = memory.alloc(4)
+    local table = nil
+    local stat = nil
 
     switch property do
         case "Nightclub":
-            if STATS.STAT_GET_INT(stats.nightclub_owned, ptr, -1) then
-                local prop_id = memory.read_int(ptr)
-                if prop_id > 0 then
-                    if not as_id then
-                        for name, id in pairs(property_ids.nightclubs) do
-                            if id == prop_id then
-                                return name
-                            end
-                        end
-                    else
-                        return prop_id
+            table = property_ids.nightclubs
+            stat = stats.nightclub_owned
+            break
+        case "Arcade":
+            table = property_ids.arcades
+            stat = stats.arcade_owned
+            break
+        case "Autoshop":
+            table = property_ids.autoshops
+            stat = stats.autoshop_owned
+            break
+        case "Agency":
+            table = property_ids.agencies
+            stat = stats.agency_owned
+            break
+        case "Hangar":
+            table = property_ids.hangars
+            stat = stats.hangar_owned
+            break
+        case "Bunker":
+            table = property_ids.bunkers
+            stat = stats.bunker_owned
+            break
+        case "Facility":
+            table = property_ids.facilities
+            stat = stats.facility_owned
+            break
+    end
+
+    if table ~= nil and stat ~= nil then
+        if STATS.STAT_GET_INT(stat, ptr, -1) then
+            local prop_id = memory.read_int(ptr)
+            if prop_id > 0 then
+                for name, id in pairs(table) do
+                    if id == prop_id then
+                        return name
                     end
                 end
             end
-            break
         end
+    end
+
+    return nil
 end
 
 local function get_property_names(property)
@@ -452,18 +724,26 @@ local function get_property_names(property)
         case "Arcade": return {} break
         case "Autoshop": return {} break
         case "Agency": return {} break
-        case "Hanger": return {} break
+        case "Hangar": return {} break
         case "Facility": return {} break
         default: return {} break
     end
 end
 
+local function can_make_purchase(amount)
+    local wallet = players.get_wallet(players.user())
+    local bank = players.get_bank(players.user())
+
+    if wallet ~= nil and bank ~= nil then
+        return (wallet + bank) >= amount
+    end
+
+    return false
+end
+
 local show_usage = {
-    nightclub = os.time(),
-    arcade = os.time(),
-    autoshop = os.time(),
     agency = os.time(),
-    hanger = os.time(),
+    hangar = os.time(),
     facility = os.time(),
 }
 
@@ -472,134 +752,78 @@ local globals = {
         ["La Mesa"] = tunable(24838),
         ["Mission Row"] = tunable(24843),
         ["Vespucci Canals"] = tunable(24845)
+    },
+    arcade_prices = {
+        ["La Mesa"] = tunable(28441),
+        ["Davis"] = tunable(28439),
+        ["Eight Bit"] = tunable(28444)
+    },
+    autoshop_prices = {
+        ["La Mesa"] = tunable(31246),
+        ["Mission Row"] = tunable(31248),
+        ["Burton"] = tunable(31249)
     }
 }
 
-local usage_timer = 20
-
-items.settings.root = root:list("Settings", {}, "Settings for the script")
-items.presets.root = root:list("Presets", {}, "Preset values for convenience (not all presets will be the exact value", function() util.show_corner_help("If you haven\'t unlocked arcades and autoshops on mazebank foreclosure yet then AFK money loop will not work properly") end)
-items.custom.root = root:list("Custom", {}, "Customisable values for fine-tuning to your own liking")
-
-items.settings.root:toggle("Disable Ownership Check", {}, "Disable ownership check for properties (useful if reading the stat is failing)", function(state) settings.ownership_check = state end)
-items.settings.root:toggle("Verbose", {}, "Show verbose output", function(state) settings.verbose = state end)
-items.presets.root:divider("MazeBank Properties", "MazeBank Properties")
-items.presets.nightclub.root = items.presets.root:list("Nightclub", {}, "Preset values for nightclub")
-items.presets.arcade.root = items.presets.root:list("Arcade", {}, "Preset values for arcade")
-items.presets.autoshop.root = items.presets.root:list("Autoshop", {}, "Preset values for autoshop")
-items.presets.hanger.root = items.presets.root:list("Hanger", {}, "Preset values for hanger")
-items.presets.facility.root = items.presets.root:list("Facility", {}, "Preset values for facility")
-items.presets.root:divider("Dynasty8Executive Properties", "Dynasty8Executive Properties")
-items.presets.agency.root = items.presets.root:list("Agency", {}, "Preset values for agency")
-
-items.presets.nightclub.root:divider("Nightclub", "Nightclub")
-items.presets.nightclub.choice = items.presets.nightclub.root:list_select("Money", {}, "The nightclub trade-in price", options, 1, function(index) end)
-items.presets.nightclub.root:toggle_loop("Enable", {}, "Enable the preset value for your nightclub", function()
-    local ref =  menu.ref_by_rel_path(items.presets.nightclub.root, "Enable")
-    local value = convert_value(options[items.presets.nightclub.choice.value])
-
-    if settings.ownership_check then
-        if not is_owned(stats.nightclub_owned) then
-            ref.value = false
-            util.toast("[Recovery]: You do not own a nightclub")
-            return
-        end
-    end
-
-    if not STATS.STAT_SET_INT(stats.nightclub, ((value * 2) + 4500000), true) then
-        ref.value = false
-        util.toast("[Recovery]: Failed to set nightclub trade-in price")
-    end
-
-    if show_usage.nightclub - os.time() <= 0 then
-        show_usage.nightclub = os.time() + usage_timer
-        util.show_corner_help("Goto mazebank foreclosure website and purchase a new nightclub to get the money")
-    end
-end)
-
-local nc_owned = get_owned_property("Nightclub", false)
+local nc_owned = get_owned_property("Nightclub")
 local nc_options = {
     first = {"La Mesa", "Mission Row", "Vespucci Canals"},
     second = {"Vespucci Canals", "Mission Row", "La Mesa"}
 }
 
-items.presets.nightclub.root:action("Buy Nightclub", {}, "Automatically purchases a nightclub", function()
-    local nc = nc_options.first[math.random(#nc_options.first)]
-    local value = convert_value(options[items.presets.nightclub.choice.value])
-    local wallet = players.get_wallet(players.user())
-    local bank = players.get_bank(players.user())
+local arcade_owned = get_owned_property("Arcade")
+local arcade_options = {
+    first = {"La Mesa", "Davis", "Eight Bit"},
+    second = {"Eight Bit", "Davis", "La Mesa"}
+}
 
-    while nc == nc_owned do
-        nc = nc_options.first[math.random(#nc_options.first)]
-    end
+local autoshop_owned = get_owned_property("Autoshop")
+local autoshop_options = {
+    first = {"La Mesa", "Mission Row", "Burton"},
+    second = {"Burton", "Mission Row", "La Mesa"}
+}
 
-    local price = memory.read_int(globals.nightclub_prices[nc])
-    
-    if wallet ~= nil and bank ~= nil then
-        if wallet + bank < price then
-            util.toast("[Recovery]: You need $" .. price .. " to purchase " .. nc .. " nightclub")
-            return
-        end
-    end
+local hangar_owned = get_owned_property("Hangar")
+local hangar_options = {
+    first = {"Fort Zancudo A2", "Fort Zancudo 3497", "Fort Zancudo 3499"},
+    second = {"Fort Zancudo 3499", "Fort Zancudo 3497", "Fort Zancudo A2"}
+}
 
-    value = (value * 2) + price * 2
-    if nc == "La Mesa" then value = value - 400000 end
+local facility_owned = get_owned_property("Facility")
+local facility_options = {
+    first = {"Land Act Reservoir", "Ron Alternates Wind Farm", "Fort Zancudo"},
+    second = {"Fort Zancudo", "Ron Alternates Wind Farm", "Land Act Reservoir"}
+}
 
-    if not STATS.STAT_SET_INT(stats.nightclub, value, true) then
-        ref.value = false
-        util.toast("[Recovery]: Failed to set nightclub trade-in price")
-        return
-    end
+local agency_owned = get_owned_property("Agency")
+local agency_options = {
+    first = {"Hawick", "Rockford Hills", "Little Seoul"},
+    second = {"Little Seoul", "Rockford Hills", "Hawick"}
+}
 
-    while menu.is_open() do
-        util.toast("[Recovery]: Close Stand menu to continue")
-        util.yield()
-    end
+local usage_timer = 20
 
-    afk_meta:open_internet()
-    afk_meta:purchase_nightclub(nc)
+items.settings.root = root:list("Settings", {}, "Settings for the script")
+items.tools.root = root:list("Tools", {}, "Tools for unlocking arcades and autoshops on mazebank foreclosure")
+root:divider("Recovery", "Recovery")
+items.presets.root = root:list("Presets", {}, "Preset values for convenience", function() util.show_corner_help("If you haven\'t unlocked arcades and autoshops on mazebank foreclosure yet then AFK money loop will not work properly") end)
+items.custom.root = root:list("Custom", {}, "Customisable values for fine-tuning to your own liking")
 
-    nc_owned = get_owned_property("Nightclub", false)
-end)
+items.settings.root:toggle("Disable Ownership Check", {}, "Disable ownership check for properties (useful if you own a property but are falsely told you don\'t)", function(state) settings.ownership_check = state end)
+items.settings.root:toggle("Verbose", {}, "Show verbose output (not fully implemented yet)", function(state) settings.verbose = state end)
+items.presets.root:divider("MazeBank Properties", "MazeBank Properties")
+items.presets.nightclub.root = items.presets.root:list("Nightclub", {}, "Preset values for nightclub")
+items.presets.arcade.root = items.presets.root:list("Arcade", {}, "Preset values for arcade")
+items.presets.autoshop.root = items.presets.root:list("Autoshop", {}, "Preset values for autoshop")
+items.presets.hangar.root = items.presets.root:list("Hangar", {}, "Preset values for hangar")
+items.presets.facility.root = items.presets.root:list("Facility", {}, "Preset values for facility")
+items.presets.root:divider("Dynasty8Executive Properties", "Dynasty8Executive Properties")
+items.presets.agency.root = items.presets.root:list("Agency", {}, "Preset values for agency")
 
-items.presets.nightclub.root:divider("AFK Money Loop", "AFK Money Loop")
-items.presets.nightclub.first_nightclub = items.presets.nightclub.root:list_select("First Nightclub", {}, "First nightclub to purchase", nc_options.first, "1", function(index) end)
-items.presets.nightclub.second_nightclub = items.presets.nightclub.root:list_select("Second Nightclub", {}, "Second nightclub to purchase", nc_options.second, "1", function(index) end)
-items.presets.nightclub.root:toggle_loop("Modify Value $1.07B", {}, "Modify the value to $1.07B", function()
-    STATS.STAT_SET_INT(stats.nightclub, (2 << 30) - 1, true)
-end)
+items.presets.nightclub.root:divider("Settings", "Settings")
+items.presets.nightclub.choice = items.presets.nightclub.root:list_select("Money", {}, "The nightclub trade-in price", options, 1, function(index) end)
 
-items.presets.nightclub.root:toggle_loop("AFK Loop", {}, "AFK money loop", function()
-    local afk_loop =  menu.ref_by_rel_path(items.presets.nightclub.root, "AFK Loop")
-    local first_nc_name = nc_options.first[tonumber(items.presets.nightclub.first_nightclub.value)]
-    local second_nc_name = nc_options.second[tonumber(items.presets.nightclub.second_nightclub.value)]
-    local enable =  menu.ref_by_rel_path(items.presets.nightclub.root, "Enable")
-    enable.value = false
-
-    if first_nc_name == nc_owned then
-        util.show_corner_help("You already own " .. nc_owned .. " choose another nightclub")
-        afk_loop.value = false
-        return
-    end
-
-    if first_nc_name == second_nc_name then
-        util.show_corner_help("First and second nightclub cannot be the same, choose another nightclub")
-        afk_loop.value = false
-        return
-    end
-
-    if not afk_loop.value then return end
-
-    afk_meta:open_internet(true)
-    afk_meta:purchase_nightclub(first_nc_name)
-    util.yield(1000)
-    afk_meta:open_internet(true)
-    afk_meta:purchase_nightclub(second_nc_name)
-    util.yield(1000)
-end)
-
-items.presets.nightclub.root:divider("Tools", "Tools")
-items.presets.nightclub.root:action("Unlock Arcades On MazeBank", {}, "Unlocks arcades", function()
+items.tools.root:action("Unlock Arcades On MazeBank", {}, "Unlocks arcades", function()
     local current_pos = ENTITY.GET_ENTITY_COORDS(players.user_ped(), true)
     local lester_blip = HUD.GET_NEXT_BLIP_INFO_ID(77)
     local casino_blip = HUD.GET_NEXT_BLIP_INFO_ID(804)
@@ -623,83 +847,305 @@ items.presets.nightclub.root:action("Unlock Arcades On MazeBank", {}, "Unlocks a
     util.toast("[Recovery]: Unlocked arcades")
 end)
 
-items.presets.nightclub.root:action("Unlock Autoshops On MazeBank", {}, "Unlock Autoshops", function()
+items.tools.root:action("Unlock Autoshops On MazeBank", {}, "Unlock Autoshops", function()
     local pos = v3.new(778.99708076172, -1867.5257568359, 28.296264648438)
     ENTITY.SET_ENTITY_COORDS(players.user_ped(), pos.x, pos.y, pos.z, true, true, true, true)
 end)
 
+items.presets.nightclub.root:action("Buy Nightclub", {}, "Automatically purchases a nightclub", function()
+    local nc = nc_options.first[math.random(#nc_options.first)]
+    local value = convert_value(options[items.presets.nightclub.choice.value])
+
+    while nc == nc_owned do
+        nc = nc_options.first[math.random(#nc_options.first)]
+        util.yield()
+    end
+
+    local price = memory.read_int(globals.nightclub_prices[nc])
+
+    if not can_make_purchase(price) then
+        util.toast("[Recovery]: You need $" .. price .. " to purchase " .. nc .. " nightclub")
+        return
+    end
+
+    value = (value + price) * 2
+    if nc == "La Mesa" then value = value - 400000 end
+
+    if not STATS.STAT_SET_INT(stats.nightclub, value, true) then
+        ref.value = false
+        util.toast("[Recovery]: Failed to set nightclub trade-in price")
+        return
+    end
+
+    while menu.is_open() do
+        util.toast("[Recovery]: Close Stand menu to continue")
+        util.yield()
+    end
+
+    afk_meta:open_internet(false, "nightclub")
+    afk_meta:purchase_nightclub(nc)
+
+    nc_owned = get_owned_property("Nightclub")
+end)
+
+items.presets.nightclub.root:action("Set Value", {}, "Sets nightclub trade-in price to the preset you have picked", function()
+    local value = convert_value(options[items.presets.nightclub.choice.value])
+    if not STATS.STAT_SET_INT(stats.nightclub, value, true) then
+        ref.value = false
+        util.toast("[Recovery]: Failed to set nightclub trade-in price")
+        return
+    end
+    util.toast("[Recovery]: Set nightclub trade-in price to " .. options[items.presets.nightclub.choice.value])
+end)
+
+items.presets.nightclub.root:divider("AFK Money Loop", "AFK Money Loop")
+items.presets.nightclub.first_nightclub = items.presets.nightclub.root:list_select("First Nightclub", {}, "First nightclub to purchase", nc_options.first, "1", function(index) end)
+items.presets.nightclub.second_nightclub = items.presets.nightclub.root:list_select("Second Nightclub", {}, "Second nightclub to purchase", nc_options.second, "1", function(index) end)
+items.presets.nightclub.root:toggle_loop("Modify Value $1.07B", {}, "Modify the value to $1.07B", function()
+    STATS.STAT_SET_INT(stats.nightclub, (2 << 30) - 1, true)
+end)
+
+items.presets.nightclub.root:toggle_loop("AFK Loop", {}, "Nightclub AFK money loop", function()
+    local afk_loop =  menu.ref_by_rel_path(items.presets.nightclub.root, "AFK Loop")
+    local first_nc_name = nc_options.first[tonumber(items.presets.nightclub.first_nightclub.value)]
+    local second_nc_name = nc_options.second[tonumber(items.presets.nightclub.second_nightclub.value)]
+
+    if first_nc_name == nc_owned then
+        util.show_corner_help("You already own " .. nc_owned .. " choose another nightclub")
+        afk_loop.value = false
+        return
+    end
+
+    if first_nc_name == second_nc_name then
+        util.show_corner_help("First and second nightclub cannot be the same, choose another nightclub")
+        afk_loop.value = false
+        return
+    end
+
+    if not afk_loop.value then return end
+
+    afk_meta:open_internet(true, "nightclub")
+    afk_meta:purchase_nightclub(first_nc_name)
+    util.yield(1000)
+    afk_meta:open_internet(true, "nightclub")
+    afk_meta:purchase_nightclub(second_nc_name)
+    util.yield(1000)
+
+    nc_owned = get_owned_property("Nightclub")
+end)
+
+items.presets.arcade.root:divider("Settings", "Settings")
 items.presets.arcade.choice = items.presets.arcade.root:list_select("Money", {}, "The arcade trade-in price", options, 1, function() end)
-items.presets.arcade.root:toggle_loop("Enable", {}, "Enable the preset value for your arcade", function()
-    local ref =  menu.ref_by_rel_path(items.presets.arcade.root, "Enable")
-    local value = convert_value(options[items.presets.arcade.choice.value]) 
+items.presets.arcade.root:action("Buy Arcade", {}, "Automatically buys an arcade for you", function()
+    local arcade = arcade_options.first[math.random(#arcade_options.first)]
+    local value = convert_value(options[items.presets.arcade.choice.value])
 
-    if settings.ownership_check then
-        if not is_owned(stats.arcade_owned) then
-            ref.value = false
-            util.toast("[Recovery]: You do not own an arcade")
-            return
-        end
+    if value < 0 then
+        util.toast("[Recovery]: Negative values is not allowed")
+        return
     end
 
-    if not STATS.STAT_SET_INT(stats.arcade, ((value - 255000) * 2) + 4500000, true) then
-        menu.ref_by_rel_path(items.presets.arcade.root, "Enable").value = false
-        util.toast("[Recovery]: Failed to set arcade trade-in price")
+    while arcade == arcade_owned do
+        arcade = arcade_options.first[math.random(#arcade_options.first)]
+        util.yield()
     end
 
-    if show_usage.arcade - os.time() <= 0 then
-        show_usage.arcade = os.time() + usage_timer
-        util.show_corner_help("Goto mazebank foreclosure website and purchase a new arcade to get the money")
-    end
-end)
-
-items.presets.autoshop.choice = items.presets.autoshop.root:list_select("Money", {}, "The autoshop trade-in price", options, 1, function() end)
-items.presets.autoshop.root:toggle_loop("Enable", {}, "Enable the preset value for your autoshop", function()
-    local ref = menu.ref_by_rel_path(items.presets.autoshop.root, "Enable")
-    local value = convert_value(options[items.presets.autoshop.choice.value])
+    local price = memory.read_int(globals.arcade_prices[arcade])
+    value = (value + price) * 2
+    value = value - (255000 * 2)
     
-    if settings.ownership_check then
-        if not is_owned(stats.autoshop_owned) then
-            ref.value = false
-            util.toast("[Recovery]: You do not own an autoshop")
-            return
-        end
+    if not can_make_purchase(price) then
+        util.toast("[Recovery]: You need $" .. price .. " to purchase " .. arcade .. " arcade")
+        return
     end
 
-    if not STATS.STAT_SET_INT(stats.autoshop, (value * 2) + 4500000, true) then
-        menu.ref_by_rel_path(items.presets.autoshop.root, "Enable").value = false
+    if not STATS.STAT_SET_INT(stats.arcade, value, true) then
+        ref.value = false
+        util.toast("[Recovery]: Failed to set arcade trade-in price")
+        return
+    end
+
+    while menu.is_open() do
+        util.toast("[Recovery]: Close Stand menu to continue")
+        util.yield()
+    end
+
+    afk_meta:open_internet(false, "arcade")
+    afk_meta:purchase_arcade(arcade)
+
+    arcade_owned = get_owned_property("Arcade")
+end)
+
+items.presets.arcade.root:action("Set Value", {}, "Sets arcade trade-in price to the preset you have picked", function()
+    local value = convert_value(options[items.presets.arcade.choice.value])
+    if not STATS.STAT_SET_INT(stats.arcade, value, true) then
+        ref.value = false
+        util.toast("[Recovery]: Failed to set arcade trade-in price")
+        return
+    end
+    util.toast("[Recovery]: Set arcade trade-in price to " .. options[items.presets.arcade.choice.value])
+end)
+
+items.presets.arcade.root:divider("AFK Money Loop", "AFK Money Loop")
+items.presets.arcade.first_arcade = items.presets.arcade.root:list_select("First Arcade", {}, "The first arcade you want to use", arcade_options.first, 1, function() end)
+items.presets.arcade.second_arcade = items.presets.arcade.root:list_select("Second Arcade", {}, "The second arcade you want to use", arcade_options.second, 1, function() end)
+items.presets.arcade.root:toggle_loop("Modify Value $1.07B", {}, "Modify the value to $1.07B", function() STATS.STAT_SET_INT(stats.arcade, (2 << 30) - 1, true) end)
+
+items.presets.arcade.root:toggle_loop("AFK Loop", {}, "Arcade AFK money loop", function()
+    local afk_loop = menu.ref_by_rel_path(items.presets.arcade.root, "AFK Loop")
+    local first_arcade = arcade_options.first[items.presets.arcade.first_arcade.value]
+    local second_arcade = arcade_options.second[items.presets.arcade.second_arcade.value]
+
+    if first_arcade == arcade_owned then
+        util.show_corner_help("You already own " .. first_arcade .. " choose another arcade")
+        afk_loop.value = false
+        return
+    end
+
+    if first_arcade == second_arcade then
+        util.show_corner_help("First and second arcade cannot be the same, choose another arcade")
+        afk_loop.value = false
+        return
+    end
+
+    if not afk_loop.value then return end
+
+    afk_meta:open_internet(true, "arcade")
+    afk_meta:purchase_arcade(first_arcade)
+    util.yield(1000)
+    afk_meta:open_internet(true, "arcade")
+    afk_meta:purchase_arcade(second_arcade)
+    util.yield(1000)
+
+    arcade_owned = get_owned_property("Arcade")
+end)
+
+items.presets.autoshop.root:divider("Settings", "Settings")
+items.presets.autoshop.choice = items.presets.autoshop.root:list_select("Money", {}, "The autoshop trade-in price", options, 1, function() end)
+items.presets.autoshop.root:action("Set Value", {}, "Sets autoshop trade-in price to the preset you have picked", function()
+    local value = convert_value(options[items.presets.autoshop.choice.value])
+    if not STATS.STAT_SET_INT(stats.autoshop, value, true) then
+        ref.value = false
         util.toast("[Recovery]: Failed to set autoshop trade-in price")
+        return
     end
-
-    if show_usage.autoshop - os.time() <= 0 then
-        show_usage.autoshop = os.time() + usage_timer
-        util.show_corner_help("Goto mazebank foreclosure website and purchase a new autoshop to get the money")
-    end
+    util.toast("[Recovery]: Set autoshop trade-in price to " .. options[items.presets.autoshop.choice.value])
 end)
 
-items.presets.hanger.choice = items.presets.hanger.root:list_select("Money", {}, "The hanger trade-in price", options, 1, function() end)
-items.presets.hanger.root:toggle_loop("Enable", {}, "Enable the preset value for your hanger", function()
-    local ref = menu.ref_by_rel_path(items.presets.hanger.root, "Enable")
-    local value = convert_value(options[items.presets.hanger.choice.value])
+items.presets.autoshop.root:action("Buy Autoshop", {}, "Automatically buys an autoshop for you", function()
+    local autoshop = autoshop_options.first[math.random(#autoshop_options.first)]
+    local value = convert_value(options[items.presets.autoshop.choice.value])
+
+    if value < 0 then
+        util.toast("[Recovery]: Negative values are not allowed")
+        return
+    end
+
+    while autoshop == autoshop_owned do
+        autoshop = autoshop_options.first[math.random(#autoshop_options.first)]
+        util.yield()
+    end
+
+    local price = memory.read_int(globals.autoshop_prices[autoshop])
+
+    if not can_make_purchase(price) then
+        util.toast("[Recovery]: You need $" .. price .. " to purchase " .. autoshop .. " autoshop")
+        return
+    end
+
+    value = (value + price) * 2
+    switch autoshop do
+        case "Mission Row":
+            value = value - (160000 * 2)
+            break
+        case "Burton":
+            value = value + (80000 * 2)
+            break
+    end
+
+    if not STATS.STAT_SET_INT(stats.autoshop, value, true) then
+        util.toast("[Recovery]: Failed to set autoshop trade-in price")
+        return
+    end
+
+    while menu.is_open() do
+        util.toast("[Recovery]: Close Stand menu to continue")
+        util.yield()
+    end
+
+    afk_meta:open_internet(false, "autoshop")
+    afk_meta:purchase_autoshop(autoshop)
+
+    autoshop_owned = get_owned_property("Autoshop")
+end)
+
+items.presets.autoshop.root:divider("AFK Money Loop", "AFK Money Loop")
+items.presets.autoshop.first_autoshop = items.presets.autoshop.root:list_select("First Autoshop", {}, "The first autoshop you want to use", autoshop_options.first, 1, function() end)
+items.presets.autoshop.second_autoshop = items.presets.autoshop.root:list_select("Second Autoshop", {}, "The second autoshop you want to use", autoshop_options.second, 1, function() end)
+items.presets.autoshop.root:toggle_loop("Modify Value $1.07B", {}, "Modify the value to $1.07B", function() STATS.STAT_SET_INT(stats.autoshop, (2 << 30) - 1, true) end)
+items.presets.autoshop.root:toggle_loop("AFK Loop", {}, "Autoshop AFK money loop", function()
+    local afk_loop = menu.ref_by_rel_path(items.presets.autoshop.root, "AFK Loop")
+    local first_autoshop = autoshop_options.first[tonumber(items.presets.autoshop.first_autoshop.value)]
+    local second_autoshop = autoshop_options.second[tonumber(items.presets.autoshop.second_autoshop.value)]
+
+    if first_autoshop == autoshop_owned then
+        util.show_corner_help("You already own " .. first_autoshop .. " choose another autoshop")
+        afk_loop.value = false
+        return
+    end
+
+    if first_autoshop == second_autoshop then
+        util.show_corner_help("First and second autoshop cannot be the same, choose another autoshop")
+        afk_loop.value = false
+        return
+    end
+
+    if not afk_loop.value then return end
+
+    afk_meta:open_internet(true, "autoshop")
+    afk_meta:purchase_autoshop(first_autoshop)
+    util.yield(1000)
+    afk_meta:open_internet(true, "autoshop")
+    afk_meta:purchase_autoshop(second_autoshop)
+    util.yield(1000)
+
+    autoshop_owned = get_owned_property("Autoshop")
+end)
+
+items.presets.hangar.root:divider("Settings", "Settings")
+items.presets.hangar.choice = items.presets.hangar.root:list_select("Money", {}, "The hangar trade-in price", options, 1, function() end)
+items.presets.hangar.root:toggle_loop("Enable", {}, "Enable the preset value for your hangar", function()
+    local ref = menu.ref_by_rel_path(items.presets.hangar.root, "Enable")
+    local value = convert_value(options[items.presets.hangar.choice.value])
 
     if settings.ownership_check then
-        if not is_owned(stats.hanger_owned) then
+        if not is_owned(stats.hangar_owned) then
             ref.value = false
-            util.toast("[Recovery]: You do not own a hanger")
+            util.toast("[Recovery]: You do not own a hangar")
             return
         end
     end
 
-    if not STATS.STAT_SET_INT(stats.hanger, ((value - 645000) * 2) + 4500000, true) then
-        menu.ref_by_rel_path(items.presets.hanger.root, "Enable").value = false
-        util.toast("[Recovery]: Failed to set hanger trade-in price")
+    if not STATS.STAT_SET_INT(stats.hangar, ((value - 645000) * 2) + 4500000, true) then
+        menu.ref_by_rel_path(items.presets.hangar.root, "Enable").value = false
+        util.toast("[Recovery]: Failed to set hangar trade-in price")
     end
 
-    if show_usage.hanger - os.time() <= 0 then
-        show_usage.hanger = os.time() + usage_timer
-        util.show_corner_help("Goto mazebank foreclosure website and purchase a new hanger to get the money")
+    if show_usage.hangar - os.time() <= 0 then
+        show_usage.hangar = os.time() + usage_timer
+        util.show_corner_help("Goto mazebank foreclosure website and purchase a new hangar to get the money")
     end
 end)
 
+items.presets.hangar.root:divider("AFK Money Loop", "AFK Money Loop")
+items.presets.hangar.root:toggle_loop("Modify Value $1.07B", {}, "Modify the value to $1.07B", function() STATS.STAT_SET_INT(stats.hangar, (2 << 30) - 1, true) end)
+items.presets.hangar.root:toggle_loop("AFK Loop", {}, "Hangar AFK money loop", function()
+    local afk_loop = menu.ref_by_rel_path(items.presets.hangar.root, "AFK Loop")
+    afk_loop.value = false
+    util.toast("[Recovery]: Hangar AFK loop is not yet implemented")
+end)
+
+items.presets.facility.root:divider("Settings", "Settings")
 items.presets.facility.choice = items.presets.facility.root:list_select("Money", {}, "The facility trade-in price", options, 1, function() end)
 items.presets.facility.root:toggle_loop("Enable", {}, "Enable the preset value for your facility", function()
     local ref = menu.ref_by_rel_path(items.presets.facility.root, "Enable")
@@ -724,6 +1170,15 @@ items.presets.facility.root:toggle_loop("Enable", {}, "Enable the preset value f
     end
 end)
 
+items.presets.facility.root:divider("AFK Money Loop", "AFK Money Loop")
+items.presets.facility.root:toggle_loop("Modify Value $1.07B", {}, "Modify the value to $1.07B", function() STATS.STAT_SET_INT(stats.facility, (2 << 30) - 1, true) end)
+items.presets.facility.root:toggle_loop("AFK Loop", {}, "Facility AFK money loop", function()
+    local afk_loop = menu.ref_by_rel_path(items.presets.facility.root, "AFK Loop")
+    afk_loop.value = false
+    util.toast("[Recovery]: Facility AFK loop is not yet implemented")
+end)
+
+items.presets.agency.root:divider("Settings", "Settings")
 items.presets.agency.choice = items.presets.agency.root:list_select("Money", {}, "The agency trade-in price", options, 1, function() end)
 items.presets.agency.root:toggle_loop("Enable", {}, "Enable the preset value for your agency", function()
     local ref = menu.ref_by_rel_path(items.presets.agency.root, "Enable")
@@ -748,11 +1203,19 @@ items.presets.agency.root:toggle_loop("Enable", {}, "Enable the preset value for
     end
 end)
 
+items.presets.agency.root:divider("AFK Money Loop", "AFK Money Loop")
+items.presets.agency.root:toggle_loop("Modify Value $1.07B", {}, "Modify the value to $1.07B", function() STATS.STAT_SET_INT(stats.agency, (2 << 30) - 1, true) end)
+items.presets.agency.root:toggle_loop("AFK Loop", {}, "Agency AFK money loop", function()
+    local afk_loop = menu.ref_by_rel_path(items.presets.agency.root, "AFK Loop")
+    afk_loop.value = false
+    util.toast("[Recovery]: Agency AFK loop is not yet implemented")
+end)
+
 items.custom.root:divider("MazeBank Properties", "MazeBank Properties")
 items.custom.nightclub.root = items.custom.root:list("Nightclub", {}, "Customisable values for nightclub")
 items.custom.arcade.root = items.custom.root:list("Arcade", {}, "Customisable values for arcade")
 items.custom.autoshop.root = items.custom.root:list("Autoshop", {}, "Customisable values for autoshop")
-items.custom.hanger.root = items.custom.root:list("Hanger", {}, "Customisable values for hanger")
+items.custom.hangar.root = items.custom.root:list("Hangar", {}, "Customisable values for hangar")
 items.custom.facility.root = items.custom.root:list("Facility", {}, "Customisable values for facility")
 items.custom.root:divider("Dynasty8Executive Properties", "Dynasty8Executive Properties")
 items.custom.agency.root = items.custom.root:list("Agency", {}, "Customisable values for agency")
@@ -771,31 +1234,46 @@ items.custom.nightclub.root:text_input("Money", {"nightclubvalue"}, "The nightcl
         ref.value = false
         util.toast("[Recovery]: Failed to set nightclub trade-in price")
     end
-
-    util.show_corner_help("Goto maze bank foreclosure website and purchase a new nightclub to get the money")
 end, "0")
 
-items.custom.nightclub.root:toggle_loop("Enable", {}, "", function()
-    local ref = menu.ref_by_rel_path(items.custom.nightclub.root, "Enable")
+items.custom.nightclub.root:action("Buy Nightclub", {}, "Automatically purchases a new nightclub", function()
+    local nc = nc_options.first[math.random(#nc_options.first)]
     local value = tonumber(menu.ref_by_rel_path(items.custom.nightclub.root, "Money").value)
-    
-    if settings.ownership_check then
-        if not is_owned(stats.nightclub_owned) then
-            ref.value = false
-            util.toast("[Recovery]: You do not own a nightclub")
-            return
-        end
+
+    if value < 0 then
+        util.toast("[Recovery]: Negative values are not allowed")
+        return
     end
 
-    if not STATS.STAT_SET_INT(stats.nightclub, (value * 2) + 4500000, true) then
+    while nc == nc_owned do
+        nc = nc_options.first[math.random(#nc_options.first)]
+    end
+
+    local price = memory.read_int(globals.nightclub_prices[nc])
+    
+    if not can_make_purchase(price) then
+        util.toast("[Recovery]: You do not have enough money to purchase a new nightclub")
+        return
+    end
+
+    value = (value + price) * 2
+    if nc == "La Mesa" then value = value - 400000 end
+
+    if not STATS.STAT_SET_INT(stats.nightclub, value, true) then
         ref.value = false
         util.toast("[Recovery]: Failed to set nightclub trade-in price")
+        return
     end
 
-    if show_usage.nightclub - os.time() <= 0 then
-        show_usage.nightclub = os.time() + 15
-        util.show_corner_help("Goto mazebank foreclosure website and purchase a new nightclub to get the money")
+    while menu.is_open() do
+        util.toast("[Recovery]: Close Stand menu to continue")
+        util.yield()
     end
+
+    afk_meta:open_internet(false, "nightclub")
+    afk_meta:purchase_nightclub(nc)
+
+    nc_owned = get_owned_property("Nightclub")
 end)
 
 items.custom.arcade.root:text_input("Money", {"arcadevalue"}, "The arcade trade-in price", function(value) 
@@ -812,31 +1290,46 @@ items.custom.arcade.root:text_input("Money", {"arcadevalue"}, "The arcade trade-
         ref.value = false
         util.toast("[Recovery]: Failed to set arcade trade-in price")
     end
-
-    util.show_corner_help("Goto maze bank foreclosure website and purchase a new arcade to get the money")
 end, "0")
 
-items.custom.arcade.root:toggle_loop("Enable", {}, "", function()
-    local ref = menu.ref_by_rel_path(items.custom.arcade.root, "Enable")
+items.custom.arcade.root:action("Buy Arcade", {}, "Automatically buys an arcade for you", function()
+    local arcade = arcade_options.first[math.random(#arcade_options.first)]
     local value = tonumber(menu.ref_by_rel_path(items.custom.arcade.root, "Money").value)
-    
-    if settings.ownership_check then
-        if not is_owned(stats.arcade_owned) then
-            ref.value = false
-            util.toast("[Recovery]: You do not own an arcade")
-            return
-        end
+
+    if value < 0 then
+        util.toast("[Recovery]: Negative values is not allowed")
+        return
     end
 
-    if not STATS.STAT_SET_INT(stats.arcade, ((value - 255000) * 2) + 4500000, true) then
+    while arcade == arcade_owned do
+        arcade = arcade_options.first[math.random(#arcade_options.first)]
+        util.yield()
+    end
+
+    local price = memory.read_int(globals.arcade_prices[arcade])
+    value = (value + price) * 2
+    value = value - (255000 * 2)
+    
+    if not can_make_purchase(price) then
+        util.toast("[Recovery]: You do not have enough money to purchase a new arcade")
+        return
+    end
+
+    if not STATS.STAT_SET_INT(stats.arcade, value, true) then
         ref.value = false
         util.toast("[Recovery]: Failed to set arcade trade-in price")
+        return
     end
 
-    if show_usage.arcade - os.time() <= 0 then
-        show_usage.arcade = os.time() + 15
-        util.show_corner_help("Goto mazebank foreclosure website and purchase a new arcade to get the money")
+    while menu.is_open() do
+        util.toast("[Recovery]: Close Stand menu to continue")
+        util.yield()
     end
+
+    afk_meta:open_internet(false, "arcade")
+    afk_meta:purchase_arcade(arcade)
+
+    arcade_owned = get_owned_property("Arcade")
 end)
 
 items.custom.autoshop.root:text_input("Money", {"autoshopvalue"}, "The autoshop trade-in price", function(value) 
@@ -853,71 +1346,93 @@ items.custom.autoshop.root:text_input("Money", {"autoshopvalue"}, "The autoshop 
         ref.value = false
         util.toast("[Recovery]: Failed to set autoshop trade-in price")
     end
-
-    util.show_corner_help("Goto mazebank foreclosure website and purchase a new autoshop to get the money")
 end, "0")
 
-items.custom.autoshop.root:toggle_loop("Enable", {}, "", function()
-    local ref = menu.ref_by_rel_path(items.custom.autoshop.root, "Enable")
+items.custom.autoshop.root:action("Buy Autoshop", {}, "Automatically buys an autoshop for you", function()
+    local autoshop = autoshop_options.first[math.random(#autoshop_options.first)]
     local value = tonumber(menu.ref_by_rel_path(items.custom.autoshop.root, "Money").value)
+
+    if value < 0 then
+        util.toast("[Recovery]: Negative values are not allowed")
+        return
+    end
+
+    while autoshop == autoshop_owned do
+        autoshop = autoshop_options.first[math.random(#autoshop_options.first)]
+        util.yield()
+    end
+
+    local price = memory.read_int(globals.autoshop_prices[autoshop])
     
-    if settings.ownership_check then
-        if not is_owned(stats.autoshop_owned) then
-            ref.value = false
-            util.toast("[Recovery]: You do not own an autoshop")
-            return
-        end
+    if not can_make_purchase(price) then
+        util.toast("[Recovery]: You do not have enough money to purchase a new autoshop")
+        return
     end
 
-    if not STATS.STAT_SET_INT(stats.autoshop, (value * 2) + 4500000, true) then
-        ref.value = false
+    value = (value + price) * 2
+    switch autoshop do
+        case "Mission Row":
+            value = value - (160000 * 2)
+            break
+        case "Burton":
+            value = value + (80000 * 2)
+            break
+    end
+
+    if not STATS.STAT_SET_INT(stats.autoshop, value, true) then
         util.toast("[Recovery]: Failed to set autoshop trade-in price")
+        return
     end
 
-    if show_usage.autoshop - os.time() <= 0 then
-        show_usage.autoshop = os.time() + 15
-        util.show_corner_help("Goto mazebank foreclosure website and purchase a new autoshop to get the money")
+    while menu.is_open() do
+        util.toast("[Recovery]: Close Stand menu to continue")
+        util.yield()
     end
+
+    afk_meta:open_internet(false, "autoshop")
+    afk_meta:purchase_autoshop(autoshop)
+
+    autoshop_owned = get_owned_property("Autoshop")
 end)
 
-items.custom.hanger.root:text_input("Money", {"hangervalue"}, "The hanger trade-in price", function(value) 
+items.custom.hangar.root:text_input("Money", {"hangarvalue"}, "The hangar trade-in price", function(value) 
     if settings.ownership_check then
-        if not is_owned(stats.hanger_owned) then
-            util.toast("[Recovery]: You do not own a hanger")
+        if not is_owned(stats.hangar_owned) then
+            util.toast("[Recovery]: You do not own a hangar")
             return
         end
     end
 
     value = tonumber(value)
 
-    if not STATS.STAT_SET_INT(stats.hanger, ((value - 255000) * 2) + 4500000, true) then
+    if not STATS.STAT_SET_INT(stats.hangar, ((value - 255000) * 2) + 4500000, true) then
         ref.value = false
-        util.toast("[Recovery]: Failed to set hanger trade-in price")
+        util.toast("[Recovery]: Failed to set hangar trade-in price")
     end
 
-    util.show_corner_help("Goto mazebank foreclosure website and purchase a new hanger to get the money")
+    util.show_corner_help("Goto mazebank foreclosure website and purchase a new hangar to get the money")
 end, "0")
 
-items.custom.hanger.root:toggle_loop("Enable", {}, "", function()
-    local ref = menu.ref_by_rel_path(items.custom.hanger.root, "Enable")
-    local value = tonumber(menu.ref_by_rel_path(items.custom.hanger.root, "Money").value)
+items.custom.hangar.root:toggle_loop("Enable", {}, "", function()
+    local ref = menu.ref_by_rel_path(items.custom.hangar.root, "Enable")
+    local value = tonumber(menu.ref_by_rel_path(items.custom.hangar.root, "Money").value)
     
     if settings.ownership_check then
-        if not is_owned(stats.hanger_owned) then
+        if not is_owned(stats.hangar_owned) then
             ref.value = false
-            util.toast("[Recovery]: You do not own a hanger")
+            util.toast("[Recovery]: You do not own a hangar")
             return
         end
     end
 
-    if not STATS.STAT_SET_INT(stats.hanger, ((value - 255000) * 2) + 4500000, true) then
+    if not STATS.STAT_SET_INT(stats.hangar, ((value - 255000) * 2) + 4500000, true) then
         ref.value = false
-        util.toast("[Recovery]: Failed to set hanger trade-in price")
+        util.toast("[Recovery]: Failed to set hangar trade-in price")
     end
 
-    if show_usage.hanger - os.time() <= 0 then
-        show_usage.hanger = os.time() + 15
-        util.show_corner_help("Goto mazebank foreclosure website and purchase a new hanger to get the money")
+    if show_usage.hangar - os.time() <= 0 then
+        show_usage.hangar = os.time() + 15
+        util.show_corner_help("Goto mazebank foreclosure website and purchase a new hangar to get the money")
     end
 end)
 
@@ -1003,18 +1518,37 @@ items.custom.agency.root:toggle_loop("Enable", {}, "", function()
     end
 end)
 
-items.dax_mission.root = root:list("Dax Mission", {"daxmission"}, "Make easy money from the dax mission required to unlock the freakshop", function() util.show_corner_help("Check 'enable cash boost' option and start one of the new dax missions (if you haven't completed the first mission the 'Start Mission' will automatically start the first mission for you, the R on the map at sandy shores), once the mission has started you need to kill yourself immediately to fail the mission and you will recieve $1,000,000, take too long to kill yourself during the mission and you won\'t get any money") end)
+items.dax_mission.root = root:list("Dax Missions", {"daxmissions"}, "Make easy money from the new dax missions added during Drugs Wars update")
 items.dax_mission.root:divider("Help", "How to use this menu")
 items.dax_mission.root:action("How To Use", {}, "", function()
     util.show_corner_help("Check 'enable cash boost' option and start one of the new dax missions (if you haven't completed the first mission the 'Start Mission' will automatically start the first mission for you, the R on the map at sandy shores), once the mission has started you need to kill yourself immediately to fail the mission and you will recieve $1,000,000, take too long to kill yourself during the mission and you won\'t get any money")
 end)
 
+items.dax_mission.root:divider("Compatible Missions", "Compatible Missions")
+items.dax_mission.root:readonly("First Dose 1 - Welcome to the Troupe")
+items.dax_mission.root:readonly("First Dose 2 - Designated Driver")
+
 items.dax_mission.root:divider("Options", "Recovery options using Dax Mission")
-items.dax_mission.root:action("Start Mission", {}, "This will teleport you to the mission trigger and start it (if you've not completed the job already)", function()
+items.dax_mission.root:action("Make $1M - First Dose 1", {}, "Automatically starts First Dose 1 - Welcome to the Troupe mission and causes the mission to fail making you $1M", function()
     local ped = PLAYER.PLAYER_PED_ID()
     ENTITY.SET_ENTITY_COORDS(ped, 1394.4620361328, 3598.4528808594, 34.990489959717)
     util.yield(200)
-    PAD.SET_CONTROL_VALUE_NEXT_FRAME(0, 51, 1)
+    SIMULATE_CONTROL_KEY(51, 1)
+    util.yield(1500)
+    SIMULATE_CONTROL_KEY(188, 1, 2)
+    SIMULATE_CONTROL_KEY(201, 1)
+    SIMULATE_CONTROL_KEY(188, 1, 2)
+    SIMULATE_CONTROL_KEY(201, 1)
+    SIMULATE_CONTROL_KEY(201, 1, 2)
+    util.yield(6000)
+    memory.write_float(tunable(0), 5000.0)
+    menu.trigger_commands("suicide")
+    util.yield(3000)
+    menu.trigger_commands("suicide")
+    util.yield(3000)
+    menu.trigger_commands("suicide")
+    util.yield(4500)
+    SIMULATE_CONTROL_KEY(201, 10)
 end)
 
 items.dax_mission.root:toggle_loop("Enable Cash Boost", {}, "", function()
@@ -1059,3 +1593,9 @@ items.casino_figures.root:toggle("Disable RP", {}, "Disables RP from casino figu
         memory.write_float(rp, 1.0)
     end
 end)
+
+items.heists.root = root:list("Heists", {"heists"}, "Heist recovery options")
+items.heists.casino = items.heists.root:list("Casino Heist", {"casinoheist"}, "Casino Heist recovery options")
+items.heists.cayo_perico = items.heists.root:list("Cayo Perico Heist", {"cayopericoheist"}, "Cayo Perico Heist recovery options")
+
+items.heists.root.visible = false
