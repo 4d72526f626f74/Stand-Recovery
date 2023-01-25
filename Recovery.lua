@@ -836,7 +836,9 @@ root:divider("Recovery")
 
 -- add presets list to menu
 helper:add(
-    root:list("Presets", {"rspresets"}, ""),
+    root:list("Presets", {"rspresets"}, "", function()
+        helper:NOTIFY("Without unlocking arcades and autoshops the afk money loop option will not work as intended!", util.show_corner_help)
+    end),
     "presets"
 )
 
@@ -1699,7 +1701,7 @@ helper.heists:toggle("Disable Payout", {}, "Prevents you from gaining money from
     local cash = helper:TUNABLE(262145, 0)
 
     util.create_tick_handler(function()
-        local state =menu.ref_by_rel_path(helper.heists, "Disable Payout").value
+        local state = menu.ref_by_rel_path(helper.heists, "Disable Payout").value
         if state then
             memory.write_float(cash, 0.0)
         else
