@@ -1697,7 +1697,7 @@ end)
 helper.heists:divider("Globals", "globals")
 
 -- disable payouts for heists
-helper.heists:toggle("Disable Payout", {}, "Prevents you from gaining money from heists (thihs also affects missions)", function(state)
+helper.heists:toggle("Disable Payout", {}, "Prevents you from gaining money from heists (this also affects missions)", function(state)
     local cash = helper:TUNABLE(262145, 0)
 
     util.create_tick_handler(function()
