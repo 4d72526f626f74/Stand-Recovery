@@ -10,7 +10,7 @@ helper.__index = helper
 
 -- settings
 helper.script_settings = {
-    script_ver = "1.3.0", -- script version
+    script_ver = "1.3.1", -- script version
     ownership_check = true -- ownership check for properties
 }
 
