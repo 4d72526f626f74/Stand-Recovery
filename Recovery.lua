@@ -1692,12 +1692,12 @@ helper:add(
     helper.casino:toggle_loop("Enable", {}, "Drops figures that give you $200,000", function()
         local cash = helper:TUNABLE(262145, 27123)
         memory.write_int(cash, 200000)
-        menu.trigger_commands("rp" .. playrs.get_name(players.user()) .. " on")
+        menu.trigger_commands("rp" .. players.get_name(players.user()) .. " on")
     end,
     function()
         local cash = helper:TUNABLE(262145, 27123)
         memory.write_int(cash, 1000)
-        menu.trigger_commands("rp" .. playrs.get_name(players.user()) .. " off")
+        menu.trigger_commands("rp" .. players.get_name(players.user()) .. " off")
     end),
     "casino_figures_toggle"
 )
