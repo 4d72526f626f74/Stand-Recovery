@@ -20,8 +20,8 @@ helper.MAX_INT = (2 << 30) - 1 -- max int value
 -- command states
 helper.states = {
     nightclub = { enabled = true, reason = "" },
-    arcade = { enabled = true, reason = "Hash lookup failure" },
-    autoshop = { enabled = true, reason = "" },
+    arcade = { enabled = true, reason = "Not clicking filter" },
+    autoshop = { enabled = true, reason = "Not clicking filter" },
     hangar = { enabled = true, reason = "" },
     agency = { enabled = true, reason = "" },
 }
@@ -189,6 +189,153 @@ local matrix = {
     0xE9DFBC2E, 0x7DEE4243, 0x81F823B2, 0xF073DD70, 0xC55900B6, 0xC643A2C,  0xC1F772EC, 0xC026F688, 0xBDAAC698, 0x240349FF, 0x297B317F, 0x49F93731, 0x388F26E2, 0x628AF645, 0xE8E270FC, 0xF405A9A9, 0xC9ABA8F9, 0x5C5EC714, 0xC8243A75 
 }
 
+-- something
+helper.FHP = function(v1, v2, v3)
+	for v4, v5 in pairs(v3) do
+		local v6 = (v4 >> (1 + 0 + (349 - (147 + 199)))) & ((10 + 24) - 19)
+		local v7 = v4 & (21 - (17 - 11))
+		if ((v2 >> ((1471 - 938) - ((254 - 67) + (993 - (39 + 610))))) == v5) then
+			return ((1821 - (463 + 1342)) * v6) + v7
+		end
+	end
+	return nil
+end
+
+-- locate something somewhere
+function helper:MATRIX_LOOKUP(prop, ptype)
+    local slot = util.get_char_slot()
+
+    if prop == "nightclub" then
+        if ptype == 0 then
+            if slot == 0 then
+                local x = helper:FHP(0x1FE316884, matrix)
+                return matrix[x]
+            end
+
+            if slot == 1 then
+                local x = helper:FHP(0x3FFFFFFFEACAB6E70, matrix)
+                return matrix[x]
+            end
+        end
+
+        if ptype == 1 then
+            if slot == 0 then
+                local x = helper:FHP(0x14CD5746C, matrix)
+                return matrix[x]
+            end
+
+            if slot == 1 then
+                local x = helper:FHP(0x3FFFFFFFF1CD02480, matrix)
+                return matrix[x]
+            end
+        end
+    end
+
+    if prop == "arcade" then
+        if ptype == 0 then
+            if slot == 0 then
+                local x = helper:FHP(0x2F02DF70, matrix)
+                return matrix[x]
+            end
+
+            if slot == 1 then
+                local x = helper:FHP(0x3FFFFFFFF6EAEF7A8, matrix)
+                return matrix[x]
+            end
+        end
+
+        if ptype == 1 then
+            if slot == 0 then
+                local x = helper:FHP(0x6732ADC, matrix)
+                return matrix[x]
+            end
+
+            if slot == 1 then
+                local x = helper:FHP(0x172E9AA4, matrix)
+                return matrix[x]
+            end
+        end
+    end
+
+    if prop == "autoshop" then
+        if ptype == 0 then
+            if slot == 0 then
+                local x = helper:FHP(0x15BD58CD4, matrix)
+                return matrix[x]
+            end
+
+            if slot == 1 then
+                local x = helper:FHP(0x3FFFFFFFE945A15CC, matrix)
+                return matrix[x]
+            end
+        end
+
+        if ptype == 1 then
+            if slot == 0 then
+                local x = helper:FHP(0xE8FBA97C, matrix)
+                return matrix[x]
+            end
+
+            if slot == 1 then
+                local x = helper:FHP(0x4BFF5C78, matrix)
+                return matrix[x]
+            end
+        end
+    end
+
+    if prop == "hangar" then
+        if ptype == 0 then
+            if slot == 0 then
+                local x = helper:FHP(0x1EFA7E340, matrix)
+                return matrix[x]
+            end
+
+            if slot == 1 then
+                local x = helper:FHP(0x16C910770, matrix)
+                return matrix[x]
+            end
+        end
+
+        if ptype == 1 then
+            if slot == 0 then
+                local x = helper:FHP(0x18059DE08, matrix)
+                return matrix[x]
+            end
+
+            if slot == 1 then
+                local x = helper:FHP(0x3FFFFFFFE3EC337DC, matrix)
+                return matrix[x]
+            end
+        end
+    end
+
+    if prop == "agency" then
+        if ptype == 0 then
+            if slot == 0 then
+                local x = helper:FHP(0xE08E1CBC, matrix)
+                return matrix[x]
+            end
+
+            if slot == 1 then
+                local x = helper:FHP(0x1FE47650, matrix)
+                return matrix[x]
+            end
+        end
+
+        if ptype == 1 then
+            if slot == 0 then
+                local x = helper:FHP(0x15C7C1884, matrix)
+                return matrix[x]
+            end
+
+            if slot == 1 then
+                local x = helper:FHP(0x17D384C9C, matrix)
+                return matrix[x]
+            end
+        end
+    end
+end
+
 -- function to convert selected option to a usable value
 function helper:CONVERT_VALUE(value)
     value = string.gsub(value, ",", "")
@@ -215,133 +362,6 @@ function helper.afk:PURCHASE_PROPERTY(property, name)
             return value.purchase()
         end
     end
-end
-
--- locate something somewhere
-function helper:MATRIX_LOOKUP(prop, ptype)
-    local slot = util.get_char_slot()
-
-    if prop == "nightclub" then
-        if ptype == 0 then
-            if slot == 0 then
-                return matrix[11]
-            end
-
-            if slot == 1 then
-                return matrix[27]
-            end
-        end
-
-        if ptype == 1 then
-            if slot == 0 then
-                return matrix[1]
-            end
-
-            if slot == 1 then
-                return matrix[17]
-            end
-        end
-    end
-
-    if prop == "arcade" then
-        if ptype == 0 then
-            if slot == 0 then
-                return matrix[13]
-            end
-
-            if slot == 1 then
-                return matrix[29]
-            end
-        end
-
-        if ptype == 1 then
-            if slot == 0 then
-                return matrix[8]
-            end
-
-            if slot == 1 then
-                return matrix[24]
-            end
-        end
-    end
-
-    if prop == "autoshop" then
-        if ptype == 0 then
-            if slot == 0 then
-                return matrix[6]
-            end
-
-            if slot == 1 then
-                return matrix[22]
-            end
-        end
-
-        if ptype == 1 then
-            if slot == 0 then
-                return matrix[4]
-            end
-
-            if slot == 1 then
-                return matrix[20]
-            end
-        end
-    end
-
-    if prop == "hangar" then
-        if ptype == 0 then
-            if slot == 0 then
-                return matrix[16]
-            end
-
-            if slot == 1 then
-                return matrix[32]
-            end
-        end
-
-        if ptype == 1 then
-            if slot == 0 then
-                return matrix[3]
-            end
-
-            if slot == 1 then
-                return matrix[19]
-            end
-        end
-    end
-
-    if prop == "agency" then
-        if ptype == 0 then
-            if slot == 0 then
-                return matrix[9]
-            end
-
-            if slot == 1 then
-                return matrix[25]
-            end
-        end
-
-        if ptype == 1 then
-            if slot == 0 then
-                return matrix[2]
-            end
-
-            if slot == 1 then
-                return matrix[18]
-            end
-        end
-    end
-end
-
--- something
-helper.FHP = function(v1, v2, v3)
-	for v4, v5 in pairs(v3) do
-		local v6 = (v4 >> (1 + 0 + (349 - (147 + 199)))) & ((10 + 24) - 19)
-		local v7 = v4 & (21 - (17 - 11))
-		if ((v2 >> ((1471 - 938) - ((254 - 67) + (993 - (39 + 610))))) == v5) then
-			return ((1821 - (463 + 1342)) * v6) + v7
-		end
-	end
-	return nil
 end
 
 -- determine if a property is owned
@@ -1097,7 +1117,7 @@ helper.presets_arcade:action("Buy Arcade", {}, "Automatically purchases a random
         return
     end
 
-    helper.afk:OPEN_INTERNET(false, "arcade")
+    helper.afk:OPEN_INTERNET("arcade")
     helper.afk:PURCHASE_PROPERTY("arcade", arcade)
 end)
 
@@ -1216,7 +1236,7 @@ helper.presets_autoshop:action("Buy Auto Shop", {}, "Automatically purchases a r
         return
     end
 
-    helper.afk:OPEN_INTERNET(false, "autoshop")
+    helper.afk:OPEN_INTERNET("autoshop")
     helper.afk:PURCHASE_PROPERTY("autoshop", autoshop)
 end)
 
@@ -1550,7 +1570,7 @@ helper.custom_arcade:action("Buy Arcade", {}, "Automatically purchases a random 
 end)
 
 -- purchase autoshop button
-helper.custom_autoshop:action("Buy Auto Shop", {}, "Automatically purchases a random auto shop", function()
+helper.custom_autoshop:action("Buy Auto Shop`", {}, "Automatically purchases a random auto shop", function()
     local autoshops = helper.afk.autoshop_opts.first
     local autoshop = autoshops[math.random(#autoshops)]
     local owned = helper:GET_OWNED_PROPERTY_NAME("autoshop")
