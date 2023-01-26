@@ -10,7 +10,7 @@ helper.__index = helper
 
 -- settings
 helper.script_settings = {
-    script_ver = "1.3.2", -- script version
+    script_ver = "1.3.3", -- script version
     ownership_check = true -- ownership check for properties
 }
 
@@ -171,6 +171,11 @@ helper.afk.agency_opts = {
     owned = nil
 }
 
+-- matrix of hashes
+local matrix = { 0x5bc3b301, 0xeb9dbc36, 0x5c84309b, 0x88fb0e6c, 0x82474ede, 0xf6460c70, 0x12124443, 0xca11e96a, 0x2e1e6faa, 0xcdb0ce3f, 0x62d87e74, 0x51f1e888, 0xb9f6d27f, 0x1d1ea7d4, 0xf8bcfa00, 0xde52051, 0xb09bb7d1, 0xedb89689, 0xf7b715dd, 0x12070231, 0xe5fecdc2, 0xadd45e80, 0xc4859d52, 0x14159076, 0x83ba4249, 0xf9643156, 0x7f8c5a21, 0xbc0b7dc, 0x56f56335, 0x7be9f8d0, 0x3823872f, 0x53355d1b, 0x19ccab7, 0x3a3eea5f, 0x60167782, 0x571f0621, 0xffffffff2b9e817b, 0xffffffff73feac05, 0xffffffffcfeb060e, 0x42edbf2, 0xffffffff4e21223e, -0x273f1341, -0x20c5b6f4, 0xffffffff2f9a5675, -0x302a699b, 0x82f0d06, 0x4ecc798e, 0xbc3ad42, 0x14206516, 0x327ceaf4, 0xb0fb097, 0x61a11c4a, 0x8899adda, 0xb35403a8, 0xfe481bd6, 0xd37b58f2, 0x87fb0631, 0xf1f37d8b, 0xd7387deb, 0x941962d8, 0xa2e9aae0, 0xaefe85b7, 0x8033b494, 0x53b9de23, 0x15d94bb5, 0x39e9907f, 0x5b537bd6, 0x653d687c, 0xfedc378a, 0xe177953b, 0x8fc76360, 0xa9d3caf3, 0x2280d197, 0xdd9d34d5, 0xf5248f79, 0xfc5682b9, 0x468a620e, 0xc2c44d25, 0x4af9473f, 0xf4e6f5ba, 0x1ac9bc69, 0x59e16b98, 0x87795369, 0x46f3af2a, 0xeae622da, 0x6e1348f7, 0xc75798ef, 0x923f96a, 0x9bde433d, 0x64c283, 0x3ad8064, 0xedaeffac, 0x6a28fc95, 0xf921abe4, 0xd8c4fb2b, 0x972b7c26, 0x10afbde1, 0xb4658f3f, 0x2df4c690, 0x15c2074c, 0x7417b8c3, 0xd8b8ed07, 0x4c54332b, 0x377088f, 0x8e8ccc6d, 0x2357a296, 0x9052888d, 0xe74b91a2, 0xfc629cec, 0xb83e5b1e, 0x393b9a49, 0xf4349408, 0xca1ea9d5, 0x69b2072c, 0xe37f8e56, 0x6a65538f, 0xcdd9390f, 0x83a49d99, 0xd0ba7f42, 0xaeb2f08e, 0xc50203a, 0xb5ec521, 0x5e225107, 0x7237b79d, 0x31a350e1, 0xc521e014, 0xae588334, 0x76dd6a6e, 0x2c3c21c6, 0x9c21ea2b, 0xe2337a6, 0xce14aa05, 0xc47abf24, 0xd62da1ea, 0x8065325d, 0xfba807d2, 0x79fe6f47, 0xf3465f97, 0x6bbb47bd, 0x8654e313, 0x1feb8005, 0x5dd6499a, 0x62ccb065, 0x6cb2729f, 0xee3f1db6, 0xa87895c6, 0xb15a8cfe, 0x71b7159f, 0x44fd27bb, 0xe3274a82, 0x66b815cd, 0xfb61cb6f, 0xf4e66f43, 0xddda806b, 0x38e959aa, 0xc38f8a58, 0x51d4307b, 0xf5d42bae, 0x95ea7c48, 0x55c67653, 0x39c2899c, 0x5a776763, 0xe6560295, 0x58b41758, 0xa70806bc, 0x3d5ef31e, 0xf997e7b5, 0x1122a706, 0x7ded8c54, 0x47535d3a, 0x1eb854e0, 0x29a7b388, 0xf567639d, 0xc012ce45, 0x25847f1a, 0xb86743e4, 0x90936eb3, 0x2f917722, 0x477e67fa, 0x6997d8cf, 0x58bd4d77, 0x78751974, 0xf549ec12, 0xfbd68af5, 0xac554945, 0x3bd3f98f, 0x2438395a, 0x3ea2ab31, 0x5ee73573, 0xcb8bffa6, 0x4965bafc, 0x44f1ed34, 0x8e3c20eb, 0xb43b19ff, 0x80fe01c3, 0xb49619, 0x2db5659f, 0x530cc287, 0x2d6cd4f2, 0xb4815362, 0x16468f66, 0xc2d782c, 0x690e9400, 0x9f35447, 0x633e7323, 0x92e8eec7, 0xea5b2708, 0x8fd84cf2, 0x54aa4884, 0xa8eb41c1, 0x8e912182, 0x4302e097, 0x9d3a12df, 0x258ef8ba, 0xf48599dd, 0x36d9e7c0, 0x39884bbf, 0xebcedf54, 0x4b7e9db4, 0xcc4340b8, 0xbeb0d3f0, 0x380f143c, 0x78966c1b, 0x514bd830, 0x8a9fe5b8, 0x9f023dd1, 0xf0758fa7, 0x177ea28, 0x3cc8b3ac, 0x7ac4092d, 0xd5996780, 0xaf891b99, 0xb2202105, 0x346a2280, 0xe99252b7, 0xa90e4fcd, 0x27bc389d, 0x4e0733c5, 0xb148f936, 0xf90df9c0, 0x65bb362, 0xab84d76d, 0x39be3c08, 0xb8d379d6, 0x8b574ffe, 0xef644fa0, 0xf2f1f2eb, 0x56d7c95a, 0x763c635f, 0xa50f2edb, 0xbaa046cf, 0x146eee5c, 0xe2c381e7, 0x4f93709a, 0x6d1b4429, 0x707f024b }
+
+function helper:FIND_MATRIX_HASH(key) return matrix[16 * (key >> 4 & 0xF) + (key & 0xF) + 1] end
+
 -- temporarily changed to return stat hash instead of using a matrix
 function helper:MATRIX_LOOKUP(prop, ptype)
     local slot = util.get_char_slot()
@@ -178,21 +183,21 @@ function helper:MATRIX_LOOKUP(prop, ptype)
     if prop == "nightclub" then
         if ptype == 0 then
             if slot == 0 then
-                return util.joaat("MP" .. slot .. "_PROP_NIGHTCLUB_VALUE")
+                return helper:FIND_MATRIX_HASH(0x1A)
             end
 
             if slot == 1 then
-                return util.joaat("MP" .. slot .. "_PROP_NIGHTCLUB_VALUE")
+                return helper:FIND_MATRIX_HASH(0x1A) + helper:FIND_MATRIX_HASH(0x1A + 10)
             end
         end
 
         if ptype == 1 then
             if slot == 0 then
-                return util.joaat("MP" .. slot .. "_PROP_NIGHTCLUB_OWNED")
+                return helper:FIND_MATRIX_HASH(0x1A + 5)
             end
 
             if slot == 1 then
-                return util.joaat("MP" .. slot .. "_PROP_NIGHTCLUB_OWNED")
+                return helper:FIND_MATRIX_HASH(0x1A + 5) + helper:FIND_MATRIX_HASH(0x1A + 11)
             end
         end
     end
@@ -200,21 +205,21 @@ function helper:MATRIX_LOOKUP(prop, ptype)
     if prop == "arcade" then
         if ptype == 0 then
             if slot == 0 then
-                return util.joaat("MP" .. slot .. "_PROP_ARCADE_VALUE")
+                return helper:FIND_MATRIX_HASH(0x1A + 1)
             end
 
             if slot == 1 then
-                return util.joaat("MP" .. slot .. "_PROP_ARCADE_VALUE")
+                return helper:FIND_MATRIX_HASH(0x1A + 1) + helper:FIND_MATRIX_HASH(0x1A + 12)
             end
         end
 
         if ptype == 1 then
             if slot == 0 then
-                return util.joaat("MP" .. slot .. "_PROP_ARCADE_OWNED")
+                return helper:FIND_MATRIX_HASH(0x1A + 6)
             end
 
             if slot == 1 then
-                return util.joaat("MP" .. slot .. "_PROP_ARCADE_OWNED")
+                return helper:FIND_MATRIX_HASH(0x1A + 6) + helper:FIND_MATRIX_HASH(0x1A + 13)
             end
         end
     end
@@ -222,21 +227,21 @@ function helper:MATRIX_LOOKUP(prop, ptype)
     if prop == "autoshop" then
         if ptype == 0 then
             if slot == 0 then
-                return util.joaat("MP" .. slot .. "_PROP_AUTO_SHOP_VALUE")
+                return helper:FIND_MATRIX_HASH(0x1A + 2)
             end
 
             if slot == 1 then
-                return util.joaat("MP" .. slot .. "_PROP_AUTO_SHOP_VALUE")
+                return helper:FIND_MATRIX_HASH(0x1A + 2) + helper:FIND_MATRIX_HASH(0x1A + 14)
             end
         end
 
         if ptype == 1 then
             if slot == 0 then
-                return util.joaat("MP" .. slot .. "_PROP_AUTO_SHOP_OWNED")
+                return helper:FIND_MATRIX_HASH(0x1A + 7)
             end
 
             if slot == 1 then
-                return util.joaat("MP" .. slot .. "_PROP_AUTO_SHOP_OWNED")
+                return helper:FIND_MATRIX_HASH(0x1A + 7) + helper:FIND_MATRIX_HASH(0x1A + 15)
             end
         end
     end
@@ -244,21 +249,21 @@ function helper:MATRIX_LOOKUP(prop, ptype)
     if prop == "hangar" then
         if ptype == 0 then
             if slot == 0 then
-                return util.joaat("MP" .. slot .. "_PROP_HANGAR_VALUE")
+                return helper:FIND_MATRIX_HASH(0x1A + 3)
             end
 
             if slot == 1 then
-                return util.joaat("MP" .. slot .. "_PROP_HANGAR_VALUE")
+                return helper:FIND_MATRIX_HASH(0x1A + 3) + helper:FIND_MATRIX_HASH(0x1A + 16)
             end
         end
 
         if ptype == 1 then
             if slot == 0 then
-                return util.joaat("MP" .. slot .. "_PROP_HANGAR_OWNED")
+                return helper:FIND_MATRIX_HASH(0x1A + 8)
             end
 
             if slot == 1 then
-                return util.joaat("MP" .. slot .. "_PROP_HANGAR_OWNED")
+                return helper:FIND_MATRIX_HASH(0x1A + 8) + helper:FIND_MATRIX_HASH(0x1A + 17)
             end
         end
     end
@@ -266,21 +271,21 @@ function helper:MATRIX_LOOKUP(prop, ptype)
     if prop == "agency" then
         if ptype == 0 then
             if slot == 0 then
-                return util.joaat("MP" .. slot .. "_PROP_FIXER_HQ_VALUE")
+                return helper:FIND_MATRIX_HASH(0x1A + 4)
             end
 
             if slot == 1 then
-                return util.joaat("MP" .. slot .. "_PROP_FIXER_HQ_VALUE")
+                return helper:FIND_MATRIX_HASH(0x1A + 4) + helper:FIND_MATRIX_HASH(0x1A + 18)
             end
         end
 
         if ptype == 1 then
             if slot == 0 then
-                return util.joaat("MP" .. slot .. "_PROP_FIXER_HQ_OWNED")
+                return helper:FIND_MATRIX_HASH(0x1A + 9)
             end
 
             if slot == 1 then
-                return util.joaat("MP" .. slot .. "_PROP_FIXER_HQ_OWNED")
+                return helper:FIND_MATRIX_HASH(0x1A + 9) + helper:FIND_MATRIX_HASH(0x1A + 19)
             end
         end
     end
@@ -1339,7 +1344,7 @@ helper.custom:divider("Mazebank Foreclosure Properties", "mazebank")
 -- add mazebank foreclosure properties
 helper:add(helper.custom:list("Nightclub", {}, "Nightclub recovery options"), "custom_nightclub")
 helper:add(helper.custom:list("Arcade", {}, "Arcade recovery options"), "custom_arcade")
-helper:add(helper.custom:list("Autoshhop", {}, "Auto Shop recovery options"), "custom_autoshop")
+helper:add(helper.custom:list("Autoshop", {}, "Auto Shop recovery options"), "custom_autoshop")
 helper:add(helper.custom:list("Hangar", {}, "Hangar recovery options"), "custom_hangar")
 
 -- add dynasty8 divider
