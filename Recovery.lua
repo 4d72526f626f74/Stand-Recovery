@@ -10,7 +10,7 @@ helper.__index = helper
 
 -- settings
 helper.script_settings = {
-    script_ver = "1.3.1", -- script version
+    script_ver = "1.3.2", -- script version
     ownership_check = true -- ownership check for properties
 }
 
@@ -171,62 +171,28 @@ helper.afk.agency_opts = {
     owned = nil
 }
 
--- matrix of something
-local matrix = { 
-    0x53355D1B, 0x571F0621, 0x60167782, 0x3A3EEA5F, 0xFFFFFFFFE296BDED, 0x56F56335, 0x1C6D62CD, 0x19CCAB7, 0x3823872F, 0xFFFFFFFFD68C226B, 0x7F8C5A21, 0xFFFFFFFF84120CCA, 0xBC0B7DC, 0xFFFFFFFFC446355E, 0xFFFFFFFF8F52CAF3, 
-    0x7BE9F8D0, 0xFFFFFFFFC7340920,     0x5F4E1327, 0xFFFFFFFF8FB0CDF7, 0x12FFD71E, 0xFFFFFFFFFF78C935, 0xFFFFFFFFA5168573, 0x2A231EFF, 0x5CBA6A9,  0x7F91D94,  0xFFFFFFFFB6D66ADE, 0xFFFFFFFFAB2ADB9C, 0x36DC130D, 0xFFFFFFFFDBABBDEA, 
-    0xFFFFFFFF9F2BD3BC,     0x82B695A,  0x5B2441DC, 0x1DF0EAA7, 0x540D0DA3, 0x7B5DAA59, 0x67263571, 0x3C1399CB, 0x939AECD,  0xE6A9D489, 0x9F8C042F, 0xEEB0EBC3, 0x17C98A34, 0x21874091, 0x52821246, 0xA891C2CF, 0x357BB6CA, 0x430E19A0, 
-    0x161C6B49, 0xED775E65, 0x906DCE83, 0x99113E6C, 0xA978075A, 0xCE2F0DE9, 0xE1F86C8A, 0xA6990930, 0x5CDDB293, 0xE3D6B03B, 0xB00DD26,  0xD782AB22, 0xDA2CDED7, 0x6AA94377, 0x3D9F1943, 0x9B4D2771, 0xD3A13530, 0xAAEA9DA8, 0xB5AF64C9, 
-    0x6F91E97,  0xB0355B5E, 0xA906E6F0, 0x570D2952, 0xD9E882BD, 0xC319F754, 0x7B3DA23A, 0x11B7C9A3, 0x7114FE74, 0x9D4B218E, 0x39CFEAFB, 0x9116B40C, 0xE169A639, 0x68130ED2, 0x9C32D310, 0xC94EF2CF, 0xBC98707,  0x6DC5925C, 0x6135EB3B, 
-    0x6AE6DD31, 0x66092CE4, 0xAC7A1451, 0x9CCFDD62, 0xDDBC2D8A, 0xA336E8F9, 0xC3116DA0, 0x40E45388, 0x708C1011, 0x59A6074B, 0x21900315, 0x191B08,   0x7EF82257, 0xBE429FDE, 0xD1AF78EC, 0xFD322A1F, 0x534B1155, 0x35F4AC56, 0x48A16735, 
-    0x9B7CB190, 0x364FA48,  0xDE01603,  0xB6126B0E, 0x917E8033, 0xAF9B8748, 0xD19E7052, 0xCE3EFB3F, 0xABC56A14, 0xDA27185C, 0xCF426A5B, 0x888C4B05, 0x2C08FD5B, 0x83C4038E, 0xFD208C4,  0x92BD0EC1, 0x5103031A, 0x8249C810, 0x5767E2A4, 
-    0x7DD4F62F, 0x18267837, 0x76A7DC07, 0xCAD8B1EA, 0x1C4B2CF0, 0x3571AFDC, 0x98F70D69, 0xF4FF2B17, 0x3E13E49A, 0x4BA9D440, 0x1B0F6D8F, 0x9A21BAEE, 0xF3D5D45D, 0xE47AF21C, 0xDB0C5D95, 0x663A9266, 0x18222BA4, 0xE73894D3, 0x587BF0DA, 
-    0x828BA693, 0xB2EE05C1, 0x16C3BD48, 0x211F5D4A, 0x982896EB, 0x54AF34A9, 0xDD9742A8, 0x55B7D5F6, 0x93FA0E92, 0xBA7A5F13, 0x2D961346, 0xAD7C3195, 0x6165F3F7, 0x2348717E, 0xCC8F82E8, 0x44566D4C, 0x29644434, 0x820E844E, 0xD07B58B2, 
-    0xE14D8C85, 0x3D33DF9F, 0xD32C6B69, 0x32143384, 0x864BC1FE, 0xA5BBE4B7, 0x130CA0B5, 0xF86DF78B, 0xEC8E37D9, 0x89D68F0F, 0xB296392B, 0x4BF8E74C, 0x3CC4EC10, 0xDEA9455A, 0x6FB46737, 0xE0F8F74E, 0xA76A7239, 0x67349F50, 0xDD76AE2D, 
-    0xF583C852, 0x69098F02, 0x654EF37B, 0xB7162C7B, 0x1177E438, 0xD5C4D8C3, 0x91ABD300, 0x3755849,  0x5B96EF1A, 0xCBD760BB, 0xCB83A62,  0x3C73737B, 0x37F10D14, 0x46725219, 0x2AB94FBA, 0xCEEF1B2,  0xA62938D8, 0xA0F25A63, 0x3BCD1E26, 
-    0x3C8A0140, 0xA4383662, 0xE88680E3, 0x80D40812, 0xC4C7D191, 0x429F38B1, 0xAC5E30D1, 0xAFD2E4E6, 0xC62018DA, 0xDACD634D, 0x7439B354, 0x14A82322, 0x3B376384, 0x53C97B98, 0xD13E64BF, 0xF0D2098D, 0x3115F941, 0xFDDFCF1A, 0x2FDE22E7, 
-    0x12FEE31B, 0xEAA91E75, 0x84958F96, 0x7DBACD08, 0x4F7C9786, 0xB305B870, 0x990E5692, 0x5B00192D, 0xD3F12BE9, 0x25C6C293, 0x2E680DF,  0xE83A540D, 0xE255FF84, 0x52D36C6D, 0x93A17A7,  0x898DA393, 0xD2CAE26A, 0xA74C5D73, 0x6A7CFDA7, 
-    0xE9DFBC2E, 0x7DEE4243, 0x81F823B2, 0xF073DD70, 0xC55900B6, 0xC643A2C,  0xC1F772EC, 0xC026F688, 0xBDAAC698, 0x240349FF, 0x297B317F, 0x49F93731, 0x388F26E2, 0x628AF645, 0xE8E270FC, 0xF405A9A9, 0xC9ABA8F9, 0x5C5EC714, 0xC8243A75 
-}
-
--- something
-helper.FHP = function(v1, v2, v3)
-	for v4, v5 in pairs(v3) do
-		local v6 = (v4 >> (1 + 0 + (349 - (147 + 199)))) & ((10 + 24) - 19)
-		local v7 = v4 & (21 - (17 - 11))
-		if ((v2 >> ((1471 - 938) - ((254 - 67) + (993 - (39 + 610))))) == v5) then
-			return ((1821 - (463 + 1342)) * v6) + v7
-		end
-	end
-	return nil
-end
-
--- locate something somewhere
+-- temporarily changed to return stat hash instead of using a matrix
 function helper:MATRIX_LOOKUP(prop, ptype)
     local slot = util.get_char_slot()
 
     if prop == "nightclub" then
         if ptype == 0 then
             if slot == 0 then
-                local x = helper:FHP(0x1FE316884, matrix)
-                return matrix[x]
+                return util.joaat("MP" .. slot .. "_PROP_NIGHTCLUB_VALUE")
             end
 
             if slot == 1 then
-                local x = helper:FHP(0x3FFFFFFFEACAB6E70, matrix)
-                return matrix[x]
+                return util.joaat("MP" .. slot .. "_PROP_NIGHTCLUB_VALUE")
             end
         end
 
         if ptype == 1 then
             if slot == 0 then
-                local x = helper:FHP(0x14CD5746C, matrix)
-                return matrix[x]
+                return util.joaat("MP" .. slot .. "_PROP_NIGHTCLUB_OWNED")
             end
 
             if slot == 1 then
-                local x = helper:FHP(0x3FFFFFFFF1CD02480, matrix)
-                return matrix[x]
+                return util.joaat("MP" .. slot .. "_PROP_NIGHTCLUB_OWNED")
             end
         end
     end
@@ -234,25 +200,21 @@ function helper:MATRIX_LOOKUP(prop, ptype)
     if prop == "arcade" then
         if ptype == 0 then
             if slot == 0 then
-                local x = helper:FHP(0x2F02DF70, matrix)
-                return matrix[x]
+                return util.joaat("MP" .. slot .. "_PROP_ARCADE_VALUE")
             end
 
             if slot == 1 then
-                local x = helper:FHP(0x3FFFFFFFF6EAEF7A8, matrix)
-                return matrix[x]
+                return util.joaat("MP" .. slot .. "_PROP_ARCADE_VALUE")
             end
         end
 
         if ptype == 1 then
             if slot == 0 then
-                local x = helper:FHP(0x6732ADC, matrix)
-                return matrix[x]
+                return util.joaat("MP" .. slot .. "_PROP_ARCADE_OWNED")
             end
 
             if slot == 1 then
-                local x = helper:FHP(0x172E9AA4, matrix)
-                return matrix[x]
+                return util.joaat("MP" .. slot .. "_PROP_ARCADE_OWNED")
             end
         end
     end
@@ -260,25 +222,21 @@ function helper:MATRIX_LOOKUP(prop, ptype)
     if prop == "autoshop" then
         if ptype == 0 then
             if slot == 0 then
-                local x = helper:FHP(0x15BD58CD4, matrix)
-                return matrix[x]
+                return util.joaat("MP" .. slot .. "_PROP_AUTO_SHOP_VALUE")
             end
 
             if slot == 1 then
-                local x = helper:FHP(0x3FFFFFFFE945A15CC, matrix)
-                return matrix[x]
+                return util.joaat("MP" .. slot .. "_PROP_AUTO_SHOP_VALUE")
             end
         end
 
         if ptype == 1 then
             if slot == 0 then
-                local x = helper:FHP(0xE8FBA97C, matrix)
-                return matrix[x]
+                return util.joaat("MP" .. slot .. "_PROP_AUTO_SHOP_OWNED")
             end
 
             if slot == 1 then
-                local x = helper:FHP(0x4BFF5C78, matrix)
-                return matrix[x]
+                return util.joaat("MP" .. slot .. "_PROP_AUTO_SHOP_OWNED")
             end
         end
     end
@@ -286,25 +244,21 @@ function helper:MATRIX_LOOKUP(prop, ptype)
     if prop == "hangar" then
         if ptype == 0 then
             if slot == 0 then
-                local x = helper:FHP(0x1EFA7E340, matrix)
-                return matrix[x]
+                return util.joaat("MP" .. slot .. "_PROP_HANGAR_VALUE")
             end
 
             if slot == 1 then
-                local x = helper:FHP(0x16C910770, matrix)
-                return matrix[x]
+                return util.joaat("MP" .. slot .. "_PROP_HANGAR_VALUE")
             end
         end
 
         if ptype == 1 then
             if slot == 0 then
-                local x = helper:FHP(0x18059DE08, matrix)
-                return matrix[x]
+                return util.joaat("MP" .. slot .. "_PROP_HANGAR_OWNED")
             end
 
             if slot == 1 then
-                local x = helper:FHP(0x3FFFFFFFE3EC337DC, matrix)
-                return matrix[x]
+                return util.joaat("MP" .. slot .. "_PROP_HANGAR_OWNED")
             end
         end
     end
@@ -312,25 +266,21 @@ function helper:MATRIX_LOOKUP(prop, ptype)
     if prop == "agency" then
         if ptype == 0 then
             if slot == 0 then
-                local x = helper:FHP(0xE08E1CBC, matrix)
-                return matrix[x]
+                return util.joaat("MP" .. slot .. "_PROP_FIXER_HQ_VALUE")
             end
 
             if slot == 1 then
-                local x = helper:FHP(0x1FE47650, matrix)
-                return matrix[x]
+                return util.joaat("MP" .. slot .. "_PROP_FIXER_HQ_VALUE")
             end
         end
 
         if ptype == 1 then
             if slot == 0 then
-                local x = helper:FHP(0x15C7C1884, matrix)
-                return matrix[x]
+                return util.joaat("MP" .. slot .. "_PROP_FIXER_HQ_OWNED")
             end
 
             if slot == 1 then
-                local x = helper:FHP(0x17D384C9C, matrix)
-                return matrix[x]
+                return util.joaat("MP" .. slot .. "_PROP_FIXER_HQ_OWNED")
             end
         end
     end
