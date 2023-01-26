@@ -176,7 +176,6 @@ local matrix = { 0x5bc3b301, 0xeb9dbc36, 0x5c84309b, 0x88fb0e6c, 0x82474ede, 0xf
 
 function helper:FIND_MATRIX_HASH(key) return matrix[16 * (key >> 4 & 0xF) + (key & 0xF) + 1] end
 
--- temporarily changed to return stat hash instead of using a matrix
 function helper:MATRIX_LOOKUP(prop, ptype)
     local slot = util.get_char_slot()
 
