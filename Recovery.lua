@@ -10,8 +10,17 @@ helper.__index = helper
 
 -- settings
 helper.script_settings = {
-    script_ver = "1.3.3", -- script version
-    ownership_check = true -- ownership check for properties
+    script_ver = "1.4.0", -- script version
+    ownership_check = true, -- ownership check for properties,
+    auto_accept_transaction_error = true, -- auto accept transaction error
+}
+
+-- script states
+helper.script_states = {
+    nightclub = {
+        safe_open = false,
+        infront_of_safe = false,
+    }
 }
 
 -- predefined values
@@ -169,6 +178,19 @@ helper.afk.agency_opts = {
     first = {"Hawick", "Rockford Hills", "Little Seoul"},
     second = {"Little Seoul", "Rockford Hills", "Hawick"},
     owned = nil
+}
+
+-- collectibles
+helper.joaat_pickups = {
+    bst = "prop_drug_package_02",
+    prbubble_figure = "vm_prop_vm_colle_prbubble"
+}
+
+-- objects
+helper.joaat_objs = {
+    nightclub = {
+        safe_door = "ba_prop_door_safe_02"
+    }
 }
 
 -- matrix of hashes
@@ -703,6 +725,74 @@ function helper.afk:OPEN_INTERNET(filter)
     SIMULATE_CONTROL_KEY(201, 1) -- select filter
 end
 
+-- automatically pickup the specified pickup
+function helper:COLLECT_PICKUP(model)
+    for _, pickup in pairs(entities.get_all_pickups_as_handles()) do
+        local pickup_model = ENTITY.GET_ENTITY_MODEL(pickup)
+
+        if util.reverse_joaat(pickup_model) == model then
+            local coords = ENTITY.GET_ENTITY_COORDS(players.user_ped(), true)
+            ENTITY.SET_ENTITY_COORDS(pickup, coords.x, coords.y, coords.z, true, true, true, true)
+        end
+    end
+end
+
+-- purchases bst
+function helper:BUY_BST(value=1000)
+    local interaction_menu = memory.script_global(2766485)
+    local interaction_menu_item = memory.script_global(2766576 + 7531) 
+    local bst_cost = helper:TUNABLE(262145, 12849)
+    local bst_cooldown = helper:TUNABLE(262145, 12836)
+    local disable_bst = helper:TUNABLE(262145, 12902)
+    local delay = 1
+
+    if value < 1000 then value = 1000 end
+
+    memory.write_int(interaction_menu, 30) -- render VIP/CEO abilties in interaction menu
+    memory.write_int(bst_cost, value)
+    memory.write_int(bst_cooldown, 0)
+    memory.write_int(disable_bst, 0)
+
+    SIMULATE_CONTROL_KEY(244, 1, 0, delay) -- open interaction menu
+    SIMULATE_CONTROL_KEY(173, 1, 0, delay) -- scroll down to bst
+    
+    if memory.read_int(interaction_menu_item) == 1 then -- make sure correct item is selected
+        SIMULATE_CONTROL_KEY(176, 1, 0, delay) -- press enter on bst
+        util.yield(100)
+        helper:COLLECT_PICKUP(helper.joaat_pickups.bst) -- collect bst
+        memory.write_int(bst_cost, 1000)
+    else
+        helper:NOTIFY("Next time don\'t press any buttons dumbass")
+    end
+end
+
+-- check if screen is open (internet browser, terrorbyte etc)
+function helper:IS_SCREEN_OPEN()
+    local screen = memory.script_global(75693)
+    return memory.read_int(screen) ~= 0
+end
+
+-- check if getting transaction error
+function helper:TRANSACTION_ERROR_DISPLAYED()
+    local banner = memory.script_global(4536673)
+    local notif = memory.script_global(4536674)
+
+    return memory.read_int(banner) ~= 0 or memory.read_int(notif) ~= 0
+end
+
+-- automatically accept transaction errors
+function helper:ACCEPT_TRANSACTION_ERROR()
+    if helper:TRANSACTION_ERROR_DISPLAYED() then
+        SIMULATE_CONTROL_KEY(201, 1, 2, 1)
+    end
+end
+
+-- transition state
+function helper:GET_TRANSITION_STATE()
+    local state = memory.script_global(1574993)
+    return memory.read_int(state)
+end
+
 -- create the update button
 helper:add(
     root:action("Update", {}, "Update script to the latest version", function()
@@ -840,6 +930,18 @@ helper:add(
     "heists"
 )
 
+-- add nightclub to the menu
+helper:add(
+    root:list("Nightclub", {"rsnightclub"}, ""),
+    "nightclub"
+)
+
+-- add arcade to the menu
+helper:add(
+    root:list("Arcade", {"rsarcade"}, ""),
+    "arcade"
+)
+
 -- add disable ownership check setting
 helper:add(
     helper.settings:toggle("Ownership Check", {"rsdisableownershipcheck"}, "Enable/disable ownership check for properties", function(state)
@@ -848,28 +950,47 @@ helper:add(
     "settings_ownership_check"
 )
 
+-- add auto accept transaction errors
+helper:add(
+    helper.settings:toggle("Auto Accept Transaction Errors", {}, "Automatically accepts transaction errors", function()
+        local ref = menu.ref_by_rel_path(helper.settings, "Auto Accept Transaction Errors")
+        util.create_tick_handler(function()
+            if ref.value then
+                if helper:TRANSACTION_ERROR_DISPLAYED() then
+                    helper:ACCEPT_TRANSACTION_ERROR()
+                    helper:NOTIFY("Handling transaction error...")
+
+                    for _, i in pairs(entities.get_all_pickups_as_handles()) do
+                        local model = ENTITY.GET_ENTITY_MODEL(i)
+                        local pos = ENTITY.GET_ENTITY_COORDS(i, true)
+                        local player_pos = ENTITY.GET_ENTITY_COORDS(players.user_ped(), true)
+
+                        if MISC.GET_DISTANCE_BETWEEN_COORDS(pos.x, pos.y, pos.z, player_pos.x, player_pos.y, player_pos.z, true) < 10.0 then
+                            entities.delete_by_handle(i)
+                        end
+                    end
+                end
+            else
+                return false
+            end
+        end)
+    end),
+    "settings_auto_accept_transaction_errors"
+)
+
+-- toggle setting on to start accepting transaction errors
+menu.ref_by_rel_path(helper.settings, "Auto Accept Transaction Errors").value = helper.script_settings.auto_accept_transaction_error
+
+-- add unlocks dividers
+helper.tools:divider("Unlocks", "unlocks")
 -- add unlock arcades to tools
 helper:add(
     helper.tools:action("Unlock Arcades On MazeBank", {}, "Unlocks arcades", function()
-        local current_pos = ENTITY.GET_ENTITY_COORDS(players.user_ped(), true)
-        local lester_blip = HUD.GET_NEXT_BLIP_INFO_ID(77)
-        local casino_blip = HUD.GET_NEXT_BLIP_INFO_ID(804)
-
-        if HUD.DOES_BLIP_EXIST(lester_blip) == 0 or HUD.DOES_BLIP_EXIST(casino_blip) == 0 then
-            helper:NOTIFY("Blip not found")
-            return
-        end
-
-        local lester_coords = HUD.GET_BLIP_COORDS(lester_blip)
-        local casino_coords = HUD.GET_BLIP_COORDS(casino_blip)
-
-        ENTITY.SET_ENTITY_COORDS(players.user_ped(), casino_coords.x, casino_coords.y, casino_coords.z, true, true, true, true)
-        PAD.SET_CONTROL_VALUE_NEXT_FRAME(0, 51, 1)
-        ENTITY.SET_ENTITY_COORDS(players.user_ped(), lester_coords.x, lester_coords.y, lester_coords.z, true, true, true, true)
-        util.yield(500)
+        ENTITY.SET_ENTITY_COORDS(players.user_ped(), 1120.0100097656, -225.07000732422, 69.084953308105, true, true, true, true)
+        SIMULATE_CONTROL_KEY(51, 2)
+        ENTITY.SET_ENTITY_COORDS(players.user_ped(), 1048.7941894531, -721.57751464844, 57.227325439453, true, true, true, true)
+        util.yield(300)
         menu.trigger_commands("skipcutscene")
-        util.yield(100)
-        ENTITY.SET_ENTITY_COORDS(players.user_ped(), current_pos.x, current_pos.y, current_pos.z, true, true, true, true)
     end),
     "tools_unlock_arcades"
 )
@@ -879,10 +1000,60 @@ helper:add(
     helper.tools:action("Unlock Autoshops On MazeBank", {}, "Unlock Autoshops", function()
         local pos = v3.new(778.99708076172, -1867.5257568359, 28.296264648438)
         ENTITY.SET_ENTITY_COORDS(players.user_ped(), pos.x, pos.y, pos.z, true, true, true, true)
+        util.yield(4000)
+        menu.trigger_commands("skipcutscene")
     end),
     "tools_unlock_autoshops"
 )
 
+helper.tools:action("Deposit Money", {}, "Deposits all money in your wallet", function()
+    local amount = players.get_wallet(players.user())
+
+    if NETSHOPPING.NET_GAMESERVER_TRANSFER_WALLET_TO_BANK(util.get_char_slot(), players.get_wallet(players.user())) then
+        helper:NOTIFY("Deposited $" .. string.format("%d", amount))
+    end
+end)
+
+-- add money remover divider
+helper.tools:divider("Money Remover", "money_remover")
+
+-- add money remover
+helper:add(
+    helper.tools:text_input("Money Remover", {"rsremovemoney"}, "Removes money from your account", function() end, "0"),
+    "tools_money_remover"
+)
+
+-- add button to remove money
+helper:add(
+    helper.tools:action("Remove Money", {"rsremovemoney"}, "Removes money from your account", function()
+        local amount = tonumber(helper.tools_money_remover.value)
+    
+        if amount == nil then
+            helper:NOTIFY("Invalid money amount")
+            return
+        end
+    
+        if amount < 0 then
+            helper:NOTIFY("Money amount must be greater than 0")
+            return
+        end
+    
+        helper:BUY_BST(amount)
+        util.yield(200)
+        PED.SET_PED_TO_RAGDOLL(players.user_ped(), 1, 1, 0, 0, 0, 0) -- ensures player picks up bst
+        util.yield(100)
+        menu.trigger_commands("bst off")
+    end),
+    "tools_remove_money_button"
+)
+
+helper.tools:action("Remove Max Money", {"rsremovemaxmoney"}, "Removes max money from your account", function()
+    helper:BUY_BST(helper.MAX_INT)
+    util.yield(200)
+    PED.SET_PED_TO_RAGDOLL(players.user_ped(), 1, 1, 0, 0, 0, 0) -- ensures player picks up bst
+    util.yield(100)
+    menu.trigger_commands("bst off")
+end)
 -- add a divider to presets
 helper.presets:divider("MazeBank Foreclusure Properties")
 
@@ -933,6 +1104,10 @@ helper:add(helper.presets_agency:list_select("Money", {}, "The agency value", op
 
 -- purchase nightclub
 helper.presets_nightclub:action("Buy Nightclub", {}, "Automatically purchases a random nightclub", function()
+    if helper:GET_TRANSITION_STATE() ~= 66 then
+        return helper:NOTIFY("You have not loaded yet, aborting purchase")
+    end
+    
     local nightclubs = helper.afk.nightclub_opts.first
     local nightclub = nightclubs[math.random(#nightclubs)]
     local owned = helper:GET_OWNED_PROPERTY_NAME("nightclub")
@@ -966,7 +1141,10 @@ helper.presets_nightclub:action("Buy Nightclub", {}, "Automatically purchases a 
 
     helper:STAND_OPEN_ERROR()
     helper.afk:OPEN_INTERNET("nightclub")
-    helper.afk:PURCHASE_PROPERTY("nightclub", nightclub)
+
+    if helper:IS_SCREEN_OPEN() then
+        helper.afk:PURCHASE_PROPERTY("nightclub", nightclub)
+    end
 end)
 
 -- add set value to nightclub preset
@@ -1042,6 +1220,10 @@ helper:add(
 
 -- purchase arcade
 helper.presets_arcade:action("Buy Arcade", {}, "Automatically purchases a random arcade", function()
+    if helper:GET_TRANSITION_STATE() ~= 66 then
+        return helper:NOTIFY("You have not loaded yet, aborting purchase")
+    end
+    
     local arcades = helper.afk.arcade_opts.first
     local arcade = arcades[math.random(#arcades)]
     local owned = helper:GET_OWNED_PROPERTY_NAME("arcade")
@@ -1072,7 +1254,10 @@ helper.presets_arcade:action("Buy Arcade", {}, "Automatically purchases a random
     end
 
     helper.afk:OPEN_INTERNET("arcade")
-    helper.afk:PURCHASE_PROPERTY("arcade", arcade)
+
+    if helper:IS_SCREEN_OPEN() then
+        helper.afk:PURCHASE_PROPERTY("arcade", arcade)
+    end
 end)
 
 -- add set value to arcade preset
@@ -1152,6 +1337,10 @@ helper:add(
 
 -- purchase autoshop
 helper.presets_autoshop:action("Buy Auto Shop", {}, "Automatically purchases a random auto shop", function()
+    if helper:GET_TRANSITION_STATE() ~= 66 then
+        return helper:NOTIFY("You have not loaded yet, aborting purchase")
+    end
+    
     local autoshops = helper.afk.autoshop_opts.first
     local autoshop = autoshops[math.random(#autoshops)]
     local owned = helper:GET_OWNED_PROPERTY_NAME("autoshop")
@@ -1191,7 +1380,10 @@ helper.presets_autoshop:action("Buy Auto Shop", {}, "Automatically purchases a r
     end
 
     helper.afk:OPEN_INTERNET("autoshop")
-    helper.afk:PURCHASE_PROPERTY("autoshop", autoshop)
+
+    if helper:IS_SCREEN_OPEN() then
+        helper.afk:PURCHASE_PROPERTY("autoshop", autoshop)
+    end
 end)
 
 -- add set value to autoshop preset
@@ -1585,14 +1777,22 @@ end)
 helper.dax:divider("Compatible Missions", "missions")
 
 -- add readonly items to compatible missions
-helper.dax:readonly("First Dose 1 - Welcome to the Troupe")
-helper.dax:readonly("First Dose 2 - Designated Driver")
+helper.dax:readonly("First Dose - Welcome to the Troupe")
+helper.dax:readonly("First Dose - Designated Driver")
+helper.dax:readonly("First Dose - Fatal Incursion")
+helper.dax:readonly("First Dose - Uncontrolled Substance")
+helper.dax:readonly("First Dose - Make War not Love")
+helper.dax:readonly("First Dose - Off the Rails")
 
 -- add options divider
 helper.dax:divider("Options", "options")
 
 -- add make 1M button
 helper.dax:action("Make $1M - First Dose 1", {}, "Automatically completes requirements to make $1M from First Dose 1 mission", function()
+    while helper:GET_TRANSITION_STATE() != 66 do
+        util.yield()
+    end
+
     local cash = helper:TUNABLE(262145, 0)
     local ped = players.user_ped()
     ENTITY.SET_ENTITY_COORDS(ped, 1394.4620361328, 3598.4528808594, 34.990489959717)
@@ -1647,6 +1847,11 @@ helper:add(
         local cash = helper:TUNABLE(262145, 27123)
         memory.write_int(cash, 200000)
         menu.trigger_commands("rp" .. players.get_name(players.user()) .. " on")
+        if helper:TRANSACTION_ERROR_DISPLAYED() then
+            menu.trigger_commands("rp" .. players.get_name(players.user()) .. " off")
+            helper:NOTIFY("Transaction error detected!")
+            menu.ref_by_rel_path(helper.casino, "Enable").value = false
+        end
     end,
     function()
         local cash = helper:TUNABLE(262145, 27123)
@@ -1683,4 +1888,107 @@ helper.heists:toggle("Disable Payout", {}, "Prevents you from gaining money from
             return false
         end
     end)
+end)
+
+-- teleport to nightclub
+helper.nightclub:action("Teleport to Nightclub", {}, "Teleports you to the nightclub", function()
+    local ped = players.user_ped()
+    local ncblip = HUD.GET_FIRST_BLIP_INFO_ID(614)
+
+    if HUD.DOES_BLIP_EXIST(ncblip) then
+        local coords = HUD.GET_BLIP_INFO_ID_COORD(ncblip)
+        ENTITY.SET_ENTITY_COORDS(ped, coords.x, coords.y, coords.z)
+    end
+end)
+
+-- trigger production
+helper.nightclub:action("Trigger Production", {}, "Triggers production so your nightclub safe is nice and full", function()
+    local safe = helper:TUNABLE(262145, 24045)
+    local income = helper:TUNABLE(262145, 24041)
+    memory.write_int(safe, 300000)
+    memory.write_int(income, 300000)
+
+    helper:STAT_SET_INT("CLUB_PAY_TIME_LEFT", 1, true)
+    helper:STAT_SET_INT("CLUB_POPULARITY", 10000, true)
+end)
+
+-- fill safe
+helper.nightclub:toggle_loop("Fill Safe", {}, "Fills your safe with $300,000", function()
+    local safe = helper:TUNABLE(262145, 24045)
+    local income = helper:TUNABLE(262145, 24041)
+    memory.write_int(safe, 300000)
+    memory.write_int(income, 300000)
+
+    helper:STAT_SET_INT("CLUB_PAY_TIME_LEFT", 1, true)
+    helper:STAT_SET_INT("CLUB_POPULARITY", 10000, true)
+end)
+
+-- afk money
+helper.nightclub:toggle("AFK Loop", {}, "Easy AFK money", function()
+    local fill = menu.ref_by_rel_path(helper.nightclub, "Fill Safe")
+    local afk = menu.ref_by_rel_path(helper.nightclub, "AFK Loop")
+
+    fill.value = true
+    
+    util.create_tick_handler(function()
+        if afk.value then
+            if not helper:TRANSACTION_ERROR_DISPLAYED() then
+                if not helper.script_states.nightclub.safe_open then
+                    ENTITY.SET_ENTITY_COORDS(players.user_ped(), -1615.5490722656, -3015.6804199219, -75.205093383789)
+                    SIMULATE_CONTROL_KEY(51, 1)
+                    helper.script_states.nightclub.safe_open = true
+                    util.yield(8000)
+                    ENTITY.SET_ENTITY_COORDS(players.user_ped(), -1615.6691894531, -3015.728515625, -75.205001831055)
+                else
+                    if not helper.script_states.nightclub.infront_of_safe then
+                        ENTITY.SET_ENTITY_COORDS(players.user_ped(), -1615.6691894531, -3015.728515625, -75.205001831055)
+                        helper.script_states.nightclub.infront_of_safe = true
+                        util.yield(3000)
+                    else
+                        ENTITY.SET_ENTITY_COORDS(players.user_ped(), -1618.3752441406, -3011.5810546875, -75.205078125)
+                        util.yield(1000)
+                        ENTITY.SET_ENTITY_COORDS(players.user_ped(), -1615.6691894531, -3015.728515625, -75.205001831055)
+                    end
+                end
+            end
+        else
+            util.yield(1000)
+            SIMULATE_CONTROL_KEY(51, 1)
+            fill.value = false
+            helper.script_states.nightclub.safe_open = false
+            helper.script_states.nightclub.infront_of_safe = false
+            return false
+        end
+
+        util.yield(1)
+    end)
+end)
+
+-- add teleport to arcade
+helper.arcade:action("Teleport to Arcade", {}, "Teleports you to the arcade", function()
+    local ped = players.user_ped()
+    local arcadeblip = HUD.GET_FIRST_BLIP_INFO_ID(740)
+
+    if HUD.DOES_BLIP_EXIST(arcadeblip) then
+        local coords = HUD.GET_BLIP_INFO_ID_COORD(arcadeblip)
+        ENTITY.SET_ENTITY_COORDS(ped, coords.x, coords.y, coords.z)
+    end
+end)
+
+-- Global_262145.f_29250 = arcade max safe value
+-- Global_262145.f_29249 = arcade income
+
+-- trigger production
+helper.arcade:action("Trigger Production", {}, "Triggers production so your nightclub safe is nice and full", function()
+    helper:STAT_SET_INT("ARCADE_PAY_TIME_LEFT", 1, true)
+end)
+
+helper.arcade:toggle_loop("Fill Safe", {}, "Fills your safe with $200,000", function()
+    helper:STAT_SET_INT("ARCADE_PAY_TIME_LEFT", 1, true)
+    local safe = memory.script_global(262145 + 29250)
+    local income = memory.script_global(262145 + 29251)
+    local income2 = memory.script_global(262145 + 29252)
+    memory.write_int(safe, 200000)
+    memory.write_int(income, 200000)
+    memory.write_int(income2, 200000)
 end)
