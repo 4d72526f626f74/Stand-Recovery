@@ -10,9 +10,10 @@ helper.__index = helper
 
 -- settings
 helper.script_settings = {
-    script_ver = "1.4.0", -- script version
+    script_ver = "1.4.1", -- script version
     ownership_check = true, -- ownership check for properties,
-    auto_accept_transaction_error = true, -- auto accept transaction error
+    auto_accept_transaction_error = true, -- auto accept transaction error,
+    abort_on_transaction_error = true, -- automatically stop money loops if transaction error occurs (prevents you getting stuck in a transaction error loop)
 }
 
 -- script states
@@ -20,7 +21,11 @@ helper.script_states = {
     nightclub = {
         safe_open = false,
         infront_of_safe = false,
-    }
+    },
+    arcade = {
+        safe_open = false,
+        infront_of_safe = false,
+    },
 }
 
 -- predefined values
@@ -330,6 +335,48 @@ end
 
 -- purchase property function (replaces individual functions)
 function helper.afk:PURCHASE_PROPERTY(property, name)
+    if menu.ref_by_rel_path(helper.presets_nightclub, "AFK Loop").value == false then
+        if property == "nightclub" then
+            if helper:IS_SCREEN_OPEN() then
+                helper.afk:CLOSE_BROWSER()
+            end
+
+            return
+        end
+    end
+
+    if menu.ref_by_rel_path(helper.presets_arcade, "AFK Loop").value == false then
+        if property == "arcade" then
+            if helper:IS_SCREEN_OPEN() then
+                helper.afk:CLOSE_BROWSER()
+            end
+        end
+    end
+
+    if menu.ref_by_rel_path(helper.presets_autoshop, "AFK Loop").value == false then
+        if property == "autoshop" then
+            if helper:IS_SCREEN_OPEN() then
+                helper.afk:CLOSE_BROWSER()
+            end
+        end
+    end
+
+    if menu.ref_by_rel_path(helper.presets_hangar, "AFK Loop").value == false then
+        if property == "hangar" then
+            if helper:IS_SCREEN_OPEN() then
+                helper.afk:CLOSE_BROWSER()
+            end
+        end
+    end
+
+    if menu.ref_by_rel_path(helper.presets_agency, "AFK Loop").value == false then
+        if property == "agency" then
+            if helper:IS_SCREEN_OPEN() then
+                helper.afk:CLOSE_BROWSER()
+            end
+        end
+    end
+
     local properties = helper.afk[property]
     local locations = properties.locations
 
@@ -600,6 +647,56 @@ end)
 
 -- function to open internet for afk loop
 function helper.afk:OPEN_INTERNET(filter)
+    if menu.ref_by_rel_path(helper.presets_nightclub, "AFK Loop").value == false then
+        if filter == "nightclub" then
+            if helper:IS_SCREEN_OPEN() then
+                helper.afk:CLOSE_BROWSER()
+            end
+
+            return
+        end
+    end
+
+    if menu.ref_by_rel_path(helper.presets_arcade, "AFK Loop").value == false then
+        if filter == "arcade" then
+            if helper.afk:IS_SCREEN_OPEN() then
+                helper:CLOSE_BROWSER()
+            end
+
+            return
+        end
+    end
+
+    if menu.ref_by_rel_path(helper.presets_autoshop, "AFK Loop").value == false then
+        if filter == "autoshop" then
+            if helper:IS_SCREEN_OPEN() then
+                helper.afk:CLOSE_BROWSER()
+            end
+
+            return
+        end
+    end
+
+    if menu.ref_by_rel_path(helper.presets_hangar, "AFK Loop").value == false then
+        if filter == "hangar" then
+            if helper:IS_SCREEN_OPEN() then
+                helper.afk:CLOSE_BROWSER()
+            end
+
+            return
+        end
+    end
+
+    if menu.ref_by_rel_path(helper.presets_agency, "AFK Loop").value == false then
+        if filter == "agency" then
+            if helper:IS_SCREEN_OPEN() then
+                helper.afk:CLOSE_BROWSER()
+            end
+
+            return
+        end
+    end
+
     helper:STAND_OPEN_ERROR()
 
     local xptr, yptr = memory.alloc(4), memory.alloc(4)
@@ -777,7 +874,11 @@ function helper:TRANSACTION_ERROR_DISPLAYED()
     local banner = memory.script_global(4536673)
     local notif = memory.script_global(4536674)
 
-    return memory.read_int(banner) ~= 0 or memory.read_int(notif) ~= 0
+    if helper.script_settings.abort_on_transaction_error then
+        return memory.read_int(banner) ~= 0 or memory.read_int(notif) ~= 0
+    else
+        return false
+    end
 end
 
 -- automatically accept transaction errors
@@ -791,6 +892,11 @@ end
 function helper:GET_TRANSITION_STATE()
     local state = memory.script_global(1574993)
     return memory.read_int(state)
+end
+
+-- bug message
+function helper:BUG_FOUND()
+    helper:NOTIFY("The AFK loop bug has been reported and will be fixed asap, the bug doesn\'t occur for me at all which will make it harder to find the cause", util.show_corner_help)
 end
 
 -- create the update button
@@ -816,6 +922,9 @@ helper:add(
 
 -- hide update button until update check is finished
 helper.update.visible = false
+
+-- show bug message
+helper:BUG_FOUND()
 
 -- json related functions
 helper.json = {}
@@ -932,15 +1041,44 @@ helper:add(
 
 -- add nightclub to the menu
 helper:add(
-    root:list("Nightclub", {"rsnightclub"}, ""),
+    root:list("Nightclub", {"rsnightclub"}, "", function() helper:NOTIFY("Please make sure that the nightclub safe is closed before enabling AFK loop", util.show_corner_help) end),
     "nightclub"
 )
 
 -- add arcade to the menu
 helper:add(
-    root:list("Arcade", {"rsarcade"}, ""),
+    root:list("Arcade", {"rsarcade"}, "", function() helper:NOTIFY("Please make sure that the arcade safe is closed before enabling AFK loop", util.show_corner_help) end),
     "arcade"
 )
+
+-- add a divider for other stuff
+root:divider("Other", "other")
+
+-- add credits to the menu
+helper:add(
+    root:list("Credits", {"rscredits"}, "Credits for the script"),
+    "credits"
+)
+
+helper.credits:divider("Resources", "resources")
+
+-- add root-cause to the menu
+helper.credits:hyperlink("Root-Cause", "https://github.com/root-cause/v-decompiled-scripts", "Provided updated decomiled scripts for latest patch (1.64) which is where most of the globals used in this script came from")
+
+-- add unknowncheats to the menu
+helper.credits:hyperlink("UnknownCheats", "https://www.unknowncheats.me/forum/grand-theft-auto-v/500059-globals-locals-discussion-read-page-1-a-5.html", "Has a bunch of other useful globals and locals that didn\'t get around to finding myself")
+
+-- add docs.fivem to the menu
+helper.credits:hyperlink("FiveM docs", "https://docs.fivem.net/docs/game-references/", "Has a list of all the controls (used for afk functionality) and blip ids used in the script")
+
+-- add nativedb
+helper.credits:hyperlink("NativeDB", "https://nativedb.dotindustries.dev/natives", "Provided an enormous list of natives that were used in the script")
+
+-- add a divider for discord
+helper.credits:divider("Discord", "discord")
+
+-- add discord link to the menu
+helper.credits:hyperlink("Discord", "https://discord.gg/bx8WEZQa49", "Join the discord to report bugs")
 
 -- add disable ownership check setting
 helper:add(
@@ -976,6 +1114,14 @@ helper:add(
         end)
     end),
     "settings_auto_accept_transaction_errors"
+)
+
+-- add abort on transaction error
+helper:add(
+    helper.settings:toggle("Abort On Transaction Error", {}, "Prevents transaction error spam (disables casino figures automatically on transaction error)", function(state)
+        helper.script_settings.abort_on_transaction_error = state
+    end, helper.script_settings.abort_on_transaction_error),
+    "settings_abort_on_transaction_error"
 )
 
 -- toggle setting on to start accepting transaction errors
@@ -1975,9 +2121,6 @@ helper.arcade:action("Teleport to Arcade", {}, "Teleports you to the arcade", fu
     end
 end)
 
--- Global_262145.f_29250 = arcade max safe value
--- Global_262145.f_29249 = arcade income
-
 -- trigger production
 helper.arcade:action("Trigger Production", {}, "Triggers production so your nightclub safe is nice and full", function()
     helper:STAT_SET_INT("ARCADE_PAY_TIME_LEFT", 1, true)
@@ -1991,4 +2134,44 @@ helper.arcade:toggle_loop("Fill Safe", {}, "Fills your safe with $200,000", func
     memory.write_int(safe, 200000)
     memory.write_int(income, 200000)
     memory.write_int(income2, 200000)
+end)
+
+helper.arcade:toggle("AFK Loop", {}, "Easy AFK Money", function()
+    local fill = menu.ref_by_rel_path(helper.arcade, "Fill Safe")
+    local afk = menu.ref_by_rel_path(helper.arcade, "AFK Loop")
+
+    fill.value = true
+
+    util.create_tick_handler(function()
+        if afk.value then
+            if not helper:TRANSACTION_ERROR_DISPLAYED() then
+                if not helper.script_states.arcade.safe_open then
+                    ENTITY.SET_ENTITY_COORDS(players.user_ped(), 2728.4833984375, -374.21838378906, -47.392971038818)
+                    SIMULATE_CONTROL_KEY(51, 2)
+                    helper.script_states.arcade.safe_open = true
+                    util.yield(6000)
+                    ENTITY.SET_ENTITY_COORDS(players.user_ped(), 2728.5122070312, -374.37905883789, -47.392944335938)
+                else
+                    if not helper.script_states.arcade.infront_of_safe then
+                        ENTITY.SET_ENTITY_COORDS(players.user_ped(), 2728.5122070312, -374.37905883789, -47.392944335938)
+                        helper.script_states.arcade.infront_of_safe = true
+                    else
+                        ENTITY.SET_ENTITY_COORDS(players.user_ped(), 2726.9116210938, -374.23046875, -47.38952255249)
+                        util.yield(1000)
+                        ENTITY.SET_ENTITY_COORDS(players.user_ped(), 2728.5122070312, -374.37905883789, -47.392944335938)
+                        util.yield(1000)
+                    end
+                end
+            end
+        else
+            util.yield(1000)
+            SIMULATE_CONTROL_KEY(51, 1)
+            fill.value = false
+            helper.script_states.arcade.safe_open = false
+            helper.script_states.arcade.infront_of_safe = false
+            return false
+        end
+
+        util.yield(1)
+    end)
 end)
