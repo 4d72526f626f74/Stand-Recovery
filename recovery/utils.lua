@@ -52,13 +52,6 @@ local utils = {
             self:SIMULATE_CONTROL_KEY(176, 1, control) -- press enter using FRONTEND_CONTROL mode
         end
     end,
-    CLOSE_BROWSER = function(self)
-        local state = memory.script_global(75693)
-        while memory.read_int(state) ~= 0 do
-            PED.SET_PED_TO_RAGDOLL(players.user_ped(), 1, 1, 2, 0, 0, 0) -- ragdoll the player
-            util.yield(100) -- 100ms delay before next iteration
-        end
-    end,
     OPEN_INTERNET = function(self, script, hyperlink_delay=300)
         if script.states.block_purchase then
             return -- block this function from running

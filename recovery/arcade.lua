@@ -5,7 +5,7 @@ local utils = require("lib.recovery.utils")
 
 arcade.value = util.joaat("MP" .. char .. "_PROP_ARCADE_VALUE") -- stat for arcade value
 arcade.owned = util.joaat("MP" .. char .. "_ARCADE_OWNED") -- stat for owned arcade id
-arcade.offset = 0.5
+arcade.offset = 0.05
 arcade.name = "arcade"
 
 arcade.globals = { -- arcade specific globals
@@ -20,48 +20,6 @@ arcade.globals = { -- arcade specific globals
 
 arcade.afk_options = {
     available = {"La Mesa", "Eight Bit", "Davis"},
-}
-
-arcade["La Mesa"] = {
-    name = "La Mesa",
-    purchase = function()
-        utils:MOVE_CURSOR(0.687, 0.48, 300, true) -- select the arcade
-        utils:MOVE_CURSOR(0.30, 0.78, 300, true) -- press the first buy button
-        utils:MOVE_CURSOR(0.30, 0.92, 300, true) -- press the second buy button
-        utils:MOVE_CURSOR(0.78, 0.91, 300, true) -- press the third buy button
-        utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
-        utils:SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
-        util.yield(1500) -- wait for transaction to complete
-        utils:CLOSE_BROWSER() -- close browser
-    end
-}
-
-arcade["Eight Bit"] = {
-    name = "Eight Bit",
-    purchase = function()
-        utils:MOVE_CURSOR(0.54, 0.27, 300, true) -- select the arcade
-        utils:MOVE_CURSOR(0.30, 0.81, 300, true) -- press the first buy button
-        utils:MOVE_CURSOR(0.30, 0.92, 300, true) -- press the second buy button
-        utils:MOVE_CURSOR(0.78, 0.91, 300, true) -- press the third buy button
-        utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
-        utils:SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
-        util.yield(1500) -- wait for transaction to complete
-        utils:CLOSE_BROWSER() -- close browser
-    end
-}
-
-arcade["Davis"] = {
-    name = "Davis",
-    purchase = function()
-        utils:MOVE_CURSOR(0.593, 0.67, 300, true) -- select the arcade
-        utils:MOVE_CURSOR(0.30, 0.81, 300, true) -- press the first buy button
-        utils:MOVE_CURSOR(0.30, 0.92, 300, true) -- press the second buy button
-        utils:MOVE_CURSOR(0.78, 0.91, 300, true) -- press the third buy button
-        utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
-        utils:SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
-        util.yield(1500) -- wait for transaction to complete
-        utils:CLOSE_BROWSER() -- close browser
-    end
 }
 
 function arcade:SELECT_INTERNET_FILTER()
@@ -197,6 +155,49 @@ function arcade:SECOND_CHOICE_OPTIONS(script, return_results)
 end
 
 function arcade:init(script)
+    arcade["La Mesa"] = {
+        name = "La Mesa",
+        purchase = function()
+            utils:MOVE_CURSOR(0.687, 0.48, 300, true) -- select the arcade
+            utils:MOVE_CURSOR(0.30, 0.78, 300, true) -- press the first buy button
+            utils:MOVE_CURSOR(0.30, 0.92, 300, true) -- press the second buy button
+            utils:MOVE_CURSOR(0.78, 0.91, 300, true) -- press the third buy button
+            utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
+            utils:SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
+            util.yield(1500) -- wait for transaction to complete
+            script:CLOSE_BROWSER() -- close browser
+        end
+    }
+    
+    arcade["Eight Bit"] = {
+        name = "Eight Bit",
+        purchase = function()
+            utils:MOVE_CURSOR(0.54, 0.27, 300, true) -- select the arcade
+            utils:MOVE_CURSOR(0.30, 0.81, 300, true) -- press the first buy button
+            utils:MOVE_CURSOR(0.30, 0.92, 300, true) -- press the second buy button
+            utils:MOVE_CURSOR(0.78, 0.91, 300, true) -- press the third buy button
+            utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
+            utils:SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
+            util.yield(1500) -- wait for transaction to complete
+            script:CLOSE_BROWSER() -- close browser
+        end
+    }
+    
+    arcade["Davis"] = {
+        name = "Davis",
+        purchase = function()
+            utils:MOVE_CURSOR(0.593, 0.67, 300, true) -- select the arcade
+            utils:MOVE_CURSOR(0.30, 0.81, 300, true) -- press the first buy button
+            utils:MOVE_CURSOR(0.30, 0.92, 300, true) -- press the second buy button
+            utils:MOVE_CURSOR(0.78, 0.91, 300, true) -- press the third buy button
+            utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
+            utils:SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
+            util.yield(1500) -- wait for transaction to complete
+            script:CLOSE_BROWSER() -- close browser
+        end
+    }
+    
+
     -- add arcade to the menu
     local owned_data = script:GET_OWNED_PROPERTY_DATA("arcade")
 
@@ -448,7 +449,7 @@ function arcade:init(script)
                     utils:OPEN_INTERNET(script, 200)
 
                     if not afk.value then
-                        utils:CLOSE_BROWSER()
+                        script:CLOSE_BROWSER()
                         menu.trigger_commands("nophonespam off")
                         return false
                     end
@@ -479,7 +480,7 @@ function arcade:init(script)
                     utils:OPEN_INTERNET(script, 200)
 
                     if not afk.value then
-                        utils:CLOSE_BROWSER()
+                        script:CLOSE_BROWSER()
                         return false
                     end
 

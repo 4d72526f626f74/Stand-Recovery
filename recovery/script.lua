@@ -365,6 +365,14 @@ function script:IS_INSIDE_OF_INTERIOR(property)
     end
 end
 
+-- close browser
+function script:CLOSE_BROWSER()
+    while script:IS_SCREEN_OPEN() do
+        PED.SET_PED_TO_RAGDOLL(players.user_ped(), 1, 1, 2, 0, 0, 0)
+        util.yield(100)
+    end
+end
+
 -- automatically collect pickups
 function script:COLLECT_PICKUP(model)
     for _, pickup in pairs(entities.get_all_pickups_as_handles()) do

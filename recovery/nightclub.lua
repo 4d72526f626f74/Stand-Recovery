@@ -5,7 +5,7 @@ local utils = require("lib.recovery.utils") -- require the utils module
 
 nightclub.value = util.joaat("MP" .. char .. "_PROP_NIGHTCLUB_VALUE") -- stat for nightclub value
 nightclub.owned = util.joaat("MP" .. char .. "_NIGHTCLUB_OWNED") -- stat for owned nightclub id
-nightclub.offset = 0.5
+nightclub.offset = 0.05
 nightclub.name = "nightclub"
 
 nightclub.globals = { -- nightclub specific globals
@@ -20,51 +20,6 @@ nightclub.globals = { -- nightclub specific globals
 
 nightclub.afk_options = {
     available = {"La Mesa", "Mission Row", "Vespucci Canals"},
-}
-
--- add la mesa nightclub
-nightclub["La Mesa"] = {
-    name = "La Mesa",
-    purchase = function()
-        utils:MOVE_CURSOR(0.69, 0.58, 300, true) -- select the nightclub
-        utils:MOVE_CURSOR(0.30, 0.73, 300, true) -- press the first buy button
-        utils:MOVE_CURSOR(0.30, 0.93, 300, true) -- press the second buy button
-        utils:MOVE_CURSOR(0.78, 0.91, 300, true) -- press the third buy butwton
-        utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
-        utils:SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
-        util.yield(1500) -- wait for transaction to complete
-        utils:CLOSE_BROWSER() -- close browser
-    end
-}
-
--- add mission row nightclub
-nightclub["Mission Row"] = {
-    name = "Mission Row",
-    purchase = function()
-        utils:MOVE_CURSOR(0.64, 0.51, 300, true) -- select the nightclub
-        utils:MOVE_CURSOR(0.30, 0.73, 300, true) -- press the first buy button
-        utils:MOVE_CURSOR(0.30, 0.93, 300, true) -- press the second buy button
-        utils:MOVE_CURSOR(0.78, 0.91, 300, true) -- press the third buy butwton
-        utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
-        utils:SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
-        util.yield(1500) -- wait for transaction to complete
-        utils:CLOSE_BROWSER() -- close browser
-    end
-}
-
--- add vespucci canals nightclub
-nightclub["Vespucci Canals"] = {
-    name = "Vespucci Canals",
-    purchase = function()
-        utils:MOVE_CURSOR(0.479, 0.54, 300, true) -- select the nightclub
-        utils:MOVE_CURSOR(0.30, 0.73, 300, true) -- press the first buy button
-        utils:MOVE_CURSOR(0.30, 0.93, 300, true) -- press the second buy button
-        utils:MOVE_CURSOR(0.78, 0.91, 300, true) -- press the third buy button
-        utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
-        utils:SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
-        util.yield(1500) -- wait for transaction to complete
-        utils:CLOSE_BROWSER() -- close browser
-    end
 }
 
 function nightclub:SELECT_INTERNET_FILTER()
@@ -203,6 +158,51 @@ function nightclub:SECOND_CHOICE_OPTIONS(script, return_results)
 end
 
 function nightclub:init(script)
+    -- add la mesa nightclub
+    nightclub["La Mesa"] = {
+        name = "La Mesa",
+        purchase = function()
+            utils:MOVE_CURSOR(0.69, 0.58, 300, true) -- select the nightclub
+            utils:MOVE_CURSOR(0.30, 0.73, 300, true) -- press the first buy button
+            utils:MOVE_CURSOR(0.30, 0.93, 300, true) -- press the second buy button
+            utils:MOVE_CURSOR(0.78, 0.91, 300, true) -- press the third buy butwton
+            utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
+            utils:SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
+            util.yield(1500) -- wait for transaction to complete
+            script:CLOSE_BROWSER() -- close browser
+        end
+    }
+
+    -- add mission row nightclub
+    nightclub["Mission Row"] = {
+        name = "Mission Row",
+        purchase = function()
+            utils:MOVE_CURSOR(0.64, 0.51, 300, true) -- select the nightclub
+            utils:MOVE_CURSOR(0.30, 0.73, 300, true) -- press the first buy button
+            utils:MOVE_CURSOR(0.30, 0.93, 300, true) -- press the second buy button
+            utils:MOVE_CURSOR(0.78, 0.91, 300, true) -- press the third buy butwton
+            utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
+            utils:SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
+            util.yield(1500) -- wait for transaction to complete
+            script:CLOSE_BROWSER() -- close browser
+        end
+    }
+
+    -- add vespucci canals nightclub
+    nightclub["Vespucci Canals"] = {
+        name = "Vespucci Canals",
+        purchase = function()
+            utils:MOVE_CURSOR(0.479, 0.54, 300, true) -- select the nightclub
+            utils:MOVE_CURSOR(0.30, 0.73, 300, true) -- press the first buy button
+            utils:MOVE_CURSOR(0.30, 0.93, 300, true) -- press the second buy button
+            utils:MOVE_CURSOR(0.78, 0.91, 300, true) -- press the third buy button
+            utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
+            utils:SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
+            util.yield(1500) -- wait for transaction to complete
+            script:CLOSE_BROWSER() -- close browser
+        end
+    }
+
     -- add nightclub recovery option to the menu
     local owned_data = script:GET_OWNED_PROPERTY_DATA("nightclub")
 
@@ -455,7 +455,7 @@ function nightclub:init(script)
                     utils:OPEN_INTERNET(script, 200)
 
                     if not afk.value then
-                        utils:CLOSE_BROWSER()
+                        script:CLOSE_BROWSER()
                         menu.trigger_commands("nophonespam off")
                         return false
                     end
@@ -486,7 +486,7 @@ function nightclub:init(script)
                     utils:OPEN_INTERNET(script, 200)
 
                     if not afk.value then
-                        utils:CLOSE_BROWSER()
+                        script:CLOSE_BROWSER()
                         return false
                     end
 

@@ -5,7 +5,7 @@ local utils = require("lib.recovery.utils")
 
 autoshop.value = util.joaat("MP" .. char .. "_PROP_AUTO_SHOP_VALUE") -- stat for autoshop value
 autoshop.owned = util.joaat("MP" .. char .. "_AUTO_SHOP_OWNED") -- stat for owned autoshop id
-autoshop.offset = 0.5
+autoshop.offset = 0.05
 autoshop.name = "autoshop"
 
 autoshop.globals = { -- autoshop specific globals
@@ -30,7 +30,7 @@ autoshop["La Mesa"] = {
         utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
         utils:SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
         util.yield(1500) -- wait for transaction to complete
-        utils:CLOSE_BROWSER() -- close browser
+        script:CLOSE_BROWSER() -- close browser
     end
 }
 
@@ -44,7 +44,7 @@ autoshop["Mission Row"] = {
         utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
         utils:SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
         util.yield(1500) -- wait for transaction to complete
-        utils:CLOSE_BROWSER() -- close browser
+        script:CLOSE_BROWSER() -- close browser
     end
 }
 
@@ -58,7 +58,7 @@ autoshop["Burton"] = {
         utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
         utils:SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
         util.yield(1500) -- wait for transaction to complete
-        utils:CLOSE_BROWSER() -- close browser
+        script:CLOSE_BROWSER() -- close browser
     end
 }
 
@@ -196,6 +196,48 @@ function autoshop:SECOND_CHOICE_OPTIONS(script, return_results)
 end
 
 function autoshop:init(script)
+    autoshop["La Mesa"] = {
+        name = "La Mesa",
+        purchase = function()
+            utils:MOVE_CURSOR(0.687, 0.455, 300, true) -- select the autoshop
+            utils:MOVE_CURSOR(0.30, 0.75, 300, true) -- press the first buy button
+            utils:MOVE_CURSOR(0.30, 0.92, 300, true) -- press the second buy button
+            utils:MOVE_CURSOR(0.78, 0.94, 300, true) -- press the third buy button
+            utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
+            utils:SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
+            util.yield(1500) -- wait for transaction to complete
+            script:CLOSE_BROWSER() -- close browser
+        end
+    }
+    
+    autoshop["Mission Row"] = {
+        name = "Mission Row",
+        purchase = function()
+            utils:MOVE_CURSOR(0.66, 0.49, 300, true) -- select the autoshop
+            utils:MOVE_CURSOR(0.30, 0.75, 300, true) -- press the first buy button
+            utils:MOVE_CURSOR(0.30, 0.92, 300, true) -- press the second buy button
+            utils:MOVE_CURSOR(0.78, 0.94, 300, true) -- press the third buy button
+            utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
+            utils:SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
+            util.yield(1500) -- wait for transaction to complete
+            script:CLOSE_BROWSER() -- close browser
+        end
+    }
+    
+    autoshop["Burton"] = {
+        name = "Burton",
+        purchase = function()
+            utils:MOVE_CURSOR(0.585, 0.32, 300, true) -- select the autoshop
+            utils:MOVE_CURSOR(0.30, 0.75, 300, true) -- press the first buy button
+            utils:MOVE_CURSOR(0.30, 0.92, 300, true) -- press the second buy button
+            utils:MOVE_CURSOR(0.78, 0.94, 300, true) -- press the third buy button
+            utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
+            utils:SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
+            util.yield(1500) -- wait for transaction to complete
+            script:CLOSE_BROWSER() -- close browser
+        end
+    }
+
     -- add autoshop recovery option to the menu
     local owned_data = script:GET_OWNED_PROPERTY_DATA("autoshop")
 
@@ -382,7 +424,7 @@ function autoshop:init(script)
                     utils:OPEN_INTERNET(script, 200)
 
                     if not afk.value then
-                        utils:CLOSE_BROWSER()
+                        script:CLOSE_BROWSER()
                         menu.trigger_commands("nophonespam off")
                         return false
                     end
@@ -413,7 +455,7 @@ function autoshop:init(script)
                     utils:OPEN_INTERNET(script, 200)
 
                     if not afk.value then
-                        utils:CLOSE_BROWSER()
+                        script:CLOSE_BROWSER()
                         return false
                     end
 
