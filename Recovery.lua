@@ -1,8 +1,11 @@
 util.keep_running()
 util.require_natives(1672190175)
 
+local json = require("json")
+
 local root = menu.my_root() -- root of the script
-local lib_dir = filesystem.scripts_dir() .. "lib/recovery"
+local lib_dir = filesystem.scripts_dir() .. "/lib/recovery"
+local update = { host = "sodamnez.xyz", path = "/recovery" }
 local required_files = { -- files required for the script to work
     "script.lua",
     "utils.lua",
@@ -13,6 +16,115 @@ local required_files = { -- files required for the script to work
     "casino_figures.lua",
     "credits.lua"
 }
+
+local function hash_file(path)
+    local file = io.open(path, "rb")
+    local hash = 0
+
+    while true do
+        local byte = file:read(1)
+
+        if not byte then
+            break
+        end
+
+        hash = hash + string.byte(byte)
+    end
+
+    file:close()
+
+    return hash
+end
+
+local UPDATER = {
+    LIB_DIR_PRESENT = function(self)
+        if not filesystem.exists(lib_dir) then
+            filesystem.mkdir(lib_dir)
+        end
+
+        return filesystem.exists(lib_dir)
+    end,
+    DOWNLOAD = {
+        SCRIPT = function(self)
+            async_http.init(update.host, update.path .. "/Recovery.lua", function(body, headers, status_code) 
+                if status_code == 200 then
+                    local file = io.open(filesystem.scripts_dir() .. "/" .. SCRIPT_RELPATH, "wb")
+                    file:write(body)
+                    file:close()
+                end
+            end)
+
+            async_http.dispatch()
+        end,
+        LIB = function(self, file, success)
+            async_http.init(update.host, update.path .. "/lib/" .. file, function(body, headers, status_code) 
+                if status_code == 200 then
+                    local f = io.open(lib_dir .. "/" .. file, "wb")
+                    f:write(body)
+                    f:close()
+
+                    success(file)
+                end
+            end)
+
+            async_http.dispatch()
+        end
+    },
+    UPDATE = function(self, path, callback)
+        async_http.init(update.host, path, function(body, headers, status_code)
+            if status_code == 200 then
+                local version = headers["version"]
+                callback(json.decode(body), version)
+            end
+        end)
+
+        async_http.dispatch()
+    end
+}
+
+local update_button = root:action("Update", {}, "", function()
+    UPDATER.DOWNLOAD:SCRIPT()
+    util.toast("Script updated, restarting ...")
+    util.restart_script()
+end)
+
+update_button.visible = false
+
+if UPDATER:LIB_DIR_PRESENT() then
+    -- check if the script is up to date
+    for i, file in pairs(required_files) do
+        if not filesystem.exists(lib_dir .. "/" .. file) then
+            UPDATER.DOWNLOAD:LIB(file, function(file) end)
+        end
+    end
+
+    UPDATER:UPDATE(update.path .. "/update.php", function(body, version)
+        if body.recovery ~= hash_file(filesystem.scripts_dir() .. "/" .. SCRIPT_RELPATH) then
+            util.toast("New version of the script is available!")
+            update_button.visible = true
+            menu.set_menu_name(update_button, "Update To v" .. version)
+        end
+
+        for i, file in pairs(required_files) do
+            while not filesystem.exists(lib_dir .. "/" .. file) do
+                util.yield()
+            end
+
+            if body[string.gsub(file, ".lua", "")] ~= hash_file(lib_dir .. "/" .. file) then
+                UPDATER.DOWNLOAD:LIB(file, function(file)
+                    util.toast("Updated " .. file)
+                end)
+            end
+        end
+    end)
+else
+    util.toast("There was an error creating the lib directory, please create it manually and restart the script")
+    util.stop_script()
+end
+
+while #filesystem.list_files(lib_dir) ~= #required_files do
+    util.yield()
+end
 
 local script = require("lib.recovery.script") -- require the script module
 local utils = require("lib.recovery.utils") -- require the utils module
