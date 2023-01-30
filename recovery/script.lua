@@ -11,7 +11,7 @@ script.root = menu.my_root()
 
 -- script settings
 script.script_settings = {
-    version = "1.5.1", -- script version
+    version = "1.0.0", -- script version
     ownership_check = true, -- ownership check for properties
     auto_accept_transaction_errors = true, -- automatically accept transaction errors
 }
