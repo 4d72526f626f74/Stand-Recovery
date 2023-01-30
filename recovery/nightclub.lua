@@ -154,8 +154,54 @@ function nightclub:SELECT_INTERNET_FILTER()
             break
     end
 
+    util.toast("start_x: " .. start_x .. " start_y: " .. start_y)
+
     utils:MOVE_CURSOR(start_x, start_y, 100, true) -- select the internet filter
     utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to select the internet filter
+end
+
+function nightclub:FIRST_CHOICE_OPTIONS(script, return_results)
+    -- create options for first nightclub (get all nightclubs that don't own)
+    local nc_options = {}
+    local owned_data = script:GET_OWNED_PROPERTY_DATA("nightclub")
+
+    for key, value in pairs(nightclub.afk_options.available) do
+        table.insert(nc_options, value)
+    end
+
+    for index, option in pairs(nc_options) do
+        if option == owned_data.name then
+            table.remove(nc_options, index)
+        end
+    end
+
+    if return_results then
+        return nc_options
+    end
+
+    -- get the reference and set the options
+    local ref = script.nightclub_presets_afk_first
+    menu.set_list_action_options(ref, nc_options)
+end
+
+function nightclub:SECOND_CHOICE_OPTIONS(script, return_results)
+    -- modify the options for the second nightclub
+    local nc1_options = {}
+    local owned_data = script:GET_OWNED_PROPERTY_DATA("nightclub")
+
+    for key, value in pairs(nightclub.afk_options.available) do
+        if value == owned_data.name then
+            table.insert(nc1_options, value)
+        end
+    end
+
+    if return_results then
+        return nc1_options
+    end
+
+    -- get the reference and set the options
+    local ref = script.nightclub_presets_afk_second
+    menu.set_list_action_options(ref, nc1_options)
 end
 
 function nightclub:init(script)
@@ -280,10 +326,8 @@ function nightclub:init(script)
     -- add buy nightclub
     script:add(
         script.nightclub_presets:action("Buy Nightclub", {}, "Automatically buys a nightclub for you", function()
-            script.states.bypass_blocked_state = true
             local owned_data = script:GET_OWNED_PROPERTY_DATA("nightclub")
             local club = nightclub.afk_options.available[math.random(#nightclub.afk_options.available)]
-            script.states.block_purchase = false
 
             while owned_data.name == club do
                 club = nightclub.afk_options.available[math.random(#nightclub.afk_options.available)]
@@ -300,7 +344,6 @@ function nightclub:init(script)
             utils:OPEN_INTERNET(script, 300)
             nightclub:SELECT_INTERNET_FILTER()
             script:PURCHASE_PROPERTY(nightclub, club)
-            script.states.bypass_blocked_state = false
         end),
         "nightclub_presets_buy"
     )
@@ -323,23 +366,22 @@ function nightclub:init(script)
     -- add loop set value
     script:add(
         script.nightclub_presets:toggle_loop("Loop Set Value", {}, "Does the same as set value but instead of setting it once it sets it repeatedly", function()
-            menu.trigger_command(script.nightclub_presets_set_value)
+            local afk = menu.ref_by_rel_path(script.nightclub_presets, "AFK Loop")
+            local loop_set = menu.ref_by_rel_path(script.nightclub_presets, "Loop Set Value")
+
+            if not afk.value then
+                menu.trigger_command(script.nightclub_presets_set_value) -- call set value button
+                util.yield(500) -- wait before setting it again
+            else
+                loop_set.value = false
+            end
         end),
         "nightclub_presets_loop_set_value"
     )
 
     -- add divider for afk loop
     script.nightclub_presets:divider("AFK Money Loop")
-
-    -- create options for first nightclub (get all nightclubs that don't own)
-    local nc_options = {}
-    local owned_data = script:GET_OWNED_PROPERTY_DATA("nightclub")
-
-    for key, value in pairs(nightclub.afk_options.available) do
-        if value ~= owned_data.name then
-            table.insert(nc_options, value)
-        end
-    end
+    local nc_options = nightclub:FIRST_CHOICE_OPTIONS(script, true)
 
     -- add first nightclub option
     script:add(
@@ -356,14 +398,7 @@ function nightclub:init(script)
         "nightclub_presets_afk_first"
     )
 
-    -- modify the options for the second nightclub
-    local nc1_options = {}
-
-    for key, value in pairs(nightclub.afk_options.available) do
-        if value == owned_data.name or value ~= nightclub.afk_options.available[script.nightclub_presets_afk_first.value] then
-            table.insert(nc1_options, value)
-        end
-    end
+    local nc1_options = nightclub:SECOND_CHOICE_OPTIONS(script, true)
 
     -- add second nightclub option
     script:add(
@@ -385,31 +420,97 @@ function nightclub:init(script)
         script.nightclub_presets:toggle("AFK Loop", {}, "Automatically alternates between buying the 2 selected nightclubs", function(state)
             local first = script.nightclub_presets_afk_first
             local second = script.nightclub_presets_afk_second
+            local fname = nc_options[first.value]
+            local sname = nc1_options[second.value]
             local afk = menu.ref_by_rel_path(script.nightclub_presets, "AFK Loop")
-            script.states.block_purchase = false
+            local owned_data = script:GET_OWNED_PROPERTY_DATA("nightclub")
+
+            while fname == owned_data.name do
+                first.value = math.random(1, 2)
+                fname = nc_options[first.value]
+                util.yield()
+            end
+
+            while fname == sname do
+                first.value = math.random(1, 2)
+                fname = nc_options[first.value]
+                util.yield()
+            end
+
+            -- block all phone calls
+            menu.trigger_commands("nophonespam on")
             
             util.create_tick_handler(function()
                 util.yield(100) -- small delay before starting
 
                 if afk.value then
-                    if not script.states.block_purchase then
-                        script:STAT_SET_INT("PROP_NIGHTCLUB_VALUE", script.MAX_INT, true) -- set value to max int
-                        utils:OPEN_INTERNET(script, 200)
-                        nightclub:SELECT_INTERNET_FILTER()
-                        script:PURCHASE_PROPERTY(nightclub, nc_options[first.value])
-                        util.yield(1000)
-                        script:STAT_SET_INT("PROP_NIGHTCLUB_VALUE", script.MAX_INT, true) -- set value to max int
-                        utils:OPEN_INTERNET(script, 200)
-                        nightclub:SELECT_INTERNET_FILTER()
-                        script:PURCHASE_PROPERTY(nightclub, nc1_options[second.value])
-                        util.yield(1000)
+                    if not afk.value then
+                        menu.trigger_commands("nophonespam off")
+                        return false 
                     end
+
+                    script:STAT_SET_INT("PROP_NIGHTCLUB_VALUE", script.MAX_INT, true) -- set value to max int
+                    if not afk.value then
+                        menu.trigger_commands("nophonespam off")
+                        return false 
+                    end
+                    utils:OPEN_INTERNET(script, 200)
+
+                    if not afk.value then
+                        utils:CLOSE_BROWSER()
+                        menu.trigger_commands("nophonespam off")
+                        return false
+                    end
+
+                    nightclub:SELECT_INTERNET_FILTER()
+                    if not afk.value then
+                        menu.trigger_commands("nophonespam off")
+                        return false 
+                    end
+                    script:PURCHASE_PROPERTY(nightclub, nc_options[first.value])
+                    if not afk.value then
+                        menu.trigger_commands("nophonespam off")
+                        return false 
+                    end
+                    nightclub:FIRST_CHOICE_OPTIONS(script, false)
+                    nightclub:SECOND_CHOICE_OPTIONS(script, false)
+
+                    util.yield(1500)
+                    if not afk.value then
+                        menu.trigger_commands("nophonespam off")
+                        return false 
+                    end
+                    script:STAT_SET_INT("PROP_NIGHTCLUB_VALUE", script.MAX_INT, true) -- set value to max int
+                    if not afk.value then
+                        menu.trigger_commands("nophonespam off")
+                        return false 
+                    end
+                    utils:OPEN_INTERNET(script, 200)
+
+                    if not afk.value then
+                        utils:CLOSE_BROWSER()
+                        return false
+                    end
+
+                    nightclub:SELECT_INTERNET_FILTER()
+                    if not afk.value then
+                        menu.trigger_commands("nophonespam off")
+                        return false 
+                    end
+                    script:PURCHASE_PROPERTY(nightclub, nc1_options[second.value])
+                    if not afk.value then
+                        menu.trigger_commands("nophonespam off")
+                        return false 
+                    end
+                    nightclub:FIRST_CHOICE_OPTIONS(script, false)
+                    nightclub:SECOND_CHOICE_OPTIONS(script, false)
+                    util.yield(1500)
                 else
-                    script.states.block_purchase = true
+                    menu.trigger_commands("nophonespam off")
                     return false
                 end
 
-                util.yield(500) -- delay before next tick
+                util.yield(1000) -- delay before next tick
             end)
         end),
         "nightclub_presets_afk_loop"
@@ -434,10 +535,8 @@ function nightclub:init(script)
     -- add buy nightclub option to custom (works the same as the presets)
     script:add(
         script.nightclub_custom:action("Buy Nightclub", {}, "Buys a nightclub", function()
-            script.states.bypass_blocked_state = true
             local owned_data = script:GET_OWNED_PROPERTY_DATA("nightclub")
             local club = nightclub.afk_options.available[math.random(#nightclub.afk_options.available)]
-            script.states.block_purchase = false
 
             while owned_data.name == club do
                 club = nightclub.afk_options.available[math.random(#nightclub.afk_options.available)]
@@ -454,7 +553,6 @@ function nightclub:init(script)
             utils:OPEN_INTERNET(script, 300)
             nightclub:SELECT_INTERNET_FILTER()
             script:PURCHASE_PROPERTY(nightclub, club)
-            script.states.bypass_blocked_state = false
         end),
         "nightclub_custom_buy"
     )

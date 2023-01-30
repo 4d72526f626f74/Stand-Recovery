@@ -170,3 +170,5 @@ autoshop:init(script) -- initalise autoshop menu
 dax:init(script) -- initalise dax menu
 casino_figures:init(script) -- initalise casino figures menu
 credits:init(script) -- initalise credits menu
+
+utils:SET_SCRIPT(script) -- set the script for the utils module

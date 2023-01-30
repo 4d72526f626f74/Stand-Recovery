@@ -153,6 +153,48 @@ function autoshop:SELECT_INTERNET_FILTER()
     utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to select the internet filter
 end
 
+function autoshop:FIRST_CHOICE_OPTIONS(script, return_results)
+    -- create options for first autoshop (get all autoshops that don't own)
+    local autoshop_options = {}
+    local owned_data = script:GET_OWNED_PROPERTY_DATA("autoshop")
+
+    for key, value in pairs(autoshop.afk_options.available) do
+        table.insert(autoshop_options, value)
+    end
+
+    for index, option in ipairs(autoshop_options) do
+        if owned_data.name == option then
+            table.remove(autoshop_options, index)
+        end
+    end
+
+    if return_results then
+        return autoshop_options
+    end
+
+    -- get the reference and set the options
+    local ref = script.autoshop_presets_afk_first
+    menu.set_list_action_options(ref, autoshop_options)
+end
+
+function autoshop:SECOND_CHOICE_OPTIONS(script, return_results)
+    -- modify the options for the second autoshop
+    local autoshop1_options = {}
+    local owned_data = script:GET_OWNED_PROPERTY_DATA("autoshop")
+
+    for key, value in pairs(autoshop.afk_options.available) do
+        table.insert(autoshop1_options, value)
+    end
+
+    if return_results then
+        return autoshop1_options
+    end
+
+    -- get the reference and set the options
+    local ref = script.autoshop_presets_afk_second
+    menu.set_list_action_options(ref, autoshop1_options)
+end
+
 function autoshop:init(script)
     -- add autoshop recovery option to the menu
     local owned_data = script:GET_OWNED_PROPERTY_DATA("autoshop")
@@ -208,10 +250,8 @@ function autoshop:init(script)
     -- add buy autoshop
     script:add(
         script.autoshop_presets:action("Buy Autoshop", {}, "Automatically buys a autoshop for you", function()
-            script.states.bypass_blocked_state = true
             local owned_data = script:GET_OWNED_PROPERTY_DATA("autoshop")
             local choice = autoshop.afk_options.available[math.random(#autoshop.afk_options.available)]
-            script.states.block_purchase = false
 
             while owned_data.name == choice do
                 choice = autoshop.afk_options.available[math.random(#autoshop.afk_options.available)]
@@ -229,7 +269,6 @@ function autoshop:init(script)
             utils:OPEN_INTERNET(script, 300)
             autoshop:SELECT_INTERNET_FILTER()
             script:PURCHASE_PROPERTY(autoshop, choice)
-            script.states.bypass_blocked_state = false
         end),
         "autoshop_presets_buy"
     )
@@ -252,23 +291,22 @@ function autoshop:init(script)
     -- add loop set value
     script:add(
         script.autoshop_presets:toggle_loop("Loop Set Value", {}, "Does the same as set value but instead of setting it once it sets it repeatedly", function()
-            menu.trigger_command(script.autoshop_presets_set_value)
+            local afk = menu.ref_by_rel_path(script.autoshop_presets, "AFK Loop")
+            local loop_set = menu.ref_by_rel_path(script.autoshop_presets, "Loop Set Value")
+
+            if not afk.value then
+                menu.trigger_command(script.autoshop_presets_set_value) -- call set value button
+                util.yield(500) -- wait before setting it again
+            else
+                loop_set.value = false
+            end
         end),
         "autoshop_presets_loop_set_value"
     )
 
     -- add divider for afk loop
     script.autoshop_presets:divider("AFK Money Loop")
-
-    -- create options for first autoshop (get all autoshops that don't own)
-    local autoshop_options = {}
-    local owned_data = script:GET_OWNED_PROPERTY_DATA("autoshop")
-
-    for key, value in pairs(autoshop.afk_options.available) do
-        if value ~= owned_data.name then
-            table.insert(autoshop_options, value)
-        end
-    end
+    local autoshop_options = autoshop:FIRST_CHOICE_OPTIONS(script, true)
 
     -- add first autoshop option
     script:add(
@@ -285,14 +323,7 @@ function autoshop:init(script)
         "autoshop_presets_afk_first"
     )
 
-    -- modify the options for the second autoshop
-    local autoshop1_options = {}
-
-    for key, value in pairs(autoshop.afk_options.available) do
-        if value == owned_data.name or value ~= autoshop.afk_options.available[script.autoshop_presets_afk_first.value] then
-            table.insert(autoshop1_options, value)
-        end
-    end
+    local autoshop1_options = autoshop:SECOND_CHOICE_OPTIONS(script, true)
 
     -- add second autoshop option
     script:add(
@@ -314,27 +345,92 @@ function autoshop:init(script)
         script.autoshop_presets:toggle("AFK Loop", {}, "Automatically alternates between buying the 2 selected autoshops", function(state)
             local first = script.autoshop_presets_afk_first
             local second = script.autoshop_presets_afk_second
+            local fname = autoshop_options[first.value]
+            local sname = autoshop1_options[second.value]
             local afk = menu.ref_by_rel_path(script.autoshop_presets, "AFK Loop")
-            script.states.block_purchase = false
+            local owned_data = script:GET_OWNED_PROPERTY_DATA("autoshop")
+
+            while fname == owned_data.name do
+                first.value = math.random(1, 2)
+                fname = autoshop_options[first.value]
+                util.yield()
+            end
+
+            while fname == sname do
+                first.value = math.random(1, 2)
+                fname = autoshop_options[first.value]
+                util.yield()
+            end
+
+            -- block all phone calls
+            menu.trigger_commands("nophonespam on")
             
             util.create_tick_handler(function()
                 util.yield(100) -- small delay before starting
 
                 if afk.value then
-                    if not script.states.block_purchase then
-                        script:STAT_SET_INT("PROP_AUTO_SHOP_VALUE", script.MAX_INT, true) -- set value to max int
-                        utils:OPEN_INTERNET(script, 200)
-                        autoshop:SELECT_INTERNET_FILTER()
-                        script:PURCHASE_PROPERTY(autoshop, autoshop_options[first.value])
-                        util.yield(1000)
-                        script:STAT_SET_INT("PROP_AUTO_SHOP_VALUE", script.MAX_INT, true) -- set value to max int
-                        utils:OPEN_INTERNET(script, 200)
-                        autoshop:SELECT_INTERNET_FILTER()
-                        script:PURCHASE_PROPERTY(autoshop, autoshop1_options[second.value])
-                        util.yield(1000)
+                    if not afk.value then
+                        menu.trigger_commands("nophonespam off")
+                        return false 
                     end
+
+                    script:STAT_SET_INT("PROP_AUTO_SHOP_VALUE", script.MAX_INT, true) -- set value to max int
+                    if not afk.value then
+                        menu.trigger_commands("nophonespam off")
+                        return false 
+                    end
+                    utils:OPEN_INTERNET(script, 200)
+
+                    if not afk.value then
+                        utils:CLOSE_BROWSER()
+                        menu.trigger_commands("nophonespam off")
+                        return false
+                    end
+
+                    autoshop:SELECT_INTERNET_FILTER()
+                    if not afk.value then
+                        menu.trigger_commands("nophonespam off")
+                        return false 
+                    end
+                    script:PURCHASE_PROPERTY(autoshop, autoshop_options[first.value])
+                    if not afk.value then
+                        menu.trigger_commands("nophonespam off")
+                        return false 
+                    end
+                    autoshop:FIRST_CHOICE_OPTIONS(script, false)
+                    autoshop:SECOND_CHOICE_OPTIONS(script, false)
+
+                    util.yield(1500)
+                    if not afk.value then
+                        menu.trigger_commands("nophonespam off")
+                        return false 
+                    end
+                    script:STAT_SET_INT("PROP_AUTO_SHOP_VALUE", script.MAX_INT, true) -- set value to max int
+                    if not afk.value then
+                        menu.trigger_commands("nophonespam off")
+                        return false 
+                    end
+                    utils:OPEN_INTERNET(script, 200)
+
+                    if not afk.value then
+                        utils:CLOSE_BROWSER()
+                        return false
+                    end
+
+                    autoshop:SELECT_INTERNET_FILTER()
+                    if not afk.value then
+                        menu.trigger_commands("nophonespam off")
+                        return false 
+                    end
+                    script:PURCHASE_PROPERTY(autoshop, autoshop1_options[second.value])
+                    if not afk.value then
+                        menu.trigger_commands("nophonespam off")
+                        return false 
+                    end
+                    autoshop:FIRST_CHOICE_OPTIONS(script, false)
+                    autoshop:SECOND_CHOICE_OPTIONS(script, false)
+                    util.yield(1500)
                 else
-                    script.states.block_purchase = true
                     return false
                 end
 
@@ -363,10 +459,8 @@ function autoshop:init(script)
     -- add buy autoshop option to custom (works the same as the presets)
     script:add(
         script.autoshop_custom:action("Buy Autoshop", {}, "Buys a autoshop", function()
-            script.states.bypass_blocked_state = true
             local owned_data = script:GET_OWNED_PROPERTY_DATA("autoshop")
             local choice = autoshop.afk_options.available[math.random(#autoshop.afk_options.available)]
-            script.states.block_purchase = false
 
             while owned_data.name == choice do
                 choice = autoshop.afk_options.available[math.random(#autoshop.afk_options.available)]
@@ -385,7 +479,6 @@ function autoshop:init(script)
             utils:OPEN_INTERNET(script, 300)
             autoshop:SELECT_INTERNET_FILTER()
             script:PURCHASE_PROPERTY(autoshop, choice)
-            script.states.bypass_blocked_state = false
         end),
         "autoshop_custom_buy"
     )

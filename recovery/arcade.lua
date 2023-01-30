@@ -155,6 +155,47 @@ function arcade:SELECT_INTERNET_FILTER()
     utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to select the internet filter
 end
 
+function arcade:FIRST_CHOICE_OPTIONS(script, return_results)
+    -- create options for first arcade (get all arcades that don't own)
+    local arcade_options = {}
+    local owned_data = script:GET_OWNED_PROPERTY_DATA("arcade")
+    for key, value in pairs(arcade.afk_options.available) do
+        table.insert(arcade_options, value)
+    end
+
+    for index, option in ipairs(arcade_options) do
+        if owned_data.name == option then
+            table.remove(arcade_options, index)
+        end
+    end
+
+    if return_results then
+        return arcade_options
+    end
+
+    -- get the reference and set the options
+    local ref = script.arcade_presets_afk_first
+    menu.set_list_action_options(ref, arcade_options)
+end
+
+function arcade:SECOND_CHOICE_OPTIONS(script, return_results)
+    -- modify the options for the second arcade
+    local arcade1_options = {}
+    local owned_data = script:GET_OWNED_PROPERTY_DATA("arcade")
+
+    for key, value in pairs(arcade.afk_options.available) do
+        table.insert(arcade1_options, value)
+    end
+
+    if return_results then
+        return arcade1_options
+    end
+
+    -- get the reference and set the options
+    local ref = script.arcade_presets_afk_first
+    menu.set_list_action_options(ref, arcade1_options)
+end
+
 function arcade:init(script)
     -- add arcade to the menu
     local owned_data = script:GET_OWNED_PROPERTY_DATA("arcade")
@@ -277,10 +318,8 @@ function arcade:init(script)
     -- add buy arcade
     script:add(
         script.arcade_presets:action("Buy Arcade", {}, "Automatically buys a arcade for you", function()
-            script.states.bypass_blocked_state = true
             local owned_data = script:GET_OWNED_PROPERTY_DATA("arcade")
             local choice = arcade.afk_options.available[math.random(#arcade.afk_options.available)]
-            script.states.block_purchase = false
 
             while owned_data.name == choice do
                 choice = arcade.afk_options.available[math.random(#arcade.afk_options.available)]
@@ -296,7 +335,6 @@ function arcade:init(script)
             utils:OPEN_INTERNET(script, 300)
             arcade:SELECT_INTERNET_FILTER()
             script:PURCHASE_PROPERTY(arcade, choice)
-            script.states.bypass_blocked_state = false
         end),
         "arcade_presets_buy"
     )
@@ -319,23 +357,22 @@ function arcade:init(script)
     -- add loop set value
     script:add(
         script.arcade_presets:toggle_loop("Loop Set Value", {}, "Does the same as set value but instead of setting it once it sets it repeatedly", function()
-            menu.trigger_command(script.arcade_presets_set_value)
+            local afk = menu.ref_by_rel_path(script.arcade_presets, "AFK Loop")
+            local loop_set = menu.ref_by_rel_path(script.arcade_presets, "Loop Set Value")
+
+            if not afk.value then
+                menu.trigger_command(script.arcade_presets_set_value) -- call set value button
+                util.yield(500) -- wait before setting it again
+            else
+                loop_set.value = false
+            end
         end),
         "arcade_presets_loop_set_value"
     )
 
     -- add divider for afk loop
     script.arcade_presets:divider("AFK Money Loop")
-
-    -- create options for first arcade (get all arcades that don't own)
-    local arcade_options = {}
-    local owned_data = script:GET_OWNED_PROPERTY_DATA("arcade")
-
-    for key, value in pairs(arcade.afk_options.available) do
-        if value ~= owned_data.name then
-            table.insert(arcade_options, value)
-        end
-    end
+    local arcade_options = arcade:FIRST_CHOICE_OPTIONS(script, true)
 
     -- add first arcade option
     script:add(
@@ -352,14 +389,7 @@ function arcade:init(script)
         "arcade_presets_afk_first"
     )
 
-    -- modify the options for the second arcade
-    local arcade1_options = {}
-
-    for key, value in pairs(arcade.afk_options.available) do
-        if value == owned_data.name or value ~= arcade.afk_options.available[script.arcade_presets_afk_first.value] then
-            table.insert(arcade1_options, value)
-        end
-    end
+    local arcade1_options = arcade:SECOND_CHOICE_OPTIONS(script, true)
 
     -- add second arcade option
     script:add(
@@ -381,27 +411,92 @@ function arcade:init(script)
         script.arcade_presets:toggle("AFK Loop", {}, "Automatically alternates between buying the 2 selected arcades", function(state)
             local first = script.arcade_presets_afk_first
             local second = script.arcade_presets_afk_second
+            local fname = arcade_options[first.value]
+            local sname = arcade1_options[second.value]
             local afk = menu.ref_by_rel_path(script.arcade_presets, "AFK Loop")
-            script.states.block_purchase = false
+            local owned_data = script:GET_OWNED_PROPERTY_DATA("arcade")
             
+            while fname == owned_data.name do
+                first.value = math.random(1, 2)
+                fname = arcade_options[first.value]
+                util.yield()
+            end
+
+            while fname == sname do
+                first.value = math.random(1, 2)
+                fname = arcade_options[first.value]
+                util.yield()
+            end
+
+            -- block all phone calls
+            menu.trigger_commands("nophonespam on")
+
             util.create_tick_handler(function()
                 util.yield(100) -- small delay before starting
 
                 if afk.value then
-                    if not script.states.block_purchase then
-                        script:STAT_SET_INT("PROP_ARCADE_VALUE", script.MAX_INT, true) -- set value to max int
-                        utils:OPEN_INTERNET(script, 200)
-                        arcade:SELECT_INTERNET_FILTER()
-                        script:PURCHASE_PROPERTY(arcade, arcade_options[first.value])
-                        util.yield(1000)
-                        script:STAT_SET_INT("PROP_ARCADE_VALUE", script.MAX_INT, true) -- set value to max int
-                        utils:OPEN_INTERNET(script, 200)
-                        arcade:SELECT_INTERNET_FILTER()
-                        script:PURCHASE_PROPERTY(arcade, arcade1_options[second.value])
-                        util.yield(1000)
+                    if not afk.value then
+                        menu.trigger_commands("nophonespam off")
+                        return false 
                     end
+
+                    script:STAT_SET_INT("PROP_ARCADE_VALUE", script.MAX_INT, true) -- set value to max int
+                    if not afk.value then
+                        menu.trigger_commands("nophonespam off")
+                        return false 
+                    end
+                    utils:OPEN_INTERNET(script, 200)
+
+                    if not afk.value then
+                        utils:CLOSE_BROWSER()
+                        menu.trigger_commands("nophonespam off")
+                        return false
+                    end
+
+                    arcade:SELECT_INTERNET_FILTER()
+                    if not afk.value then
+                        menu.trigger_commands("nophonespam off")
+                        return false 
+                    end
+                    script:PURCHASE_PROPERTY(arcade, arcade_options[first.value])
+                    if not afk.value then
+                        menu.trigger_commands("nophonespam off")
+                        return false 
+                    end
+                    arcade:FIRST_CHOICE_OPTIONS(script, false)
+                    arcade:SECOND_CHOICE_OPTIONS(script, false)
+
+                    util.yield(1500)
+                    if not afk.value then
+                        menu.trigger_commands("nophonespam off")
+                        return false 
+                    end
+                    script:STAT_SET_INT("PROP_ARCADE_VALUE", script.MAX_INT, true) -- set value to max int
+                    if not afk.value then
+                        menu.trigger_commands("nophonespam off")
+                        return false 
+                    end
+                    utils:OPEN_INTERNET(script, 200)
+
+                    if not afk.value then
+                        utils:CLOSE_BROWSER()
+                        return false
+                    end
+
+                    arcade:SELECT_INTERNET_FILTER()
+                    if not afk.value then
+                        menu.trigger_commands("nophonespam off")
+                        return false 
+                    end
+                    script:PURCHASE_PROPERTY(arcade, arcade1_options[second.value])
+                    if not afk.value then
+                        menu.trigger_commands("nophonespam off")
+                        return false 
+                    end
+                    arcade:FIRST_CHOICE_OPTIONS(script, false)
+                    arcade:SECOND_CHOICE_OPTIONS(script, false)
+                    util.yield(1500)
                 else
-                    script.states.block_purchase = true
                     return false
                 end
 
@@ -430,10 +525,8 @@ function arcade:init(script)
     -- add buy arcade option to custom (works the same as the presets)
     script:add(
         script.arcade_custom:action("Buy Arcade", {}, "Buys a arcade", function()
-            script.states.bypass_blocked_state = true
             local owned_data = script:GET_OWNED_PROPERTY_DATA("arcade")
             local club = arcade.afk_options.available[math.random(#arcade.afk_options.available)]
-            script.states.block_purchase = false
 
             while owned_data.name == club do
                 club = arcade.afk_options.available[math.random(#arcade.afk_options.available)]
@@ -450,7 +543,6 @@ function arcade:init(script)
             utils:OPEN_INTERNET(script, 300)
             arcade:SELECT_INTERNET_FILTER()
             script:PURCHASE_PROPERTY(arcade, club)
-            script.states.bypass_blocked_state = false
         end),
         "arcade_custom_buy"
     )

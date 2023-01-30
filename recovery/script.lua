@@ -11,7 +11,7 @@ script.root = menu.my_root()
 
 -- script settings
 script.script_settings = {
-    version = "1.5.0", -- script version
+    version = "1.5.1", -- script version
     ownership_check = true, -- ownership check for properties
     auto_accept_transaction_errors = true, -- automatically accept transaction errors
 }
@@ -24,9 +24,7 @@ script.states = {
     arcade = {
         safe_open = false,
         infront_of_safe = false
-    },
-    block_purchase = false,
-    bypass_blocked_state = false
+    }
 }
 
 -- predefined variables
@@ -210,42 +208,21 @@ end
 
 -- add purchase property function
 function script:PURCHASE_PROPERTY(property, name)
-    if not script.states.bypass_blocked_state then
-        if property.name == "nightclub" then
-            local ref = script.nightclub_presets_afk_loop
-            if not ref.value then
-                script:notify("Blocked purchase of " .. name .. " nightclub")
-                if script:IS_SCREEN_OPEN() then
-                    utils:CLOSE_BROWSER()
-                end
-                return
-            end
-        end
+    local owned_data = script:GET_OWNED_PROPERTY_DATA(property.name)
     
-        if property.name == "arcade" then
-            local ref = script.arcade_presets_afk_loop
-            if not ref.value then
-                script:notify("Blocked purchase of " .. name .. " arcade")
-                if script:IS_SCREEN_OPEN() then
-                    utils:CLOSE_BROWSER()
-                end
-                return
-            end
+    if name == owned_data.name then
+        local rand = property.afk_options.available[math.random(1, #property.afk_options.available)]
+
+        while rand == owned_data.name do
+            rand = property.afk_options.available[math.random(1, #property.afk_options.available)]
+            util.yield()
         end
-    
-        if property.name == "autoshop" then
-            local ref = script.autoshop_presets_afk_loop
-            if not ref.value then
-                script:notify("Blocked purchase of " .. name .. " autoshop")
-                if script:IS_SCREEN_OPEN() then
-                    utils:CLOSE_BROWSER()
-                end
-                return
-            end
-        end
+
+        name = rand
     end
 
-    local property = property[name]
+    property = property[name]
+
     if property then
         property.purchase()
     end 
