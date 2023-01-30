@@ -7,3 +7,5 @@ Script installation steps
 2. Copy Recovery.lua file into %appdata%\Stand\Lua Scripts directory
 3. Copy 'recovery' folder into %appdata%\Stand\Lua Scripts\lib
 4. Done
+
+Discord: https://discord.gg/bx8WEZQa49
