@@ -154,8 +154,6 @@ function nightclub:SELECT_INTERNET_FILTER()
             break
     end
 
-    util.toast("start_x: " .. start_x .. " start_y: " .. start_y)
-
     utils:MOVE_CURSOR(start_x, start_y, 100, true) -- select the internet filter
     utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to select the internet filter
 end

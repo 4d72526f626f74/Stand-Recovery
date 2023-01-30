@@ -53,7 +53,8 @@ local utils = {
         end
     end,
     CLOSE_BROWSER = function(self)
-        while self.script:IS_SCREEN_OPEN() do
+        local state = memory.script_global(75693)
+        while memory.read_int(state) ~= 0 do
             PED.SET_PED_TO_RAGDOLL(players.user_ped(), 1, 1, 2, 0, 0, 0) -- ragdoll the player
             util.yield(100) -- 100ms delay before next iteration
         end
