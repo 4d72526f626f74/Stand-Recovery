@@ -125,7 +125,7 @@ function nightclub:init(script)
             utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
             utils:SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
             util.yield(1500) -- wait for transaction to complete
-            script:CLOSE_BROWSER() -- close browser
+            script:RETURN_TO_MAP(nightclub) -- return to the map
         end
     }
 
@@ -140,7 +140,7 @@ function nightclub:init(script)
             utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
             utils:SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
             util.yield(1500) -- wait for transaction to complete
-            script:CLOSE_BROWSER() -- close browser
+            script:RETURN_TO_MAP(nightclub) -- return to the map
         end
     }
 
@@ -155,7 +155,7 @@ function nightclub:init(script)
             utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
             utils:SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
             util.yield(1500) -- wait for transaction to complete
-            script:CLOSE_BROWSER() -- close browser
+            script:RETURN_TO_MAP(nightclub) -- return to the map
         end
     }
 
@@ -220,7 +220,7 @@ function nightclub:init(script)
     )
 
     script:add(
-        script.nightclub_recovery:toggle("AFK Loop", {}, "AFK Money Loop", function(state)
+        script.nightclub_recovery:toggle_loop("AFK Loop", {}, "AFK Money Loop", function()
             local fill = script.nightclub_fill_safe
             local afk = menu.ref_by_rel_path(script.nightclub_recovery, "AFK Loop")
 
@@ -230,40 +230,36 @@ function nightclub:init(script)
                 return
             end
 
-            fill.value = state
+            fill.value = true
 
-            util.create_tick_handler(function()
-                if afk.value then
-                    if not script:TRANSACTION_ERROR_DISPLAYED() then
-                        if not script.states.nightclub.safe_open then
-                            ENTITY.SET_ENTITY_COORDS(script.me_ped, -1615.5490722656, -3015.6804199219, -75.205093383789)
-                            utils:SIMULATE_CONTROL_KEY(51, 1)
-                            script.states.nightclub.safe_open = true
-                            util.yield(8000)
-                            ENTITY.SET_ENTITY_COORDS(script.me_ped, -1615.6691894531, -3015.728515625, -75.205001831055)
-                        else
-                            if not script.states.nightclub.infront_of_safe then
-                                ENTITY.SET_ENTITY_COORDS(script.me_ped, -1615.6691894531, -3015.728515625, -75.205001831055)
-                                script.states.nightclub.infront_of_safe = true
-                                util.yield(3000)
-                            else
-                                ENTITY.SET_ENTITY_COORDS(script.me_ped, -1618.3752441406, -3011.5810546875, -75.205078125)
-                                util.yield(1000)
-                                ENTITY.SET_ENTITY_COORDS(script.me_ped, -1615.6691894531, -3015.728515625, -75.205001831055)
-                            end
-                        end
-                    end
-                else
-                    util.yield(1000)
+            if not script:TRANSACTION_ERROR_DISPLAYED() then
+                if not script.states.nightclub.safe_open then
+                    ENTITY.SET_ENTITY_COORDS(script.me_ped, -1615.5490722656, -3015.6804199219, -75.205093383789)
                     utils:SIMULATE_CONTROL_KEY(51, 1)
-                    fill.value = false
-                    script.states.nightclub.safe_open = false
-                    script.states.nightclub.infront_of_safe = false
-                    return false
+                    script.states.nightclub.safe_open = true
+                    util.yield(8000)
+                    ENTITY.SET_ENTITY_COORDS(script.me_ped, -1615.6691894531, -3015.728515625, -75.205001831055)
+                else
+                    if not script.states.nightclub.infront_of_safe then
+                        ENTITY.SET_ENTITY_COORDS(script.me_ped, -1615.6691894531, -3015.728515625, -75.205001831055)
+                        script.states.nightclub.infront_of_safe = true
+                        util.yield(3000)
+                    else
+                        ENTITY.SET_ENTITY_COORDS(script.me_ped, -1618.3752441406, -3011.5810546875, -75.205078125)
+                        util.yield(1000)
+                        ENTITY.SET_ENTITY_COORDS(script.me_ped, -1615.6691894531, -3015.728515625, -75.205001831055)
+                    end
                 end
-        
-                util.yield(1)
-            end)
+            end
+        end,
+        function()
+            local fill = script.nightclub_fill_safe
+            fill.value = false
+            
+            util.yield(1000)
+            utils:SIMULATE_CONTROL_KEY(51, 1)
+            script.states.nightclub.safe_open = false
+            script.states.nightclub.infront_of_safe = false
         end),
         "nightclub_safe_afk_loop"
     )
@@ -295,9 +291,9 @@ function nightclub:init(script)
 
             script:STAT_SET_INT("PROP_NIGHTCLUB_VALUE", value, true)
 
-            utils:OPEN_INTERNET(script, 300)
+            utils:OPEN_INTERNET(script, 300, true)
             nightclub:SELECT_INTERNET_FILTER()
-            script:PURCHASE_PROPERTY(nightclub, club)
+            script:PURCHASE_PROPERTY(nightclub, club, true)
         end),
         "nightclub_presets_buy"
     )
@@ -356,16 +352,15 @@ function nightclub:init(script)
             local club = nightclub.afk_options.available[math.random(#nightclub.afk_options.available)]
 
             script:STAT_SET_INT("PROP_NIGHTCLUB_VALUE", script.MAX_INT, true) -- set value to max int
-            utils:OPEN_INTERNET(script, 200)
-            nightclub:SELECT_INTERNET_FILTER()
+            if not script:IS_SCREEN_OPEN() then 
+                utils:OPEN_INTERNET(script, 200)
+                nightclub:SELECT_INTERNET_FILTER() 
+            end
             script:PURCHASE_PROPERTY(nightclub, club)
             club = nightclub.afk_options.available[math.random(#nightclub.afk_options.available)]
-            util.yield(1500)
             script:STAT_SET_INT("PROP_NIGHTCLUB_VALUE", script.MAX_INT, true) -- set value to max int
-            utils:OPEN_INTERNET(script, 200)
-            nightclub:SELECT_INTERNET_FILTER()
             script:PURCHASE_PROPERTY(nightclub, club)
-            util.yield(2000)
+            util.yield(100)
         end),
         "nightclub_presets_afk_loop"
     )
@@ -404,9 +399,9 @@ function nightclub:init(script)
 
             script:STAT_SET_INT("PROP_NIGHTCLUB_VALUE", value, true)
 
-            utils:OPEN_INTERNET(script, 300)
+            utils:OPEN_INTERNET(script, 300, true)
             nightclub:SELECT_INTERNET_FILTER()
-            script:PURCHASE_PROPERTY(nightclub, club)
+            script:PURCHASE_PROPERTY(nightclub, club, true)
         end),
         "nightclub_custom_buy"
     )

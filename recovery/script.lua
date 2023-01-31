@@ -23,6 +23,9 @@ script.states = {
     arcade = {
         safe_open = false,
         infront_of_safe = false
+    },
+    overrides = {
+        purchase_block = false
     }
 }
 
@@ -206,14 +209,22 @@ function script:CONVERT_VALUE(value) -- convert something like 1,000,000 to 1000
 end
 
 -- add purchase property function
-function script:PURCHASE_PROPERTY(property, name)
+function script:PURCHASE_PROPERTY(property, name, override=false)
     local should_continue = (
         script.nightclub_presets_afk_loop.value 
         or 
         script.arcade_presets_afk_loop.value
         or
         script.autoshop_presets_afk_loop.value
+        or
+        script.states.overrides.purchase_block
     )
+
+    if override then should_continue = true end
+
+    if script.states.overrides.purchase_block then
+        should_continue = true
+    end
 
     if should_continue then
         local owned_data = script:GET_OWNED_PROPERTY_DATA(property.name)
@@ -377,6 +388,12 @@ function script:CLOSE_BROWSER()
     end
 end
 
+-- return to map
+function script:RETURN_TO_MAP(property)
+    utils:MOVE_CURSOR(0.72, 0.91, 300, true)
+    property:SELECT_INTERNET_FILTER()
+end
+
 -- automatically collect pickups
 function script:COLLECT_PICKUP(model)
     for _, pickup in pairs(entities.get_all_pickups_as_handles()) do
@@ -415,6 +432,12 @@ end
 
 function script:DISPLAY_WARNING_MESSAGE()
     script:notify("WARNING: All features are considered risky and may result in a ban. Use at your own risk.") -- display the message
+end
+
+function script:CHECK_IF_USING_KEYBOARD_AND_MOUSE()
+    if not PAD.IS_USING_KEYBOARD_AND_MOUSE() then
+        script:notify("Controller is not yet supported, use keyboard and mouse or 1B afk loop will NOT work")
+    end
 end
 
 return script

@@ -20,48 +20,6 @@ autoshop.afk_options = {
     available = {"La Mesa", "Mission Row", "Burton"},
 }
 
-autoshop["La Mesa"] = {
-    name = "La Mesa",
-    purchase = function()
-        utils:MOVE_CURSOR(0.687, 0.455, 300, true) -- select the autoshop
-        utils:MOVE_CURSOR(0.30, 0.75, 300, true) -- press the first buy button
-        utils:MOVE_CURSOR(0.30, 0.92, 300, true) -- press the second buy button
-        utils:MOVE_CURSOR(0.78, 0.94, 300, true) -- press the third buy button
-        utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
-        utils:SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
-        util.yield(1500) -- wait for transaction to complete
-        script:CLOSE_BROWSER() -- close browser
-    end
-}
-
-autoshop["Mission Row"] = {
-    name = "Mission Row",
-    purchase = function()
-        utils:MOVE_CURSOR(0.66, 0.49, 300, true) -- select the autoshop
-        utils:MOVE_CURSOR(0.30, 0.75, 300, true) -- press the first buy button
-        utils:MOVE_CURSOR(0.30, 0.92, 300, true) -- press the second buy button
-        utils:MOVE_CURSOR(0.78, 0.94, 300, true) -- press the third buy button
-        utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
-        utils:SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
-        util.yield(1500) -- wait for transaction to complete
-        script:CLOSE_BROWSER() -- close browser
-    end
-}
-
-autoshop["Burton"] = {
-    name = "Burton",
-    purchase = function()
-        utils:MOVE_CURSOR(0.585, 0.32, 300, true) -- select the autoshop
-        utils:MOVE_CURSOR(0.30, 0.75, 300, true) -- press the first buy button
-        utils:MOVE_CURSOR(0.30, 0.92, 300, true) -- press the second buy button
-        utils:MOVE_CURSOR(0.78, 0.94, 300, true) -- press the third buy button
-        utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
-        utils:SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
-        util.yield(1500) -- wait for transaction to complete
-        script:CLOSE_BROWSER() -- close browser
-    end
-}
-
 function autoshop:SELECT_INTERNET_FILTER()
     local xptr, yptr = memory.alloc_int(4), memory.alloc_int(4)
     GRAPHICS.GET_ACTUAL_SCREEN_RESOLUTION(xptr, yptr)
@@ -206,7 +164,7 @@ function autoshop:init(script)
             utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
             utils:SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
             util.yield(1500) -- wait for transaction to complete
-            script:CLOSE_BROWSER() -- close browser
+            script:RETURN_TO_MAP(autoshop) -- return to the map
         end
     }
     
@@ -220,7 +178,7 @@ function autoshop:init(script)
             utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
             utils:SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
             util.yield(1500) -- wait for transaction to complete
-            script:CLOSE_BROWSER() -- close browser
+            script:RETURN_TO_MAP(autoshop) -- return to the map
         end
     }
     
@@ -234,7 +192,7 @@ function autoshop:init(script)
             utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
             utils:SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
             util.yield(1500) -- wait for transaction to complete
-            script:CLOSE_BROWSER() -- close browser
+            script:RETURN_TO_MAP(autoshop) -- return to the map
         end
     }
 
@@ -308,9 +266,9 @@ function autoshop:init(script)
 
             script:STAT_SET_INT("PROP_AUTO_SHOP_VALUE", value, true)
 
-            utils:OPEN_INTERNET(script, 300)
+            utils:OPEN_INTERNET(script, 300, true)
             autoshop:SELECT_INTERNET_FILTER()
-            script:PURCHASE_PROPERTY(autoshop, choice)
+            script:PURCHASE_PROPERTY(autoshop, choice, true)
         end),
         "autoshop_presets_buy"
     )
@@ -366,16 +324,15 @@ function autoshop:init(script)
             local choice = autoshop.afk_options.available[math.random(#autoshop.afk_options.available)]
 
             script:STAT_SET_INT("PROP_AUTO_SHOP_VALUE", script.MAX_INT, true) -- set value to max int
-            utils:OPEN_INTERNET(script, 200)
-            autoshop:SELECT_INTERNET_FILTER()
+            if not script:IS_SCREEN_OPEN() then
+                utils:OPEN_INTERNET(script, 200)
+                autoshop:SELECT_INTERNET_FILTER()
+            end
             script:PURCHASE_PROPERTY(autoshop, choice)
             choice = autoshop.afk_options.available[math.random(#autoshop.afk_options.available)]
-            util.yield(1500)
             script:STAT_SET_INT("PROP_AUTO_SHOP_VALUE", script.MAX_INT, true) -- set value to max int
-            utils:OPEN_INTERNET(script, 200)
-            autoshop:SELECT_INTERNET_FILTER()
             script:PURCHASE_PROPERTY(autoshop, choice)
-            util.yield(1500)
+            util.yield(100)
         end),
         "autoshop_presets_afk_loop"
     )
@@ -416,9 +373,9 @@ function autoshop:init(script)
 
             script:STAT_SET_INT("PROP_AUTO_SHOP_VALUE", value, true)
 
-            utils:OPEN_INTERNET(script, 300)
+            utils:OPEN_INTERNET(script, 300, true)
             autoshop:SELECT_INTERNET_FILTER()
-            script:PURCHASE_PROPERTY(autoshop, choice)
+            script:PURCHASE_PROPERTY(autoshop, choice, true)
         end),
         "autoshop_custom_buy"
     )

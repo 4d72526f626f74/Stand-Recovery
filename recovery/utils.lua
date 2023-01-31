@@ -52,7 +52,7 @@ local utils = {
             self:SIMULATE_CONTROL_KEY(176, 1, control) -- press enter using FRONTEND_CONTROL mode
         end
     end,
-    OPEN_INTERNET = function(self, script, hyperlink_delay=300)
+    OPEN_INTERNET = function(self, script, hyperlink_delay=300, override=false)
         local should_continue = (
             script.nightclub_presets_afk_loop.value 
             or 
@@ -60,14 +60,12 @@ local utils = {
             or
             script.autoshop_presets_afk_loop.value
         )
+
+        if override then should_continue = true end
         
         if should_continue then
             self:MENU_OPEN_ERROR() -- display an error message until the menu is closed
             util.yield(1000) -- wait 1 second after menu is closed to increase consistency
-
-            local xptr, yptr = memory.alloc(4), memory.alloc(4) -- allocate memory for resolution
-            GRAPHICS.GET_ACTUAL_SCREEN_RESOLUTION(xptr, yptr) -- get the resolution
-            local x, y = tonumber(memory.read_int(xptr)), tonumber(memory.read_int(yptr)) -- read the resolution
 
             self:SIMULATE_CONTROL_KEY(27, 1, 0, 700) -- open phone
             self:SIMULATE_CONTROL_KEY(173, 1, 0, 700) -- scroll down to internet

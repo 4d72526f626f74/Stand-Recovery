@@ -145,7 +145,8 @@ end
 local script = require("lib.recovery.script") -- require the script module
 local utils = require("lib.recovery.utils") -- require the utils module
 
-script:DISPLAY_WARNING_MESSAGE() -- display warning 
+script:DISPLAY_WARNING_MESSAGE() -- display warning
+script:CHECK_IF_USING_KEYBOARD_AND_MOUSE() -- check if the user is using keyboard and mouse 
 
 while script:GET_TRANSITION_STATE() ~= 66 do
     util.yield()

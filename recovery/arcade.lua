@@ -124,7 +124,7 @@ function arcade:init(script)
             utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
             utils:SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
             util.yield(1500) -- wait for transaction to complete
-            script:CLOSE_BROWSER() -- close browser
+            script:RETURN_TO_MAP(arcade) -- return to the map
         end
     }
     
@@ -138,7 +138,7 @@ function arcade:init(script)
             utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
             utils:SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
             util.yield(1500) -- wait for transaction to complete
-            script:CLOSE_BROWSER() -- close browser
+            script:RETURN_TO_MAP(arcade) -- return to the map
         end
     }
     
@@ -152,7 +152,7 @@ function arcade:init(script)
             utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
             utils:SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
             util.yield(1500) -- wait for transaction to complete
-            script:CLOSE_BROWSER() -- close browser
+            script:RETURN_TO_MAP(arcade) -- return to the map
         end
     }
     
@@ -218,7 +218,7 @@ function arcade:init(script)
     )
 
     script:add(
-        script.arcade_recovery:toggle("AFK Loop", {}, "AFK Money Loop", function(state)
+        script.arcade_recovery:toggle_loop("AFK Loop", {}, "AFK Money Loop", function()
             local fill = script.arcade_fill_safe
             local afk = menu.ref_by_rel_path(script.arcade_recovery, "AFK Loop")
 
@@ -228,40 +228,36 @@ function arcade:init(script)
                 return
             end
 
-            fill.value = state
-
-            util.create_tick_handler(function()
-                if afk.value then
-                    if not script:TRANSACTION_ERROR_DISPLAYED() then
-                        if not script.states.arcade.safe_open then
-                            ENTITY.SET_ENTITY_COORDS(script.me_ped, 2728.4833984375, -374.21838378906, -47.392971038818)
-                            utils:SIMULATE_CONTROL_KEY(51, 1)
-                            script.states.arcade.safe_open = true
-                            util.yield(8000)
-                            ENTITY.SET_ENTITY_COORDS(script.me_ped, 2728.5122070312, -374.37905883789, -47.392944335938)
-                        else
-                            if not script.states.arcade.infront_of_safe then
-                                ENTITY.SET_ENTITY_COORDS(script.me_ped, 2728.5122070312, -374.37905883789, -47.392944335938)
-                                script.states.arcade.infront_of_safe = true
-                                util.yield(3000)
-                            else
-                                ENTITY.SET_ENTITY_COORDS(script.me_ped, 2726.9116210938, -374.23046875, -47.38952255249)
-                                util.yield(1000)
-                                ENTITY.SET_ENTITY_COORDS(script.me_ped, 2728.5122070312, -374.37905883789, -47.392944335938)
-                            end
-                        end
-                    end
-                else
-                    util.yield(1000)
+            if not script:TRANSACTION_ERROR_DISPLAYED() then
+                if not script.states.arcade.safe_open then
+                    ENTITY.SET_ENTITY_COORDS(script.me_ped, 2728.4833984375, -374.21838378906, -47.392971038818)
                     utils:SIMULATE_CONTROL_KEY(51, 1)
-                    fill.value = false
-                    script.states.arcade.safe_open = false
-                    script.states.arcade.infront_of_safe = false
-                    return false
+                    script.states.arcade.safe_open = true
+                    util.yield(8000)
+                    ENTITY.SET_ENTITY_COORDS(script.me_ped, 2728.5122070312, -374.37905883789, -47.392944335938)
+                else
+                    if not script.states.arcade.infront_of_safe then
+                        ENTITY.SET_ENTITY_COORDS(script.me_ped, 2728.5122070312, -374.37905883789, -47.392944335938)
+                        script.states.arcade.infront_of_safe = true
+                        util.yield(3000)
+                    else
+                        ENTITY.SET_ENTITY_COORDS(script.me_ped, 2726.9116210938, -374.23046875, -47.38952255249)
+                        util.yield(1000)
+                        ENTITY.SET_ENTITY_COORDS(script.me_ped, 2728.5122070312, -374.37905883789, -47.392944335938)
+                    end
                 end
-        
-                util.yield(1)
-            end)
+            end
+
+            fill.value = true
+        end,
+        function()
+            local fill = script.arcade_fill_safe
+            fill.value = false
+
+            util.yield(1000)
+            utils:SIMULATE_CONTROL_KEY(51, 1)
+            script.states.arcade.safe_open = false
+            script.states.arcade.infront_of_safe = false
         end),
         "arcade_safe_afk_loop"
     )
@@ -292,9 +288,9 @@ function arcade:init(script)
 
             script:STAT_SET_INT("PROP_ARCADE_VALUE", value, true)
 
-            utils:OPEN_INTERNET(script, 300)
+            utils:OPEN_INTERNET(script, 300, true)
             arcade:SELECT_INTERNET_FILTER()
-            script:PURCHASE_PROPERTY(arcade, choice)
+            script:PURCHASE_PROPERTY(arcade, choice, true)
         end),
         "arcade_presets_buy"
     )
@@ -350,16 +346,15 @@ function arcade:init(script)
             local choice = arcade.afk_options.available[math.random(#arcade.afk_options.available)]
 
             script:STAT_SET_INT("PROP_ARCADE_VALUE", script.MAX_INT, true) -- set value to max int
-            utils:OPEN_INTERNET(script, 200)
-            arcade:SELECT_INTERNET_FILTER()
+            if not script:IS_SCREEN_OPEN() then
+                utils:OPEN_INTERNET(script, 200)
+                arcade:SELECT_INTERNET_FILTER()
+            end
             script:PURCHASE_PROPERTY(arcade, choice)
             choice = arcade.afk_options.available[math.random(#arcade.afk_options.available)]
-            util.yield(1500)
             script:STAT_SET_INT("PROP_ARCADE_VALUE", script.MAX_INT, true) -- set value to max int
-            utils:OPEN_INTERNET(script, 200)
-            arcade:SELECT_INTERNET_FILTER()
             script:PURCHASE_PROPERTY(arcade, choice)
-            util.yield(1500)
+            util.yield(100)
         end),
         "arcade_presets_afk_loop"
     )
@@ -398,9 +393,9 @@ function arcade:init(script)
 
             script:STAT_SET_INT("PROP_ARCADE_VALUE", value, true)
 
-            utils:OPEN_INTERNET(script, 300)
+            utils:OPEN_INTERNET(script, 300, true)
             arcade:SELECT_INTERNET_FILTER()
-            script:PURCHASE_PROPERTY(arcade, club)
+            script:PURCHASE_PROPERTY(arcade, club, true)
         end),
         "arcade_custom_buy"
     )

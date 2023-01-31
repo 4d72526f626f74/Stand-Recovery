@@ -25,6 +25,12 @@ function credits:init(script)
     -- add nativedb
     script.credits:hyperlink("NativeDB", "https://nativedb.dotindustries.dev/natives", "Provided an enormous list of natives that were used in the script")
 
+    -- add a divider for other
+    script.credits:divider("Other")
+
+    -- add heist control credit
+    script.credits:hyperlink("IceDoomfist#0001", "https://github.com/IceDoomfist/Stand-Heist-Control", "Most of the features in heists recovery menu are from Heist Control")
+
     -- add a divider for discord
     script.credits:divider("Discord", "discord")
 
@@ -32,7 +38,7 @@ function credits:init(script)
     script.credits:hyperlink("Discord", "https://discord.gg/bx8WEZQa49", "Join the discord to report bugs")
 
     -- add developer to the menu
-    script.credits:hyperlink("Mr.Robot#1019", "https://github.com/4d72526f626f74/Stand-Recovery")
+    script.credits:hyperlink("Mr.Robot#1019", "https://github.com/4d72526f626f74/Stand-Recovery", "Script Developer")
 end
 
 return credits
