@@ -11,7 +11,6 @@ script.root = menu.my_root()
 
 -- script settings
 script.script_settings = {
-    version = "1.0.0", -- script version
     ownership_check = true, -- ownership check for properties
     auto_accept_transaction_errors = true, -- automatically accept transaction errors
 }
@@ -208,23 +207,31 @@ end
 
 -- add purchase property function
 function script:PURCHASE_PROPERTY(property, name)
-    local owned_data = script:GET_OWNED_PROPERTY_DATA(property.name)
-    
-    if name == owned_data.name then
-        local rand = property.afk_options.available[math.random(1, #property.afk_options.available)]
+    local should_continue = (
+        script.nightclub_presets_afk_loop.value 
+        or 
+        script.arcade_presets_afk_loop.value
+        or
+        script.autoshop_presets_afk_loop.value
+    )
 
-        while rand == owned_data.name do
-            rand = property.afk_options.available[math.random(1, #property.afk_options.available)]
-            util.yield()
+    if should_continue then
+        local owned_data = script:GET_OWNED_PROPERTY_DATA(property.name)
+    
+        if name == owned_data.name then
+            while name == owned_data.name do
+                name = property.afk_options.available[math.random(1, #property.afk_options.available)]
+                util.yield()
+            end
         end
 
-        name = rand
-    end
+        property = property[name]
 
-    property = property[name]
-
-    if property then
-        property.purchase()
+        if property then
+            property.purchase()
+        end
+    else
+        script:CLOSE_BROWSER()
     end 
 end
 
@@ -300,31 +307,6 @@ function script:NOT_IMPLEMENTED()
     script:notify("This feature is not implemented yet")
 end
 
--- simulate user input
-function SIMULATE_CONTROL_KEY(key, times, control=0, delay=300)
-    for i = 1, times do
-        PAD.SET_CONTROL_VALUE_NEXT_FRAME(control, key, 1) -- press the key
-        util.yield(delay) -- wait before attempting to press the key again
-    end
-
-    util.yield(100) 
-end
-
--- move cursor
-function MOVE_CURSOR(x, y, delay=300, autoclick=false)
-    PAD.SET_CURSOR_POSITION(x, y) -- move the cursor
-    util.yield(delay)
-
-    if autoclick then
-        SIMULATE_CONTROL_KEY(201, 1) -- press enter to select the option automatically
-    end
-end
-
--- function to quickly close the internet browser
-function CLOSE_BROWSER()
-    PED.SET_PED_TO_RAGDOLL(players.user_ped(), 1, 1, 2, 0, 0, 0) -- ragdoll the player
-end
-
 -- transaction error displayed
 function script:TRANSACTION_ERROR_DISPLAYED()
     return memory.read_int(script.globals.transaction_error.banner) ~= 0 or memory.read_int(script.globals.transaction_error.notification) ~= 0
@@ -367,9 +349,31 @@ end
 
 -- close browser
 function script:CLOSE_BROWSER()
-    while script:IS_SCREEN_OPEN() do
-        PED.SET_PED_TO_RAGDOLL(players.user_ped(), 1, 1, 2, 0, 0, 0)
-        util.yield(100)
+    local grace = menu.ref_by_path("Self>Gracefulness")
+    local god = menu.ref_by_path("Self>Immortality")
+    local grace_state = grace.value
+    local god_state = god.value
+
+    if PED.CAN_PED_RAGDOLL(script.me_ped) and not grace.value or not god.value then
+        while script:IS_SCREEN_OPEN() do
+            PED.SET_PED_TO_RAGDOLL(players.user_ped(), 1, 1, 2, 0, 0, 0)
+            util.yield(100)
+        end
+    else
+        grace.value = false
+        god.value = false
+
+        util.yield(500)
+
+        if PED.CAN_PED_RAGDOLL(script.me_ped) then
+            while script:IS_SCREEN_OPEN() do
+                PED.SET_PED_TO_RAGDOLL(players.user_ped(), 1, 1, 2, 0, 0, 0)
+                util.yield(100)
+            end
+        end
+
+        grace.value = grace_state
+        god.value = god_state
     end
 end
 

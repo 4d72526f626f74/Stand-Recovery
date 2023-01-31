@@ -348,136 +348,34 @@ function autoshop:init(script)
 
     -- add divider for afk loop
     script.autoshop_presets:divider("AFK Money Loop")
-    local autoshop_options = autoshop:FIRST_CHOICE_OPTIONS(script, true)
 
-    -- add first autoshop option
+    -- block phone calls
     script:add(
-        script.autoshop_presets:list_select("First Autoshop", {}, "", autoshop_options, 1, function()
-            -- change the second autoshop option to a different autoshop
-            local ref = menu.ref_by_rel_path(script.autoshop_presets, "First Autoshop")
-            local ref1 = menu.ref_by_rel_path(script.autoshop_presets, "Second Autoshop")
-
-            while ref.value == ref1.value do
-                ref1.value = math.random(1, 2)
-                util.yield()
-            end
+        script.autoshop_presets:toggle("Block Phone Calls", {}, "Blocks incoming phones calls", function(state)
+            local phone_calls = menu.ref_by_command_name("nophonespam")
+            phone_calls.value = state
         end),
-        "autoshop_presets_afk_first"
-    )
-
-    local autoshop1_options = autoshop:SECOND_CHOICE_OPTIONS(script, true)
-
-    -- add second autoshop option
-    script:add(
-        script.autoshop_presets:list_select("Second Autoshop", {}, "", autoshop1_options, 1, function()
-            -- change this autoshop option to a different autoshop
-            local ref = menu.ref_by_rel_path(script.autoshop_presets, "First Autoshop")
-            local ref1 = menu.ref_by_rel_path(script.autoshop_presets, "Second Autoshop")
-
-            while ref.value == ref1.value do
-                ref1.value = math.random(1, 2)
-                util.yield()
-            end
-        end),
-        "autoshop_presets_afk_second"
+        "autoshop_presets_block_phone_calls"
     )
 
     -- add afk loop option
     script:add(
-        script.autoshop_presets:toggle("AFK Loop", {}, "Automatically alternates between buying the 2 selected autoshops", function(state)
-            local first = script.autoshop_presets_afk_first
-            local second = script.autoshop_presets_afk_second
-            local fname = autoshop_options[first.value]
-            local sname = autoshop1_options[second.value]
+        script.autoshop_presets:toggle_loop("AFK Loop", {}, "Alternates between buying autoshops you don\'t own", function(state)
             local afk = menu.ref_by_rel_path(script.autoshop_presets, "AFK Loop")
             local owned_data = script:GET_OWNED_PROPERTY_DATA("autoshop")
+            local choice = autoshop.afk_options.available[math.random(#autoshop.afk_options.available)]
 
-            while fname == owned_data.name do
-                first.value = math.random(1, 2)
-                fname = autoshop_options[first.value]
-                util.yield()
-            end
-
-            while fname == sname do
-                first.value = math.random(1, 2)
-                fname = autoshop_options[first.value]
-                util.yield()
-            end
-
-            -- block all phone calls
-            menu.trigger_commands("nophonespam on")
-            
-            util.create_tick_handler(function()
-                util.yield(100) -- small delay before starting
-
-                if afk.value then
-                    if not afk.value then
-                        menu.trigger_commands("nophonespam off")
-                        return false 
-                    end
-
-                    script:STAT_SET_INT("PROP_AUTO_SHOP_VALUE", script.MAX_INT, true) -- set value to max int
-                    if not afk.value then
-                        menu.trigger_commands("nophonespam off")
-                        return false 
-                    end
-                    utils:OPEN_INTERNET(script, 200)
-
-                    if not afk.value then
-                        script:CLOSE_BROWSER()
-                        menu.trigger_commands("nophonespam off")
-                        return false
-                    end
-
-                    autoshop:SELECT_INTERNET_FILTER()
-                    if not afk.value then
-                        menu.trigger_commands("nophonespam off")
-                        return false 
-                    end
-                    script:PURCHASE_PROPERTY(autoshop, autoshop_options[first.value])
-                    if not afk.value then
-                        menu.trigger_commands("nophonespam off")
-                        return false 
-                    end
-                    autoshop:FIRST_CHOICE_OPTIONS(script, false)
-                    autoshop:SECOND_CHOICE_OPTIONS(script, false)
-
-                    util.yield(1500)
-                    if not afk.value then
-                        menu.trigger_commands("nophonespam off")
-                        return false 
-                    end
-                    script:STAT_SET_INT("PROP_AUTO_SHOP_VALUE", script.MAX_INT, true) -- set value to max int
-                    if not afk.value then
-                        menu.trigger_commands("nophonespam off")
-                        return false 
-                    end
-                    utils:OPEN_INTERNET(script, 200)
-
-                    if not afk.value then
-                        script:CLOSE_BROWSER()
-                        return false
-                    end
-
-                    autoshop:SELECT_INTERNET_FILTER()
-                    if not afk.value then
-                        menu.trigger_commands("nophonespam off")
-                        return false 
-                    end
-                    script:PURCHASE_PROPERTY(autoshop, autoshop1_options[second.value])
-                    if not afk.value then
-                        menu.trigger_commands("nophonespam off")
-                        return false 
-                    end
-                    autoshop:FIRST_CHOICE_OPTIONS(script, false)
-                    autoshop:SECOND_CHOICE_OPTIONS(script, false)
-                    util.yield(1500)
-                else
-                    return false
-                end
-
-                util.yield(500) -- delay before next tick
-            end)
+            script:STAT_SET_INT("PROP_AUTO_SHOP_VALUE", script.MAX_INT, true) -- set value to max int
+            utils:OPEN_INTERNET(script, 200)
+            autoshop:SELECT_INTERNET_FILTER()
+            script:PURCHASE_PROPERTY(autoshop, choice)
+            choice = autoshop.afk_options.available[math.random(#autoshop.afk_options.available)]
+            util.yield(1500)
+            script:STAT_SET_INT("PROP_AUTO_SHOP_VALUE", script.MAX_INT, true) -- set value to max int
+            utils:OPEN_INTERNET(script, 200)
+            autoshop:SELECT_INTERNET_FILTER()
+            script:PURCHASE_PROPERTY(autoshop, choice)
+            util.yield(1500)
         end),
         "autoshop_presets_afk_loop"
     )

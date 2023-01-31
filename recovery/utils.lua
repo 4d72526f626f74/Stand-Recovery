@@ -53,22 +53,30 @@ local utils = {
         end
     end,
     OPEN_INTERNET = function(self, script, hyperlink_delay=300)
-        if script.states.block_purchase then
-            return -- block this function from running
+        local should_continue = (
+            script.nightclub_presets_afk_loop.value 
+            or 
+            script.arcade_presets_afk_loop.value
+            or
+            script.autoshop_presets_afk_loop.value
+        )
+        
+        if should_continue then
+            self:MENU_OPEN_ERROR() -- display an error message until the menu is closed
+            util.yield(1000) -- wait 1 second after menu is closed to increase consistency
+
+            local xptr, yptr = memory.alloc(4), memory.alloc(4) -- allocate memory for resolution
+            GRAPHICS.GET_ACTUAL_SCREEN_RESOLUTION(xptr, yptr) -- get the resolution
+            local x, y = tonumber(memory.read_int(xptr)), tonumber(memory.read_int(yptr)) -- read the resolution
+
+            self:SIMULATE_CONTROL_KEY(27, 1, 0, 700) -- open phone
+            self:SIMULATE_CONTROL_KEY(173, 1, 0, 700) -- scroll down to internet
+            self:SIMULATE_CONTROL_KEY(176, 1, 0, 700) -- press enter to open internet
+            self:MOVE_CURSOR(0.25, 0.70, hyperlink_delay, true) -- move to mazebank hyperlink
+            self:MOVE_CURSOR(0.5, 0.83, hyperlink_delay, true) -- press enter on maze bank button
+        else
+            script:CLOSE_BROWSER()
         end
-
-        self:MENU_OPEN_ERROR() -- display an error message until the menu is closed
-        util.yield(1000) -- wait 1 second after menu is closed to increase consistency
-
-        local xptr, yptr = memory.alloc(4), memory.alloc(4) -- allocate memory for resolution
-        GRAPHICS.GET_ACTUAL_SCREEN_RESOLUTION(xptr, yptr) -- get the resolution
-        local x, y = tonumber(memory.read_int(xptr)), tonumber(memory.read_int(yptr)) -- read the resolution
-
-        self:SIMULATE_CONTROL_KEY(27, 1, 0, 700) -- open phone
-        self:SIMULATE_CONTROL_KEY(173, 1, 0, 700) -- scroll down to internet
-        self:SIMULATE_CONTROL_KEY(176, 1, 0, 700) -- press enter to open internet
-        self:MOVE_CURSOR(0.25, 0.70, hyperlink_delay, true) -- move to mazebank hyperlink
-        self:MOVE_CURSOR(0.5, 0.83, hyperlink_delay, true) -- press enter on maze bank button
     end,
     MENU_OPEN_ERROR = function(self)
         while menu.is_open() do

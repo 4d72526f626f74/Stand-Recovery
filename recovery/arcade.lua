@@ -113,47 +113,6 @@ function arcade:SELECT_INTERNET_FILTER()
     utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to select the internet filter
 end
 
-function arcade:FIRST_CHOICE_OPTIONS(script, return_results)
-    -- create options for first arcade (get all arcades that don't own)
-    local arcade_options = {}
-    local owned_data = script:GET_OWNED_PROPERTY_DATA("arcade")
-    for key, value in pairs(arcade.afk_options.available) do
-        table.insert(arcade_options, value)
-    end
-
-    for index, option in ipairs(arcade_options) do
-        if owned_data.name == option then
-            table.remove(arcade_options, index)
-        end
-    end
-
-    if return_results then
-        return arcade_options
-    end
-
-    -- get the reference and set the options
-    local ref = script.arcade_presets_afk_first
-    menu.set_list_action_options(ref, arcade_options)
-end
-
-function arcade:SECOND_CHOICE_OPTIONS(script, return_results)
-    -- modify the options for the second arcade
-    local arcade1_options = {}
-    local owned_data = script:GET_OWNED_PROPERTY_DATA("arcade")
-
-    for key, value in pairs(arcade.afk_options.available) do
-        table.insert(arcade1_options, value)
-    end
-
-    if return_results then
-        return arcade1_options
-    end
-
-    -- get the reference and set the options
-    local ref = script.arcade_presets_afk_first
-    menu.set_list_action_options(ref, arcade1_options)
-end
-
 function arcade:init(script)
     arcade["La Mesa"] = {
         name = "La Mesa",
@@ -373,136 +332,34 @@ function arcade:init(script)
 
     -- add divider for afk loop
     script.arcade_presets:divider("AFK Money Loop")
-    local arcade_options = arcade:FIRST_CHOICE_OPTIONS(script, true)
 
-    -- add first arcade option
+    -- block phone calls
     script:add(
-        script.arcade_presets:list_select("First arcade", {}, "", arcade_options, 1, function()
-            -- change the second arcade option to a different arcade
-            local ref = menu.ref_by_rel_path(script.arcade_presets, "First arcade")
-            local ref1 = menu.ref_by_rel_path(script.arcade_presets, "Second arcade")
-
-            while ref.value == ref1.value do
-                ref1.value = math.random(1, 2)
-                util.yield()
-            end
+        script.arcade_presets:toggle("Block Phone Calls", {}, "Blocks incoming phones calls", function(state)
+            local phone_calls = menu.ref_by_command_name("nophonespam")
+            phone_calls.value = state
         end),
-        "arcade_presets_afk_first"
-    )
-
-    local arcade1_options = arcade:SECOND_CHOICE_OPTIONS(script, true)
-
-    -- add second arcade option
-    script:add(
-        script.arcade_presets:list_select("Second arcade", {}, "", arcade1_options, 1, function()
-            -- change this arcade option to a different arcade
-            local ref = menu.ref_by_rel_path(script.arcade_presets, "First Arcade")
-            local ref1 = menu.ref_by_rel_path(script.arcade_presets, "Second Arcade")
-
-            while ref.value == ref1.value do
-                ref1.value = math.random(1, 2)
-                util.yield()
-            end
-        end),
-        "arcade_presets_afk_second"
+        "arcade_presets_block_phone_calls"
     )
 
     -- add afk loop option
     script:add(
-        script.arcade_presets:toggle("AFK Loop", {}, "Automatically alternates between buying the 2 selected arcades", function(state)
-            local first = script.arcade_presets_afk_first
-            local second = script.arcade_presets_afk_second
-            local fname = arcade_options[first.value]
-            local sname = arcade1_options[second.value]
+        script.arcade_presets:toggle_loop("AFK Loop", {}, "Alternates between buying arcades you don\'t own", function(state)
             local afk = menu.ref_by_rel_path(script.arcade_presets, "AFK Loop")
             local owned_data = script:GET_OWNED_PROPERTY_DATA("arcade")
-            
-            while fname == owned_data.name do
-                first.value = math.random(1, 2)
-                fname = arcade_options[first.value]
-                util.yield()
-            end
+            local choice = arcade.afk_options.available[math.random(#arcade.afk_options.available)]
 
-            while fname == sname do
-                first.value = math.random(1, 2)
-                fname = arcade_options[first.value]
-                util.yield()
-            end
-
-            -- block all phone calls
-            menu.trigger_commands("nophonespam on")
-
-            util.create_tick_handler(function()
-                util.yield(100) -- small delay before starting
-
-                if afk.value then
-                    if not afk.value then
-                        menu.trigger_commands("nophonespam off")
-                        return false 
-                    end
-
-                    script:STAT_SET_INT("PROP_ARCADE_VALUE", script.MAX_INT, true) -- set value to max int
-                    if not afk.value then
-                        menu.trigger_commands("nophonespam off")
-                        return false 
-                    end
-                    utils:OPEN_INTERNET(script, 200)
-
-                    if not afk.value then
-                        script:CLOSE_BROWSER()
-                        menu.trigger_commands("nophonespam off")
-                        return false
-                    end
-
-                    arcade:SELECT_INTERNET_FILTER()
-                    if not afk.value then
-                        menu.trigger_commands("nophonespam off")
-                        return false 
-                    end
-                    script:PURCHASE_PROPERTY(arcade, arcade_options[first.value])
-                    if not afk.value then
-                        menu.trigger_commands("nophonespam off")
-                        return false 
-                    end
-                    arcade:FIRST_CHOICE_OPTIONS(script, false)
-                    arcade:SECOND_CHOICE_OPTIONS(script, false)
-
-                    util.yield(1500)
-                    if not afk.value then
-                        menu.trigger_commands("nophonespam off")
-                        return false 
-                    end
-                    script:STAT_SET_INT("PROP_ARCADE_VALUE", script.MAX_INT, true) -- set value to max int
-                    if not afk.value then
-                        menu.trigger_commands("nophonespam off")
-                        return false 
-                    end
-                    utils:OPEN_INTERNET(script, 200)
-
-                    if not afk.value then
-                        script:CLOSE_BROWSER()
-                        return false
-                    end
-
-                    arcade:SELECT_INTERNET_FILTER()
-                    if not afk.value then
-                        menu.trigger_commands("nophonespam off")
-                        return false 
-                    end
-                    script:PURCHASE_PROPERTY(arcade, arcade1_options[second.value])
-                    if not afk.value then
-                        menu.trigger_commands("nophonespam off")
-                        return false 
-                    end
-                    arcade:FIRST_CHOICE_OPTIONS(script, false)
-                    arcade:SECOND_CHOICE_OPTIONS(script, false)
-                    util.yield(1500)
-                else
-                    return false
-                end
-
-                util.yield(500) -- delay before next tick
-            end)
+            script:STAT_SET_INT("PROP_ARCADE_VALUE", script.MAX_INT, true) -- set value to max int
+            utils:OPEN_INTERNET(script, 200)
+            arcade:SELECT_INTERNET_FILTER()
+            script:PURCHASE_PROPERTY(arcade, choice)
+            choice = arcade.afk_options.available[math.random(#arcade.afk_options.available)]
+            util.yield(1500)
+            script:STAT_SET_INT("PROP_ARCADE_VALUE", script.MAX_INT, true) -- set value to max int
+            utils:OPEN_INTERNET(script, 200)
+            arcade:SELECT_INTERNET_FILTER()
+            script:PURCHASE_PROPERTY(arcade, choice)
+            util.yield(1500)
         end),
         "arcade_presets_afk_loop"
     )
