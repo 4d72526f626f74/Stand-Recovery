@@ -36,6 +36,7 @@ local function hash_file(path)
     return hash
 end
 
+local libs_to_update = {}
 local UPDATER = {
     LIB_DIR_PRESENT = function(self)
         if not filesystem.exists(lib_dir) then
@@ -88,7 +89,19 @@ local update_button = root:action("Update", {}, "", function()
     util.restart_script()
 end)
 
+local update_libs_button = root:action("Update Libs", {}, "", function()
+    for i, file in pairs(libs_to_update) do
+        UPDATER.DOWNLOAD:LIB(file, function(file)
+            util.toast("Updated " .. file)
+        end)
+    end
+
+    util.toast("Libs updated, restarting ...")
+    util.restart_script()
+end)
+
 update_button.visible = false
+update_libs_button.visible = false
 
 if UPDATER:LIB_DIR_PRESENT() then
     -- check if the script is up to date
@@ -111,10 +124,13 @@ if UPDATER:LIB_DIR_PRESENT() then
             end
 
             if body[string.gsub(file, ".lua", "")] ~= hash_file(lib_dir .. "/" .. file) then
-                UPDATER.DOWNLOAD:LIB(file, function(file)
-                    util.toast("Updated " .. file)
-                end)
+                table.insert(libs_to_update, file)
             end
+        end
+
+        if #libs_to_update > 0 then
+            util.toast("New version of the libs is available!")
+            update_libs_button.visible = true
         end
     end)
 else
