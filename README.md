@@ -17,5 +17,6 @@ Automated install (without install.bat)
 ---------------------------------------
 1. Copy 'Recovery.lua' to %appdata%\Stand\Lua Scripts directory
 2. Script handles the rest when you run it
-3. 
+
+
 Discord: https://discord.gg/bx8WEZQa49
