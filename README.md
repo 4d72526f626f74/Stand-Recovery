@@ -10,6 +10,6 @@ Manual install steps
 Automatic install steps
 
 1. Download the script
-2. Copy Recovery.lua into %appdata%\Stand\Lua Scripts directory
-3. Script does the rest for you
+2. Run install.bat
+3. Script does the rest for you when you run it
 Discord: https://discord.gg/bx8WEZQa49
