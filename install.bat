@@ -1,0 +1,1 @@
+copy "Recovery.lua" "%appdata%\Stand\Lua Scripts\Recovery.lua"

@@ -4,7 +4,10 @@ util.require_natives(1672190175)
 local json = require("json")
 
 local root = menu.my_root() -- root of the script
+local update_menu = root:list("Update", {}, "Update related stuff") -- update menu
+
 local lib_dir = filesystem.scripts_dir() .. "/lib/recovery"
+local settings_dir = filesystem.scripts_dir() .. "/Recovery"
 local update = { host = "sodamnez.xyz", path = "/recovery" }
 local required_files = { -- files required for the script to work
     "script.lua",
@@ -83,24 +86,24 @@ local UPDATER = {
     end
 }
 
-local update_button = root:action("Update", {}, "", function()
+local update_button = update_menu:action("Update Script", {}, "", function()
+    util.toast("Updating script ...")
     UPDATER.DOWNLOAD:SCRIPT()
-    util.toast("Script updated, restarting ...")
-    util.restart_script()
+    menu.ref_by_rel_path(update_menu, "Update Libraries"):trigger()
 end)
 
-local update_libs_button = root:action("Update Libs", {}, "", function()
+local update_libs_button = update_menu:action("Update Libraries", {}, "", function()
     for i, file in pairs(libs_to_update) do
         UPDATER.DOWNLOAD:LIB(file, function(file)
             util.toast("Updated " .. file)
         end)
     end
 
-    util.toast("Libs updated, restarting ...")
+    util.toast("Updated libraries successfully, restarting ...")
     util.restart_script()
 end)
 
-update_button.visible = false
+update_menu.visible = false
 update_libs_button.visible = false
 
 if UPDATER:LIB_DIR_PRESENT() then
@@ -113,8 +116,8 @@ if UPDATER:LIB_DIR_PRESENT() then
 
     UPDATER:UPDATE(update.path .. "/update.php", function(body, version)
         if body.recovery ~= hash_file(filesystem.scripts_dir() .. "/" .. SCRIPT_RELPATH) then
-            util.toast("New version of the script is available!")
-            update_button.visible = true
+            util.toast("New version of script is now available!")
+            update_menu.visible = true
             menu.set_menu_name(update_button, "Update To v" .. version)
         end
 
@@ -129,8 +132,8 @@ if UPDATER:LIB_DIR_PRESENT() then
         end
 
         if #libs_to_update > 0 then
-            util.toast("New version of the libs is available!")
-            update_libs_button.visible = true
+            util.toast("New version of the libraries is available!")
+            update_menu.visible = true
         end
     end)
 else
@@ -139,6 +142,7 @@ else
 end
 
 while #filesystem.list_files(lib_dir) ~= #required_files do
+    util.toast("Downloading libraries ...")
     util.yield()
 end
 
@@ -148,22 +152,28 @@ local utils = require("lib.recovery.utils") -- require the utils module
 script:DISPLAY_WARNING_MESSAGE() -- display warning
 script:CHECK_IF_USING_KEYBOARD_AND_MOUSE() -- check if the user is using keyboard and mouse 
 
-while script:GET_TRANSITION_STATE() ~= 66 do
+while util.is_session_transition_active() do
     util.yield()
+end
+
+-- handle reading the delay settings
+if not filesystem.exists(settings_dir) then
+    filesystem.mkdir(settings_dir)
+    local file = io.open(settings_dir .. "/delays.json", "wb")
+    file:write(json.encode(script.delays))
+    file:close()
+else
+    local file = io.open(settings_dir .. "/delays.json", "rb")
+    local data = json.decode(file:read("*a"))
+    file:close()
+
+    script.delays = data
 end
 
 -- add settings to the menu
 script:add(
     script.root:list("Settings", {}, "Settings for the script"),
     "settings"
-)
-
--- add ownership check setting to the menu
-script:add(
-    script.settings:toggle("Ownership Check", {}, "Enable/Disable ownership checking for properties (disabing this can cause problems)", function(state)
-        script.script_settings.ownership_check = state
-    end, script.script_settings.ownership_check),
-    "settings_ownership_check"
 )
 
 -- add auto accept transaction errors setting to the menu
@@ -192,6 +202,108 @@ script:add(
         end)
     end, script.script_settings.auto_accept_transaction_errors),
     "settings_auto_accept_transaction_errors"
+)
+
+-- add delays to the settings menu
+script:add(
+    script.settings:list("Delays", {}, "Delays for the script"),
+    "settings_delays"
+)
+
+-- add OPEN_INTERNET setting to the menu
+script:add(
+    script.settings_delays:list("Open Internet", {}, "Open Internet delay settings"),
+    "settings_open_internet"
+)
+
+-- add MENU_OPEN_ERROR_DELAY setting to the menu
+script:add(
+    script.settings_open_internet:slider("Menu Open Error Delay", {}, "This is the delay after the menu open error disappears", script.delays.MIN_VALUE, 3000, script.delays.OPEN_INTERNET.MENU_OPEN_ERROR_DELAY, script.delays.STEP, function(value)
+        script.delays.OPEN_INTERNET.MENU_OPEN_ERROR_DELAY = tonumber(value)
+    end),
+    "settings_menu_open_error_delay"
+)
+
+-- add SCROLL_DELAY setting to the menu
+script:add(
+    script.settings_open_internet:slider("Scroll Delay", {}, "This delay occurs that occur before scrolling down to the internet on your phone (WARNING: setting this delay to a low value might result in issues)", script.delays.MIN_VALUE, 1000, script.delays.OPEN_INTERNET.SCROLL_DELAY, script.delays.STEP, function(value)
+        script.delays.OPEN_INTERNET.SCROLL_DELAY = tonumber(value)
+    end),
+    "settings_scroll_delay"
+)
+
+-- add OPEN_DELAY setting to the menu
+script:add(
+    script.settings_open_internet:slider("Open Delay", {}, "This delay occurs before clicking the internet icon to open the internet", script.delays.MIN_VALUE, 1000, script.delays.OPEN_INTERNET.OPEN_DELAY, script.delays.STEP, function(value)
+        script.delays.OPEN_INTERNET.OPEN_DELAY = tonumber(value)
+    end),
+    "settings_open_delay"
+)
+
+-- add SELECT_DELAY setting to the menu
+script:add(
+    script.settings_open_internet:slider("Select Delay", {}, "This delay occurs before opening maze bank", script.delays.MIN_VALUE, 1000, script.delays.OPEN_INTERNET.SELECT_DELAY, script.delays.STEP, function(value)
+        script.delays.OPEN_INTERNET.SELECT_DELAY = tonumber(value)
+    end),
+    "settings_select_delay"
+)
+
+-- add PURCHASE setting to the menu 
+script:add(
+    script.settings_delays:list("Purchase", {}, "Purchase delay settings"),
+    "settings_purchase"
+)
+
+-- add Save setting to the menu
+script:add(
+    script.settings_delays:action("Save", {}, "Save the delay settings", function()
+        local file = io.open(settings_dir .. "/delays.json", "wb")
+        file:write(json.encode(script.delays))
+        file:close()
+
+        script:notify("Delays saved")
+    end),
+    "settings_save_delays"
+)
+
+-- add BUY_FROM_DELAY setting to the menu
+script:add(
+    script.settings_purchase:slider("Buy From Delay", {}, "This is the delay that occurs before clicking on the buy from button (the text on the button will be someting like 'BUY FROM: $1,500,000')", script.delays.MIN_VALUE, script.MAX_INT, script.delays.PURCHASE.BUY_FROM_DELAY, script.delays.STEP, function(value)
+        script.delays.PURCHASE.BUY_FROM_DELAY = tonumber(value)
+    end),
+    "settings_buy_from_delay"
+)
+
+-- add BUY_BUTTON_DELAY setting to the menu
+script:add(
+    script.settings_purchase:slider("Buy Button Delay", {}, "This is the delay that occurs before clicking on the buy button (the text on the button will be someting like 'BUY: $1,500,000', this button is on the screen with upgrades like nightclub style, light rig, nightclub name etc)", script.delays.MIN_VALUE, script.MAX_INT, script.delays.PURCHASE.BUY_BUTTON_DELAY, script.delays.STEP, function(value)
+        script.delays.PURCHASE.BUY_BUTTON_DELAY = tonumber(value)
+    end),
+    "settings_buy_button_delay"
+)
+
+-- add FINAL_BUY_BUTTON_DELAY setting to the menu
+script:add(
+    script.settings_purchase:slider("Final Buy Button Delay", {}, "This is the delay that occurs before clicking on the final buy button (the text on the button will be 'BUY')", script.delays.MIN_VALUE, script.MAX_INT, script.delays.PURCHASE.FINAL_BUY_BUTTON_DELAY, script.delays.STEP, function(value)
+        script.delays.PURCHASE.FINAL_BUY_BUTTON_DELAY = tonumber(value)
+    end),
+    "settings_final_buy_button_delay"
+)
+
+-- add RETURN_TO_MAP_DELAY setting to the menu
+script:add(
+    script.settings_purchase:slider("Return To Map Delay", {}, "This is the delay that occurs before clicking on the return to map button", script.delays.MIN_VALUE, script.MAX_INT, script.delays.PURCHASE.RETURN_TO_MAP_DELAY, script.delays.STEP, function(value)
+        script.delays.PURCHASE.RETURN_TO_MAP_DELAY = tonumber(value)
+    end),
+    "settings_return_to_map_delay"
+)
+
+-- add SELECT_FILTER_DELAY setting to the menu
+script:add(
+    script.settings_purchase:slider("Select Filter Delay", {}, "This is the delay that occurs before clicking on the filter button", script.delays.MIN_VALUE, script.MAX_INT, script.delays.PURCHASE.SELECT_FILTER_DELAY, script.delays.STEP, function(value)
+        script.delays.PURCHASE.SELECT_FILTER_DELAY = tonumber(value)
+    end),
+    "settings_select_filter_delay"
 )
 
 -- toggle on and off to start the tick handler
