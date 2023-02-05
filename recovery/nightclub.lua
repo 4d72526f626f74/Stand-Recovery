@@ -113,6 +113,7 @@ function nightclub:SELECT_INTERNET_FILTER(script)
 end
 
 function nightclub:init(script)
+    local press_counter = 2 -- the number of times enter will be pressed
     -- add la mesa nightclub
     nightclub["La Mesa"] = {
         name = "La Mesa",
@@ -121,8 +122,8 @@ function nightclub:init(script)
             utils:MOVE_CURSOR(0.30, 0.73, script.delays.PURCHASE.BUY_BUTTON_DELAY, true) -- press the first buy button
             utils:MOVE_CURSOR(0.30, 0.93, script.delays.PURCHASE.FINAL_BUY_BUTTON_DELAY, true) -- press the second buy button
             utils:MOVE_CURSOR(0.78, 0.91, script.delays.PURCHASE.TRADE_IN_SELECTION_DELAY, true) -- press the third buy butwton
-            utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
-            utils:SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
+            utils:SIMULATE_CONTROL_KEY(176, press_counter) -- press enter to purchase
+            utils:SIMULATE_CONTROL_KEY(201, press_counter, 2) -- confirm purchase
             util.yield(1500) -- wait for transaction to complete
             script:RETURN_TO_MAP(nightclub) -- return to the map
         end
@@ -136,8 +137,8 @@ function nightclub:init(script)
             utils:MOVE_CURSOR(0.30, 0.73, script.delays.PURCHASE.BUY_BUTTON_DELAY, true) -- press the first buy button
             utils:MOVE_CURSOR(0.30, 0.93, script.delays.PURCHASE.FINAL_BUY_BUTTON_DELAY, true) -- press the second buy button
             utils:MOVE_CURSOR(0.78, 0.91, script.delays.PURCHASE.TRADE_IN_SELECTION_DELAY, true) -- press the third buy butwton
-            utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
-            utils:SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
+            utils:SIMULATE_CONTROL_KEY(176, press_counter) -- press enter to purchase
+            utils:SIMULATE_CONTROL_KEY(201, press_counter, 2) -- confirm purchase
             util.yield(1500) -- wait for transaction to complete
             script:RETURN_TO_MAP(nightclub) -- return to the map
         end
@@ -151,23 +152,25 @@ function nightclub:init(script)
             utils:MOVE_CURSOR(0.30, 0.73, script.delays.PURCHASE.BUY_BUTTON_DELAY, true) -- press the first buy button
             utils:MOVE_CURSOR(0.30, 0.93, script.delays.PURCHASE.FINAL_BUY_BUTTON_DELAY, true) -- press the second buy button
             utils:MOVE_CURSOR(0.78, 0.91, script.delays.PURCHASE.TRADE_IN_SELECTION_DELAY, true) -- press the third buy button
-            utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
-            utils:SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
+            utils:SIMULATE_CONTROL_KEY(176, press_counter) -- press enter to purchase
+            utils:SIMULATE_CONTROL_KEY(201, press_counter, 2) -- confirm purchase
             util.yield(1500) -- wait for transaction to complete
             script:RETURN_TO_MAP(nightclub) -- return to the map
         end
     }
 
     -- add nightclub recovery option to the menu
-    local owned_data = script:GET_OWNED_PROPERTY_DATA("nightclub")
-
     script:add(
         script.root:list("Nightclub", {}, "Nightclub recovery options", function()
             local ref = menu.ref_by_rel_path(script.root, "Nightclub")
+            local owned_data = script:GET_OWNED_PROPERTY_DATA("nightclub")
+            
             if owned_data == nil then
                 ref:focus() -- prevent access
                 script:notify("You do not own a nightclub, purchase a nightclub to access this feature")
             end
+
+            script:SHOW_REQUIREMENTS_WARNING() -- show the requirements warning
         end),
         "nightclub_recovery"
     )
@@ -268,7 +271,7 @@ function nightclub:init(script)
 
     -- add the nightclub presets
     script:add(
-        script.nightclub_presets:list_select("Money", {}, "", script.money_options, 1, function() end),
+        script.nightclub_presets:list_select("Money", {}, "Setting this does not change the amount you get from the afk loop", script.money_options, 1, function() end),
         "nightclub_presets_money"
     )
 
@@ -299,7 +302,7 @@ function nightclub:init(script)
 
     -- add set value
     script:add(
-        script.nightclub_presets:action("Set Value", {}, "Sets the value of your nightclub", function()
+        script.nightclub_presets:action("Set Value", {}, "Sets the value of your nightclub (this is for manual purchases)", function()
             local money = script:CONVERT_VALUE(script.money_options[script.nightclub_presets_money.value])
             local current_value = script:STAT_GET_INT("PROP_NIGHTCLUB_VALUE")
             
@@ -342,11 +345,9 @@ function nightclub:init(script)
 
     -- add afk loop option
     script:add(
-        script.nightclub_presets:toggle_loop("AFK Loop", {}, "Alternates between buying nightclubs you don\'t own", function(state)
+        script.nightclub_presets:toggle_loop("AFK Loop", {}, "Alternates between buying nightclubs you don\'t own, the value is set to the max (" .. tostring(math.floor(script.MAX_INT / 2)) .. ")", function(state)
             local afk = menu.ref_by_rel_path(script.nightclub_presets, "AFK Loop")
             local owned_data = script:GET_OWNED_PROPERTY_DATA("nightclub")
-
-            util.yield(100) -- small delay before starting
 
             local club = nightclub.afk_options.available[math.random(#nightclub.afk_options.available)]
 
@@ -359,6 +360,9 @@ function nightclub:init(script)
             club = nightclub.afk_options.available[math.random(#nightclub.afk_options.available)]
             script:STAT_SET_INT("PROP_NIGHTCLUB_VALUE", script.MAX_INT, true) -- set value to max int
             script:PURCHASE_PROPERTY(nightclub, club)
+            if not afk.value then
+                util.stop_thread() -- stop the thread effectively stopping the loop
+            end
             util.yield(100)
         end),
         "nightclub_presets_afk_loop"

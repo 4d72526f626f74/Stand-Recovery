@@ -154,6 +154,8 @@ function autoshop:SECOND_CHOICE_OPTIONS(script, return_results)
 end
 
 function autoshop:init(script)
+    local press_counter = 2 -- the number of times enter will be pressed
+
     autoshop["La Mesa"] = {
         name = "La Mesa",
         purchase = function()
@@ -161,8 +163,8 @@ function autoshop:init(script)
             utils:MOVE_CURSOR(0.30, 0.75, script.delays.PURCHASE.BUY_BUTTON_DELAY, true) -- press the first buy button
             utils:MOVE_CURSOR(0.30, 0.92, script.delays.PURCHASE.FINAL_BUY_BUTTON_DELAY, true) -- press the second buy button
             utils:MOVE_CURSOR(0.78, 0.94, script.delays.PURCHASE.TRADE_IN_SELECTION_DELAY, true) -- press the third buy button
-            utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
-            utils:SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
+            utils:SIMULATE_CONTROL_KEY(176, press_counter) -- press enter to purchase
+            utils:SIMULATE_CONTROL_KEY(201, press_counter, 2) -- confirm purchase
             util.yield(1500) -- wait for transaction to complete
             script:RETURN_TO_MAP(autoshop) -- return to the map
         end
@@ -175,8 +177,8 @@ function autoshop:init(script)
             utils:MOVE_CURSOR(0.30, 0.75, script.delays.PURCHASE.BUY_BUTTON_DELAY, true) -- press the first buy button
             utils:MOVE_CURSOR(0.30, 0.92, script.delays.PURCHASE.FINAL_BUY_BUTTON_DELAY, true) -- press the second buy button
             utils:MOVE_CURSOR(0.78, 0.94, script.delays.PURCHASE.TRADE_IN_SELECTION_DELAY, true) -- press the third buy button
-            utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
-            utils:SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
+            utils:SIMULATE_CONTROL_KEY(176, press_counter) -- press enter to purchase
+            utils:SIMULATE_CONTROL_KEY(201, press_counter, 2) -- confirm purchase
             util.yield(1500) -- wait for transaction to complete
             script:RETURN_TO_MAP(autoshop) -- return to the map
         end
@@ -189,23 +191,25 @@ function autoshop:init(script)
             utils:MOVE_CURSOR(0.30, 0.75, script.delays.PURCHASE.BUY_BUTTON_DELAY, true) -- press the first buy button
             utils:MOVE_CURSOR(0.30, 0.92, script.delays.PURCHASE.FINAL_BUY_BUTTON_DELAY, true) -- press the second buy button
             utils:MOVE_CURSOR(0.78, 0.94, script.delays.PURCHASE.TRADE_IN_SELECTION_DELAY, true) -- press the third buy button
-            utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
-            utils:SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
+            utils:SIMULATE_CONTROL_KEY(176, press_counter) -- press enter to purchase
+            utils:SIMULATE_CONTROL_KEY(201, press_counter, 2) -- confirm purchase
             util.yield(1500) -- wait for transaction to complete
             script:RETURN_TO_MAP(autoshop) -- return to the map
         end
     }
 
     -- add autoshop recovery option to the menu
-    local owned_data = script:GET_OWNED_PROPERTY_DATA("autoshop")
-
     script:add(
         script.root:list("Autoshop", {}, "autoshop recovery options", function()
             local ref = menu.ref_by_rel_path(script.root, "Autoshop")
+            local owned_data = script:GET_OWNED_PROPERTY_DATA("autoshop")
+            
             if owned_data == nil then
                 ref:focus() -- prevent access
                 script:notify("You do not own a autoshop, purchase a autoshop to access this feature")
             end
+
+            script:SHOW_REQUIREMENTS_WARNING() -- show the requirements warning
         end),
         "autoshop_recovery"
     )
@@ -243,7 +247,7 @@ function autoshop:init(script)
 
     -- add the autoshop presets
     script:add(
-        script.autoshop_presets:list_select("Money", {}, "", script.money_options, 1, function() end),
+        script.autoshop_presets:list_select("Money", {}, "Setting this does not change the amount you get from the afk loop", script.money_options, 1, function() end),
         "autoshop_presets_money"
     )
 
@@ -275,7 +279,7 @@ function autoshop:init(script)
 
     -- add set value
     script:add(
-        script.autoshop_presets:action("Set Value", {}, "Sets the value of your autoshop", function()
+        script.autoshop_presets:action("Set Value", {}, "Sets the value of your autoshop (this is for manual purchases)", function()
             local money = script:CONVERT_VALUE(script.money_options[script.autoshop_presets_money.value])
             local current_value = script:STAT_GET_INT("PROP_AUTO_SHOP_VALUE")
             
@@ -318,7 +322,7 @@ function autoshop:init(script)
 
     -- add afk loop option
     script:add(
-        script.autoshop_presets:toggle_loop("AFK Loop", {}, "Alternates between buying autoshops you don\'t own", function(state)
+        script.autoshop_presets:toggle_loop("AFK Loop", {}, "Alternates between buying autoshops you don\'t own, the value is set to the max (" .. tostring(math.floor(script.MAX_INT / 2)) .. ")", function(state)
             local afk = menu.ref_by_rel_path(script.autoshop_presets, "AFK Loop")
             local owned_data = script:GET_OWNED_PROPERTY_DATA("autoshop")
             local choice = autoshop.afk_options.available[math.random(#autoshop.afk_options.available)]

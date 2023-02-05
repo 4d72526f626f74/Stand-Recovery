@@ -1,10 +1,13 @@
 util.keep_running()
 util.require_natives(1672190175)
 
+util.show_corner_help("This script is free, if you paid for it then you got scammed")
+
 local json = require("json")
 
 local root = menu.my_root() -- root of the script
 local update_menu = root:list("Update", {}, "Update related stuff") -- update menu
+local DEV_MODE = false -- set to true so the script doesn't check for updates
 
 local lib_dir = filesystem.scripts_dir() .. "/lib/recovery"
 local settings_dir = filesystem.scripts_dir() .. "/Recovery"
@@ -17,7 +20,9 @@ local required_files = { -- files required for the script to work
     "autoshop.lua",
     "dax.lua",
     "casino_figures.lua",
-    "credits.lua"
+    "credits.lua",
+    "drops.lua",
+    "other.lua"
 }
 
 local function hash_file(path)
@@ -104,50 +109,64 @@ local update_libs_button = update_menu:action("Update Libraries", {}, "", functi
 end)
 
 update_menu.visible = false
-update_libs_button.visible = false
 
-if UPDATER:LIB_DIR_PRESENT() then
-    -- check if the script is up to date
-    for i, file in pairs(required_files) do
-        if not filesystem.exists(lib_dir .. "/" .. file) then
-            UPDATER.DOWNLOAD:LIB(file, function(file) end)
-        end
-    end
-
-    UPDATER:UPDATE(update.path .. "/update.php", function(body, version)
-        if body.recovery ~= hash_file(filesystem.scripts_dir() .. "/" .. SCRIPT_RELPATH) then
-            util.toast("New version of script is now available!")
-            update_menu.visible = true
-            menu.set_menu_name(update_button, "Update To v" .. version)
-        end
-
+if not DEV_MODE then
+    if UPDATER:LIB_DIR_PRESENT() then
+        -- check if the script is up to date
         for i, file in pairs(required_files) do
-            while not filesystem.exists(lib_dir .. "/" .. file) do
-                util.yield()
-            end
-
-            if body[string.gsub(file, ".lua", "")] ~= hash_file(lib_dir .. "/" .. file) then
-                table.insert(libs_to_update, file)
+            if not filesystem.exists(lib_dir .. "/" .. file) then
+                UPDATER.DOWNLOAD:LIB(file, function(file) 
+                    util.toast("Downloaded " .. file)
+                end)
             end
         end
-
-        if #libs_to_update > 0 then
-            util.toast("New version of the libraries is available!")
-            update_menu.visible = true
-        end
-    end)
-else
-    util.toast("There was an error creating the lib directory, please create it manually and restart the script")
-    util.stop_script()
+    
+        UPDATER:UPDATE(update.path .. "/update.php", function(body, version)
+            if body.recovery ~= hash_file(filesystem.scripts_dir() .. "/" .. SCRIPT_RELPATH) then
+                util.toast("New version of script is now available!")
+                update_menu.visible = true
+            end
+    
+            for i, file in pairs(required_files) do
+                while not filesystem.exists(lib_dir .. "/" .. file) do
+                    util.yield()
+                end
+    
+                if body[string.gsub(file, ".lua", "")] ~= hash_file(lib_dir .. "/" .. file) then
+                    table.insert(libs_to_update, file)
+                end
+            end
+    
+            if #libs_to_update > 0 then
+                util.toast("New version of the libraries is available!")
+                update_menu.visible = true
+            end
+        end)
+    else
+        util.toast("There was an error creating the lib directory, please create it manually and restart the script")
+        util.stop_script()
+    end
 end
 
+local lib_check_timeout = os.time() + 30 -- timeout for checking if the libraries are downloaded
+
 while #filesystem.list_files(lib_dir) ~= #required_files do
+    if os.time() > lib_check_timeout then
+        util.toast("Timeout reached, stopping script ...")
+        util.stop_script()
+    end
+
     util.toast("Downloading libraries ...")
     util.yield()
 end
 
 local script = require("lib.recovery.script") -- require the script module
 local utils = require("lib.recovery.utils") -- require the utils module
+
+if not package.loaded["lib.recovery.script"] or not package.loaded["lib.recovery.utils"] then
+    util.toast("Failed to load script or utils modules, stopping script ...")
+    util.stop_script()
+end
 
 script:DISPLAY_WARNING_MESSAGE() -- display warning
 script:CHECK_IF_USING_KEYBOARD_AND_MOUSE() -- check if the user is using keyboard and mouse 
@@ -208,6 +227,14 @@ script:add(
 script:add(
     script.settings:list("Delays", {}, "Delays for the script"),
     "settings_delays"
+)
+
+-- add SIMULATE_CONTROL_KEY_DELAY setting to the menu
+script:add(
+    script.settings_delays:toggle("Disable Simulate Control Key Delay", {}, "This is the delay that occur after user input has been simulated", function(state)
+        utils.SIMULATE_CONTROL_KEY_DELAY_STATE = not state
+    end, not utils.SIMULATE_CONTROL_KEY_DELAY_STATE),
+    "settings_simulate_control_key_delay"
 )
 
 -- add OPEN_INTERNET setting to the menu
@@ -356,45 +383,6 @@ script:add(
     "tools_deposit_money"
 )
 
--- add amount to remove
-script:add(
-    script.tools:text_input("Money Remover", {"rsremovemoney"}, "Removes money from your account", function() end, "0"),
-    "tools_money_remover"
-)
-
--- add button to remove money
-script:add(
-    script.tools:action("Remove Money", {"rsremovemoney"}, "Removes money from your account", function()
-        local amount = tonumber(script.tools_money_remover.value)
-    
-        if amount == nil then
-            script:NOTIFY("Invalid money amount")
-            return
-        end
-    
-        if amount < 0 then
-            script:NOTIFY("Money amount must be greater than 0")
-            return
-        end
-    
-        script:BUY_BST(amount)
-        util.yield(200)
-        PED.SET_PED_TO_RAGDOLL(script.me_ped, 1, 1, 0, 0, 0, 0) -- ensures player picks up bst
-        util.yield(100)
-        menu.trigger_commands("bst off")
-    end),
-    "tools_remove_money_button"
-)
-
--- add remove maximum money
-script.tools:action("Remove Max Money", {"rsremovemaxmoney"}, "Removes max money from your account", function()
-    script:BUY_BST(script.MAX_INT)
-    util.yield(200)
-    PED.SET_PED_TO_RAGDOLL(script.me_ped, 1, 1, 0, 0, 0, 0) -- ensures player picks up bst
-    util.yield(100)
-    menu.trigger_commands("bst off")
-end)
-
 -- add recovery divider
 script.root:divider("Recovery")
 
@@ -403,13 +391,56 @@ local arcade = require("lib.recovery.arcade") -- require the arcade module
 local autoshop = require("lib.recovery.autoshop") -- require the autoshop module
 local dax = require("lib.recovery.dax") -- require the dax module
 local casino_figures = require("lib.recovery.casino_figures") -- require the casino figures module
+local drops = require("lib.recovery.drops") -- require the drops module
+local other_methods = require("lib.recovery.other") -- require the other module
 local credits = require("lib.recovery.credits") -- require the credits module
 
-nightclub:init(script) -- initalise nightclub menu
-arcade:init(script) -- initalise arcade menu
-autoshop:init(script) -- initalise autoshop menu
-dax:init(script) -- initalise dax menu
-casino_figures:init(script) -- initalise casino figures menu
-credits:init(script) -- initalise credits menu
+if package.loaded["lib.recovery.nightclub"] then
+    nightclub:init(script) -- initalise nightclub menu
+else
+    script:notify("Nightclub module failed to load")
+end
+
+if package.loaded["lib.recovery.arcade"] then
+    arcade:init(script) -- initalise arcade menu
+else
+    script:notify("Arcade module failed to load")
+end
+
+if package.loaded["lib.recovery.autoshop"] then
+    autoshop:init(script) -- initalise autoshop menu
+else
+    script:notify("Autoshop module failed to load")
+end
+
+if package.loaded["lib.recovery.dax"] then
+    dax:init(script) -- initalise dax menu
+else
+    script:notify("Dax module failed to load")
+end
+
+if package.loaded["lib.recovery.casino_figures"] then
+    casino_figures:init(script) -- initalise casino figures menu
+else
+    script:notify("Casino figures module failed to load")
+end
+
+if package.loaded["lib.recovery.drops"] then
+    drops:init(script) -- initalise drops menu
+else
+    script:notify("Drops module failed to load")
+end
+
+if package.loaded["lib.recovery.other"] then
+    other_methods:init(script) -- initalise other methods menu
+else
+    script:notify("Other methods module failed to load")
+end
+
+if package.loaded["lib.recovery.credits"] then
+    credits:init(script) -- initalise credits menu
+else
+    script:notify("Credits module failed to load")
+end
 
 utils:SET_SCRIPT(script) -- set the script for the utils module

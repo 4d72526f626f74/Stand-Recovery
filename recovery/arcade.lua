@@ -114,6 +114,7 @@ function arcade:SELECT_INTERNET_FILTER(script)
 end
 
 function arcade:init(script)
+    local press_counter = 2 -- the number of times enter will be pressed
     arcade["La Mesa"] = {
         name = "La Mesa",
         purchase = function()
@@ -121,8 +122,8 @@ function arcade:init(script)
             utils:MOVE_CURSOR(0.30, 0.78, script.delays.PURCHASE.BUY_BUTTON_DELAY, true) -- press the first buy button
             utils:MOVE_CURSOR(0.30, 0.92, script.delays.PURCHASE.FINAL_BUY_BUTTON_DELAY, true) -- press the second buy button
             utils:MOVE_CURSOR(0.78, 0.91, script.delays.PURCHASE.TRADE_IN_SELECTION_DELAY, true) -- press the third buy button
-            utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
-            utils:SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
+            utils:SIMULATE_CONTROL_KEY(176, press_counter) -- press enter to purchase
+            utils:SIMULATE_CONTROL_KEY(201, press_counter, 2) -- confirm purchase
             util.yield(1500) -- wait for transaction to complete
             script:RETURN_TO_MAP(arcade) -- return to the map
         end
@@ -135,8 +136,8 @@ function arcade:init(script)
             utils:MOVE_CURSOR(0.30, 0.81, script.delays.PURCHASE.BUY_BUTTON_DELAY, true) -- press the first buy button
             utils:MOVE_CURSOR(0.30, 0.92, script.delays.PURCHASE.FINAL_BUY_BUTTON_DELAY, true) -- press the second buy button
             utils:MOVE_CURSOR(0.78, 0.91, script.delays.PURCHASE.TRADE_IN_SELECTION_DELAY, true) -- press the third buy button
-            utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
-            utils:SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
+            utils:SIMULATE_CONTROL_KEY(176, press_counter) -- press enter to purchase
+            utils:SIMULATE_CONTROL_KEY(201, press_counter, 2) -- confirm purchase
             util.yield(1500) -- wait for transaction to complete
             script:RETURN_TO_MAP(arcade) -- return to the map
         end
@@ -149,8 +150,8 @@ function arcade:init(script)
             utils:MOVE_CURSOR(0.30, 0.81, script.delays.PURCHASE.BUY_BUTTON_DELAY, true) -- press the first buy button
             utils:MOVE_CURSOR(0.30, 0.92, script.delays.PURCHASE.FINAL_BUY_BUTTON_DELAY, true) -- press the second buy button
             utils:MOVE_CURSOR(0.78, 0.91, script.delays.PURCHASE.TRADE, true) -- press the third buy button
-            utils:SIMULATE_CONTROL_KEY(176, 1) -- press enter to purchase
-            utils:SIMULATE_CONTROL_KEY(201, 1, 2) -- confirm purchase
+            utils:SIMULATE_CONTROL_KEY(176, press_counter) -- press enter to purchase
+            utils:SIMULATE_CONTROL_KEY(201, press_counter, 2) -- confirm purchase
             util.yield(1500) -- wait for transaction to complete
             script:RETURN_TO_MAP(arcade) -- return to the map
         end
@@ -158,15 +159,17 @@ function arcade:init(script)
     
 
     -- add arcade to the menu
-    local owned_data = script:GET_OWNED_PROPERTY_DATA("arcade")
-
     script:add(
         script.root:list("Arcade", {}, "Arcade recovery options", function()
             local ref = menu.ref_by_rel_path(script.root, "Arcade")
+            local owned_data = script:GET_OWNED_PROPERTY_DATA("arcade")
+            
             if owned_data == nil then
                 ref:focus() -- prevent access
                 script:notify("You do not own a arcade, purchase a arcade to access this feature")
             end
+
+            script:SHOW_REQUIREMENTS_WARNING() -- show the requirements warning
         end),
         "arcade_recovery"
     )
@@ -267,7 +270,7 @@ function arcade:init(script)
 
     -- add the arcade presets
     script:add(
-        script.arcade_presets:list_select("Money", {}, "", script.money_options, 1, function() end),
+        script.arcade_presets:list_select("Money", {}, "Setting this does not change the amount you get from the afk loop", script.money_options, 1, function() end),
         "arcade_presets_money"
     )
 
@@ -297,7 +300,7 @@ function arcade:init(script)
 
     -- add set value
     script:add(
-        script.arcade_presets:action("Set Value", {}, "Sets the value of your arcade", function()
+        script.arcade_presets:action("Set Value", {}, "Sets the value of your arcade (this is for manual purchases)", function()
             local money = script:CONVERT_VALUE(script.money_options[script.arcade_presets_money.value])
             local current_value = script:STAT_GET_INT("PROP_ARCADE_VALUE")
             
@@ -340,7 +343,7 @@ function arcade:init(script)
 
     -- add afk loop option
     script:add(
-        script.arcade_presets:toggle_loop("AFK Loop", {}, "Alternates between buying arcades you don\'t own", function(state)
+        script.arcade_presets:toggle_loop("AFK Loop", {}, "Alternates between buying arcades you don\'t own, the value is set to the max (" .. tostring(math.floor(script.MAX_INT / 2)) .. ")", function(state)
             local afk = menu.ref_by_rel_path(script.arcade_presets, "AFK Loop")
             local owned_data = script:GET_OWNED_PROPERTY_DATA("arcade")
             local choice = arcade.afk_options.available[math.random(#arcade.afk_options.available)]

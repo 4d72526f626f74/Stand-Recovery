@@ -32,6 +32,7 @@ script.delays = {
         RETURN_TO_MAP_DELAY = 300, -- delay before pressing 'return to map' button
         SELECT_FILTER_DELAY = 300, -- delay before selecting a filter
     },
+    PURCHASE_PRESS_ENTER_COUNT = 2, -- the number of times that enter should be pressed when purchasing a property
 }
 
 script.states = {
@@ -143,6 +144,17 @@ script.globals = { -- script globals
     modifiers = {
         cash = memory.script_global(262145 + 0),
         rp = memory.script_global(262145 + 1),
+    },
+    caps = {
+        cash_share = memory.script_global(262145 + 7044),
+        cash_pickup = memory.script_global(262145 + 7045),
+        cash_recieved = memory.script_global(262145 + 7046),
+    },
+    criminal_damage = {
+        cash_multiplier = memory.script_global(262145 + 11911),
+        time_limit = memory.script_global(262145 + 11677),
+        start_time = memory.script_global(262145 + 11678),
+        players_required = memory.script_global(262145 + 11679),
     }
 }
 
@@ -409,7 +421,20 @@ end
 
 -- return to map
 function script:RETURN_TO_MAP(property)
+    local transaction_was_stuck = false -- if this is true, the transaction was stuck so need to delay the return to map
+    
+    while NETSHOPPING.NET_GAMESERVER_TRANSACTION_IN_PROGRESS() do
+        script:notify("Waiting for transaction to finish...")
+        transaction_was_stuck = true
+        util.yield(100)
+    end
+
+    if transaction_was_stuck then
+        util.yield(1000)
+    end
+
     utils:MOVE_CURSOR(0.72, 0.91, script.delays.PURCHASE.RETURN_TO_MAP_DELAY, true)
+    utils:MOVE_CURSOR(0.68, 0.91, script.delays.PURCHASE.RETURN_TO_MAP_DELAY, true)
     property:SELECT_INTERNET_FILTER(script)
 end
 
@@ -422,30 +447,6 @@ function script:COLLECT_PICKUP(model)
             local coords = ENTITY.GET_ENTITY_COORDS(players.user_ped(), true)
             ENTITY.SET_ENTITY_COORDS(pickup, coords.x, coords.y, coords.z, true, true, true, true)
         end
-    end
-end
-
--- purchase bst
-function script:BUY_BST(value=1000)
-    local delay = 1
-
-    if value < 1000 then value = 1000 end
-
-    memory.write_int(script.globals.interaction_menu.menu, 30) -- render VIP/CEO abilties in interaction menu
-    memory.write_int(script.globals.ceo.bst_cost, value)
-    memory.write_int(script.globals.ceo.bst_cooldown, 0)
-    memory.write_int(script.globals.ceo.bst_disable, 0)
-
-    utils:SIMULATE_CONTROL_KEY(244, 1, 0, delay) -- open interaction menu
-    utils:SIMULATE_CONTROL_KEY(173, 1, 0, delay) -- scroll down to bst
-    
-    if memory.read_int(script.globals.interaction_menu.menu_item) == 1 then -- make sure correct item is selected
-        utils:SIMULATE_CONTROL_KEY(176, 1, 0, delay) -- press enter on bst
-        util.yield(100)
-        script:COLLECT_PICKUP(script.models.BST) -- collect bst
-        memory.write_int(script.globals.ceo.bst_cost, 1000)
-    else
-        script:notify("Next time don\'t press any buttons dumbass")
     end
 end
 
@@ -469,6 +470,10 @@ function script:DISPLAY_ONSCREEN_KEYBOARD()
         local text = MISC.GET_ONSCREEN_KEYBOARD_RESULT()
         return text
     end
+end
+
+function script:SHOW_REQUIREMENTS_WARNING()
+    script:notify("If you do not have arcades and autoshops unlocked on mazebank foreclosure then you may experience issues with the 1B recovery afk loop", util.show_corner_help)
 end
 
 return script
