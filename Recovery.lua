@@ -7,7 +7,7 @@ local json = require("json")
 
 local root = menu.my_root() -- root of the script
 local update_menu = root:list("Update", {}, "Update related stuff") -- update menu
-local DEV_MODE = false -- set to true so the script doesn't check for updates
+local DEV_MODE = true -- set to true so the script doesn't check for updates
 
 local lib_dir = filesystem.scripts_dir() .. "/lib/recovery"
 local settings_dir = filesystem.scripts_dir() .. "/Recovery"
@@ -22,7 +22,9 @@ local required_files = { -- files required for the script to work
     "casino_figures.lua",
     "credits.lua",
     "drops.lua",
-    "other.lua"
+    "other.lua",
+    "heists.lua",
+    "hangar.lua",
 }
 
 local function hash_file(path)
@@ -349,11 +351,18 @@ script.tools:divider("Unlocks")
 -- add unlock arcades on maze bank
 script:add(
     script.tools:action("Unlocks Arcades On MazeBank", {}, "Does what it says", function()
-        ENTITY.SET_ENTITY_COORDS(script.me_ped, 1120.0100097656, -225.07000732422, 69.084953308105, true, true, true, true) -- teleports you to a blip on the map
+        util.teleport_2d(1120.0100097656, -225.07000732422) -- teleport to blip
+        util.yield(1000) -- give the game enough time to load before attempting to contact lester
         utils:SIMULATE_CONTROL_KEY(52, 2) -- press e key to contact lester
-        ENTITY.SET_ENTITY_COORDS(players.user_ped(), 1048.7941894531, -721.57751464844, 57.227325439453, true, true, true, true)
-        util.yield(1500) -- give the cutsene time to start before attempting to skip it
-        menu.trigger_commands("skipcutscene")
+        util.teleport_2d(1048.7941894531, -721.57751464844) -- teleport to lester blip to start cutscene
+        
+        while not CUTSCENE.IS_CUTSCENE_ACTIVE() or not CUTSCENE.IS_CUTSCENE_PLAYING() do
+            util.yield_once()
+        end
+
+        menu.trigger_commands("skipcutscene") -- skip the cutscene
+        util.yield(1000)
+        script:notify("Arcades should now be unlocked!")
     end),
     "tools_unlocks_arcades_on_mazebank"
 )
@@ -363,8 +372,14 @@ script:add(
     script.tools:action("Unlocks Autoshops On MazeBank", {}, "Does what it says", function()
         local pos = v3.new(778.99708076172, -1867.5257568359, 28.296264648438) -- ls tuners carmeet blip teleport
         ENTITY.SET_ENTITY_COORDS(players.user_ped(), pos.x, pos.y, pos.z, true, true, true, true) -- teleport to ls tuners carmeet
-        util.yield(4000) -- give the cutsene time to start before attempting to skip it
+        
+        while not CUTSCENE.IS_CUTSCENE_ACTIVE() or not CUTSCENE.IS_CUTSCENE_PLAYING() do
+            util.yield_once()
+        end
+
         menu.trigger_commands("skipcutscene") -- skip the cutscene
+        util.yield(1000)
+        script:notify("Autoshops should now be unlocked!")
     end),
     "tools_unlocks_autoshops_on_mazebank"
 )
@@ -383,16 +398,51 @@ script:add(
     "tools_deposit_money"
 )
 
+if DEV_MODE then
+    -- add developer divider
+    script.tools:divider("Developer")
+
+    script.tools:toggle_loop("Entity Aiming At", {}, "", function()
+        local pent = memory.alloc(4)
+        if PLAYER.GET_ENTITY_PLAYER_IS_FREE_AIMING_AT(script.me, pent) then
+            local ent = memory.read_int(pent)
+            local model = ENTITY.GET_ENTITY_MODEL(ent)
+            script:notify(util.reverse_joaat(model))
+        end
+    end)
+
+    script.tools:action("Find Closest Object", {}, "", function()
+        for i, entity in pairs(entities.get_all_objects_as_handles()) do
+            local model = util.reverse_joaat(ENTITY.GET_ENTITY_MODEL(entity))
+            local pos = ENTITY.GET_ENTITY_COORDS(entity, true)
+            local plr_pos = ENTITY.GET_ENTITY_COORDS(players.user_ped(), true)
+            local dist = MISC.GET_DISTANCE_BETWEEN_COORDS(pos.x, pos.y, pos.z, plr_pos.x, plr_pos.y, plr_pos.z)
+
+            if dist <= 0.72 then
+                script:notify(model)
+            end
+        end
+    end)
+
+    script.tools:action("Copy Cursor Coords", {}, "", function()
+        local coords = script:GET_CURSOR_POSITION()
+
+        util.copy_to_clipboard(coords.x .. ", " .. coords.y)
+    end)
+end
+
 -- add recovery divider
 script.root:divider("Recovery")
 
 local nightclub = require("lib.recovery.nightclub") -- require the nightclub module
 local arcade = require("lib.recovery.arcade") -- require the arcade module
 local autoshop = require("lib.recovery.autoshop") -- require the autoshop module
+local hangar = require("lib.recovery.hangar") -- require the hangar module
 local dax = require("lib.recovery.dax") -- require the dax module
 local casino_figures = require("lib.recovery.casino_figures") -- require the casino figures module
 local drops = require("lib.recovery.drops") -- require the drops module
 local other_methods = require("lib.recovery.other") -- require the other module
+local heists = require("lib.recovery.heists") -- require the heists module
 local credits = require("lib.recovery.credits") -- require the credits module
 
 if package.loaded["lib.recovery.nightclub"] then
@@ -411,6 +461,12 @@ if package.loaded["lib.recovery.autoshop"] then
     autoshop:init(script) -- initalise autoshop menu
 else
     script:notify("Autoshop module failed to load")
+end
+
+if package.loaded["lib.recovery.hangar"] then
+    hangar:init(script) -- initalise hangar menu
+else
+    script:notify("Hangar module failed to load")
 end
 
 if package.loaded["lib.recovery.dax"] then
@@ -437,10 +493,14 @@ else
     script:notify("Other methods module failed to load")
 end
 
+if package.loaded["lib.recovery.heists"] then
+    heists:init(script) -- initalise heists menu
+else
+    script:notify("Heists module failed to load")
+end
+
 if package.loaded["lib.recovery.credits"] then
     credits:init(script) -- initalise credits menu
 else
     script:notify("Credits module failed to load")
 end
-
-utils:SET_SCRIPT(script) -- set the script for the utils module
