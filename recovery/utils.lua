@@ -42,7 +42,7 @@ local utils = {
 
         if autoclick then
             util.yield(autoclick_delay) -- delay before clicking
-            self:PRESS_ENTER(0, 1) -- press enter
+            self:SIMULATE_CONTROL_KEY(201, 1, 2)
         end
     end,
     PRESS_ENTER = function(self, control=0, times=1)
@@ -61,6 +61,16 @@ local utils = {
             script.arcade_presets_afk_loop.value
             or
             script.autoshop_presets_afk_loop.value
+            or
+            script.nightclub_custom_afk_loop.value
+            or
+            script.arcade_custom_afk_loop.value
+            or
+            script.autoshop_custom_afk_loop.value
+            or
+            script.hangar_presets_afk_loop.value
+            or
+            script.hangar_custom_afk_loop.value
         )
 
         if override then should_continue = true end

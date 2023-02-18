@@ -20,6 +20,8 @@ nightclub.globals = { -- nightclub specific globals
 
 nightclub.afk_options = {
     available = {"La Mesa", "Mission Row", "Vespucci Canals"},
+    total_loops = 0,
+    total_earnings = 0
 }
 
 function nightclub:SELECT_INTERNET_FILTER(script)
@@ -280,22 +282,16 @@ function nightclub:init(script)
         script.nightclub_presets:action("Buy Nightclub", {}, "Automatically buys a nightclub for you", function()
             local owned_data = script:GET_OWNED_PROPERTY_DATA("nightclub")
             local club = nightclub.afk_options.available[math.random(#nightclub.afk_options.available)]
+            local value = script:CONVERT_VALUE(script.money_options[script.nightclub_presets_money.value])
 
             while owned_data.name == club do
                 club = nightclub.afk_options.available[math.random(#nightclub.afk_options.available)]
                 util.yield()
             end
 
-            local price = memory.read_int(nightclub.globals.prices[club])
-            if club == "La Mesa" then price = price + 400000 end
-            local value = script:CONVERT_VALUE(script.money_options[script.nightclub_presets_money.value])
-            value = (value + price) * 2
-
-            script:STAT_SET_INT("PROP_NIGHTCLUB_VALUE", value, true)
-
             utils:OPEN_INTERNET(script, 300, true)
             nightclub:SELECT_INTERNET_FILTER(script)
-            script:PURCHASE_PROPERTY(nightclub, club, true)
+            script:PURCHASE_PROPERTY(nightclub, club, true, value)
         end),
         "nightclub_presets_buy"
     )
@@ -334,6 +330,13 @@ function nightclub:init(script)
     -- add divider for afk loop
     script.nightclub_presets:divider("AFK Money Loop")
 
+    script:add(
+        script.nightclub_presets:toggle("Override Value", {}, "Overrides the afk loop value from 1.07B to the choice selected in money under options", function()
+        
+        end),
+        "nightclub_presets_override_value"
+    )
+
     -- block phone calls
     script:add(
         script.nightclub_presets:toggle("Block Phone Calls", {}, "Blocks incoming phones calls", function(state)
@@ -348,24 +351,55 @@ function nightclub:init(script)
         script.nightclub_presets:toggle_loop("AFK Loop", {}, "Alternates between buying nightclubs you don\'t own, the value is set to the max (" .. tostring(math.floor(script.MAX_INT / 2)) .. ")", function(state)
             local afk = menu.ref_by_rel_path(script.nightclub_presets, "AFK Loop")
             local owned_data = script:GET_OWNED_PROPERTY_DATA("nightclub")
-
             local club = nightclub.afk_options.available[math.random(#nightclub.afk_options.available)]
+            local override = menu.ref_by_rel_path(script.nightclub_presets, "Override Value")
+            local loop_delay = menu.ref_by_rel_path(script.nightclub_presets, "Loop Delay")
+            local loops = menu.ref_by_rel_path(script.nightclub_presets, "Loops")
+            local money_value = (script:CONVERT_VALUE(script.money_options[script.nightclub_presets_money.value]))
 
-            script:STAT_SET_INT("PROP_NIGHTCLUB_VALUE", script.MAX_INT, true) -- set value to max int
+            if not afk.value then util.stop_thread() end
+
+            if not override.value then
+                money_value = script.MAX_INT
+            end
+
+            if loops.value > 0 then
+                if nightclub.afk_options.total_loops >= loops.value then
+                    afk.value = false
+                    util.stop_thread()
+                end
+            end
+
             if not script:IS_SCREEN_OPEN() then 
                 utils:OPEN_INTERNET(script, 200)
                 nightclub:SELECT_INTERNET_FILTER(script) 
             end
-            script:PURCHASE_PROPERTY(nightclub, club)
-            club = nightclub.afk_options.available[math.random(#nightclub.afk_options.available)]
-            script:STAT_SET_INT("PROP_NIGHTCLUB_VALUE", script.MAX_INT, true) -- set value to max int
-            script:PURCHASE_PROPERTY(nightclub, club)
-            if not afk.value then
-                util.stop_thread() -- stop the thread effectively stopping the loop
-            end
-            util.yield(100)
+
+            script:PURCHASE_PROPERTY(nightclub, club, false, money_value)
+            nightclub.afk_options.total_loops = nightclub.afk_options.total_loops + 1
+            nightclub.afk_options.total_earnings = nightclub.afk_options.total_earnings + money_value
+            util.yield(loop_delay.value)
+        end,
+        function()
+            nightclub.afk_options.total_loops = 0
+            nightclub.afk_options.total_earnings = 0
         end),
         "nightclub_presets_afk_loop"
+    )
+
+    -- add divider for loop options
+    script.nightclub_presets:divider("Loop Options")
+
+    -- add loop delay option
+    script:add(
+        script.nightclub_presets:slider("Loop Delay", {"rsnightclubdelay"}, "The delay between each loop", 0, script.MAX_INT, 100, 100, function() end),
+        "nightclub_presets_loop_delay"
+    )
+
+    -- add loop count option
+    script:add(
+        script.nightclub_presets:slider("Loops", {"rsnightclubcount"}, "The amount of loops to do before stopping", 0, script.MAX_INT, 0, 1, function() end),
+        "nightclub_presets_loop_count"
     )
 
     -- add options for custom
@@ -386,27 +420,83 @@ function nightclub:init(script)
 
     -- add buy nightclub option to custom (works the same as the presets)
     script:add(
-        script.nightclub_custom:action("Buy Nightclub", {}, "Buys a nightclub", function()
+        script.nightclub_custom:action("Buy Nightclub", {}, "Automatically buys a nightclub for you", function()
             local owned_data = script:GET_OWNED_PROPERTY_DATA("nightclub")
             local club = nightclub.afk_options.available[math.random(#nightclub.afk_options.available)]
+            local value = tonumber(script.nightclub_custom_money.value)
 
             while owned_data.name == club do
                 club = nightclub.afk_options.available[math.random(#nightclub.afk_options.available)]
                 util.yield()
             end
 
-            local price = memory.read_int(nightclub.globals.prices[club])
-            if club == "La Mesa" then price = price + 400000 end
-            local value = tonumber(script.nightclub_custom_money.value)
-            value = (value + price) * 2
-
-            script:STAT_SET_INT("PROP_NIGHTCLUB_VALUE", value, true)
-
-            utils:OPEN_INTERNET(script, 300, true)
+            utils:OPEN_INTERNET(script, 200, true)
             nightclub:SELECT_INTERNET_FILTER(script)
-            script:PURCHASE_PROPERTY(nightclub, club, true)
+            script:PURCHASE_PROPERTY(nightclub, club, true, value)
         end),
         "nightclub_custom_buy"
+    )
+
+    -- add divider for afk loop
+    script.nightclub_custom:divider("AFK Money Loop")
+
+    -- add block phone calls option
+    script:add(
+        script.nightclub_custom:toggle("Block Phone Calls", {}, "Blocks incoming phones calls", function(state)
+            local phone_calls = menu.ref_by_command_name("nophonespam")
+            phone_calls.value = state
+        end),
+        "nightclub_custom_block_phone_calls"
+    )
+
+    -- add afk loop option
+    script:add(
+        script.nightclub_custom:toggle_loop("AFK Loop", {}, "Alternates between buying nightclubs you don\'t own, the value is set to the max (" .. tostring(math.floor(script.MAX_INT / 2)) .. ")", function(state)
+            local afk = menu.ref_by_rel_path(script.nightclub_custom, "AFK Loop")
+            local club = nightclub.afk_options.available[math.random(#nightclub.afk_options.available)]
+            local loop_delay = menu.ref_by_rel_path(script.nightclub_custom, "Loop Delay")
+            local loops = menu.ref_by_rel_path(script.nightclub_custom, "Loops")
+            local money_value = tonumber(script.nightclub_custom_money.value)
+
+            if not afk.value then util.stop_thread() end
+
+            if loops.value > 0 then
+                if nightclub.afk_options.total_loops >= loops.value then
+                    afk.value = false
+                    util.stop_thread()
+                end
+            end
+
+            if not script:IS_SCREEN_OPEN() then
+                utils:OPEN_INTERNET(script, 200)
+                nightclub:SELECT_INTERNET_FILTER(script)
+            end
+
+            script:PURCHASE_PROPERTY(nightclub, club, false, money_value)
+            nightclub.afk_options.total_loops = nightclub.afk_options.total_loops + 1
+            nightclub.afk_options.total_earnings = nightclub.afk_options.total_earnings + money_value
+            util.yield(loop_delay.value)
+        end,
+        function()
+            nightclub.afk_options.total_loops = 0
+            nightclub.afk_options.total_earnings = 0
+        end),
+        "nightclub_custom_afk_loop"
+    )
+
+    -- add divider for loop options
+    script.nightclub_custom:divider("Loop Options")
+
+    -- add loop delay option
+    script:add(
+        script.nightclub_custom:slider("Loop Delay", {"rsnightclubdelay"}, "The delay between each loop", 0, script.MAX_INT, 100, 100, function() end),
+        "nightclub_custom_loop_delay"
+    )
+
+    -- add loop count option
+    script:add(
+        script.nightclub_custom:slider("Loops", {"rsnightclubcount"}, "The amount of loops to do before stopping", 0, script.MAX_INT, 0, 1, function() end),
+        "nightclub_custom_loop_count"
     )
 end
 

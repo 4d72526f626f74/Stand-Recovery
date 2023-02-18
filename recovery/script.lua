@@ -11,7 +11,8 @@ script.root = menu.my_root()
 
 -- script settings
 script.script_settings = {
-    auto_accept_transaction_errors = true, -- automatically accept transaction errors
+    auto_accept_transaction_errors = true, -- automatically accept transaction errors,
+    increase_afk_loop_speed = false, -- increase the speed of the afk loop
 }
 
 -- script delays
@@ -144,6 +145,7 @@ script.globals = { -- script globals
     modifiers = {
         cash = memory.script_global(262145 + 0),
         rp = memory.script_global(262145 + 1),
+        ap = memory.script_global(262145 + 25926),
     },
     caps = {
         cash_share = memory.script_global(262145 + 7044),
@@ -200,7 +202,8 @@ script.hashes = {
 script.blips = {
     NIGHTCLUB = 614,
     ARCADE = 740,
-    AUTOSHOP = 779
+    AUTOSHOP = 779,
+    HANGAR = 0 -- need to find the hangar blip
 }
 
 -- download function
@@ -225,6 +228,7 @@ end
 -- function to add reference to script
 function script:add(ref, name)
     self[name] = ref
+    return ref
 end
 
 -- notification function
@@ -240,7 +244,7 @@ function script:CONVERT_VALUE(value) -- convert something like 1,000,000 to 1000
 end
 
 -- add purchase property function
-function script:PURCHASE_PROPERTY(property, name, override=false)
+function script:PURCHASE_PROPERTY(property, name, override=false, value=0)
     local should_continue = (
         script.nightclub_presets_afk_loop.value 
         or 
@@ -249,6 +253,16 @@ function script:PURCHASE_PROPERTY(property, name, override=false)
         script.autoshop_presets_afk_loop.value
         or
         script.states.overrides.purchase_block
+        or
+        script.nightclub_custom_afk_loop.value
+        or
+        script.arcade_custom_afk_loop.value
+        or
+        script.autoshop_custom_afk_loop.value
+        or 
+        script.hangar_presets_afk_loop.value
+        or
+        script.hangar_custom_afk_loop.value
     )
 
     if override then should_continue = true end
@@ -265,6 +279,64 @@ function script:PURCHASE_PROPERTY(property, name, override=false)
                 name = property.afk_options.available[math.random(1, #property.afk_options.available)]
                 util.yield()
             end
+        end
+
+        if property.name == "nightclub" and value < script.MAX_INT / 2 then
+            local price = memory.read_int(property.globals.prices[name])
+            value = (value + price) * 2
+
+            if name == "La Mesa" then
+                value = value - (200000 * 2)
+            end
+        end
+
+        if property.name == "arcade" and value < script.MAX_INT / 2 then
+            local price = memory.read_int(property.globals.prices[name])
+            value = (value + price) * 2
+
+            if name == "Davis" then
+                value = value - (747250 * 2)
+            end
+
+            if name == "Eight Bit" then
+                value = value - (885500 * 2)
+            end
+
+            if name == "La Mesa" then
+                value = value - (656250 * 2)
+            end
+        end
+
+        if property.name == "autoshop" and value < script.MAX_INT / 2 then
+            local price = memory.read_int(property.globals.prices[name])
+            value = (value + price) * 2
+
+            if name == "Mission Row" then
+                value = value - (160000 * 2)
+            end
+
+            if name == "Burton" then
+                value = value + (80000 * 2)
+            end
+        end
+
+        if property.name == "hangar" and value < script.MAX_INT / 2 then
+            local price = memory.read_int(property.globals.prices[name])
+            value = (value + price) * 2
+
+            if name == "LSIA A17" then
+                value = value - (325000 * 2)
+            end
+
+            if name == "LSIA 1" then
+                value = value + (325000 * 2)
+            end
+        end
+
+        if property.name == "autoshop" then
+            script:STAT_SET_INT("PROP_AUTO_SHOP_VALUE", value)
+        else
+            script:STAT_SET_INT("PROP_" .. property.name:upper() .. "_VALUE", value)
         end
 
         property = property[name]
@@ -305,7 +377,12 @@ end
 -- set stats using native (STATS::STAT_SET_INT)
 function script:STAT_SET_INT(name, value)
     if type(name) == "number" then
-        --
+        -- a hash was passed, so set the stat using the hash and return true
+        if STATS.STAT_SET_INT(name, value, true) then
+            return true -- return true if the function succeeds
+        else
+            return false -- return false if the function fails
+        end
     end
 
     local stat = util.joaat("MP" .. script.char .. "_" .. name)
@@ -329,7 +406,7 @@ function script:GET_OWNED_PROPERTY_DATA(property)
         if value == id then -- if the id matches
             local data = {
                 name = key, -- name of the property
-                id = id -- id of the property
+                id = id, -- id of the property
             }
 
             return data
@@ -387,6 +464,10 @@ function script:IS_INSIDE_OF_INTERIOR(property)
     elseif property == "nightclub" then
         return script:GET_INTERIOR_ID() == 271617 -- check if the player is inside the nightclub
     end
+end
+
+function IS_IN_KOSATKA()
+    return script:GET_INTERIOR_ID() == 281345 -- check if the player is inside the kosatka
 end
 
 -- close browser
@@ -474,6 +555,624 @@ end
 
 function script:SHOW_REQUIREMENTS_WARNING()
     script:notify("If you do not have arcades and autoshops unlocked on mazebank foreclosure then you may experience issues with the 1B recovery afk loop", util.show_corner_help)
+end
+
+function script:ARE_ARCADES_UNLOCKED()
+    local blip_lester = v3.new(1048.7941894531, -721.57751464844, 56.220100402832)
+    local blip = HUD.GET_FIRST_BLIP_INFO_ID(77)
+
+    if HUD.DOES_BLIP_EXIST(blip) and blip ~= 0 then
+        local color = HUD.GET_BLIP_COLOUR(blip)
+        local pos = HUD.GET_BLIP_COORDS(blip)
+
+        if color == 2 and MISC.GET_DISTANCE_BETWEEN_COORDS(pos.x, pos.y, pos.z, blip_lester.x, blip_lester.y, blip_lester.z, true) < 10 then
+            return false
+        else
+            return true
+        end
+    else
+        return true
+    end
+end
+
+function script:ARE_AUTOSHOPS_UNLOCKED()
+    local blip_cm = v3.new(779.53778076172, -1867.5257568359, 28.29640007019)
+    local blip = HUD.GET_FIRST_BLIP_INFO_ID(777)
+
+    -- 60 = locked color
+    -- 4 = unlocked color
+
+    if HUD.DOES_BLIP_EXIST(blip) and blip ~= 0 then
+        local color = HUD.GET_BLIP_COLOUR(blip)
+        if color == 60 then
+            return false
+        elseif color == 4 then
+            return true
+        end
+    else
+        return false
+    end
+end
+
+function script:GET_CLOSEST_BLIP_TO_COORDS(blip_id, coords)
+    local blip = HUD.GET_FIRST_BLIP_INFO_ID(blip_id)
+    local closest_blip = blip
+
+    while HUD.DOES_BLIP_EXIST(blip) do
+        local pos = HUD.GET_BLIP_COORDS(blip)
+        local dist = MISC.GET_DISTANCE_BETWEEN_COORDS(pos.x, pos.y, pos.z, coords.x, coords.y, coords.z, true)
+
+        if dist < 10 then
+            closest_blip = blip
+            break
+        else
+            blip = HUD.GET_NEXT_BLIP_INFO_ID(blip_id)
+        end
+
+        util.yield_once()
+    end
+
+    return closest_blip
+end
+
+function script:GET_CP_HEIST_PRIMARY_TARGET()
+    return script:STAT_GET_INT("H4CNF_TARGET")
+end
+
+function script:SET_CP_HEIST_PRIMARY_TARGET(target_index)
+    script:STAT_SET_INT("H4CNF_TARGET", target_index, true)
+end
+
+function script:SET_INT_LOCAL(script, script_local, value)
+    if memory.script_local(script, script_local) ~= 0 then
+        memory.write_int(memory.script_local(script, script_local), value)
+    end
+end
+
+function script:REFRESH_KOSATKA_BOARD()
+    if script.IS_IN_KOSATKA() then
+        script:SET_INT_LOCAL("heist_island_planning", 1525, 2)
+    end
+end
+
+function script:FIND_ENTITY_BY_MODEL_NAME(model_name, type)
+    type = type or "objects"
+
+    for i, entity in pairs(entities["get_all_" .. type .. "_as_handles"]()) do
+        local model = ENTITY.GET_ENTITY_MODEL(entity)
+        local model_name = util.reverse_joaat(model)
+
+        if model_name == model_name then
+            return entity
+        end
+    end
+end
+
+function script:FIND_ENTITY_BY_PARITAL_MODEL_NAME(partial, type)
+    type = type or "objects"
+
+    for i, entity in pairs(entities["get_all_" .. type .. "_as_handles"]()) do
+        local model = ENTITY.GET_ENTITY_MODEL(entity)
+        local model_name = util.reverse_joaat(model)
+
+        if model_name:find(partial) then
+            return entity
+        end
+    end
+end
+
+function script:CP_FIND_BASEMENT_GATE(gate_pos)
+    for i, entity in pairs(entities.get_all_objects_as_handles()) do
+        local pos = ENTITY.GET_ENTITY_COORDS(entity, true)
+        local dist = MISC.GET_DISTANCE_BETWEEN_COORDS(pos.x, pos.y, pos.z, gate_pos.x, gate_pos.y, gate_pos.z)
+
+        if dist < 5 then
+            local model = util.reverse_joaat(ENTITY.GET_ENTITY_MODEL(entity))
+            if model:find("gate") or model:find("door") then
+                pos = ENTITY.GET_ENTITY_COORDS(entity, true)
+                local door = memory.alloc(4)
+                OBJECT.DOOR_SYSTEM_FIND_EXISTING_DOOR(pos.x, pos.y, pos.z, util.joaat(model), door)
+
+                if door ~= 0 then
+                    return memory.read_int(door)
+                end
+            end
+        end
+    end
+
+    return nil
+end
+
+function script:FIND_ALL_DOORS_AND_GATES()
+    local hashes = {}
+
+    for i, entity in pairs(entities.get_all_objects_as_handles()) do
+        local model = util.reverse_joaat(ENTITY.GET_ENTITY_MODEL(entity))
+        local name = ""
+
+        if model:find("gate") or model:find("door") then
+            local pos = ENTITY.GET_ENTITY_COORDS(entity, true)
+            local door = memory.alloc(4)
+            OBJECT.DOOR_SYSTEM_FIND_EXISTING_DOOR(pos.x, pos.y, pos.z, util.joaat(model), door)
+
+            if door ~= 0 then
+                local hash = memory.read_int(door)
+
+                table.insert(hashes, {hash=hash, model=model, entity=entity, name=name})
+            end
+        end
+    end
+
+    return hashes
+end
+
+function script:FIND_ALL_DOORS_AND_GATES_BY_MODEL(t_model)
+    local hashes = {}
+
+    for i, entity in pairs(entities.get_all_objects_as_handles()) do
+        local model = util.reverse_joaat(ENTITY.GET_ENTITY_MODEL(entity))
+        if model:find(t_model) then
+            local pos = ENTITY.GET_ENTITY_COORDS(entity, true)
+            local door = memory.alloc(4)
+            OBJECT.DOOR_SYSTEM_FIND_EXISTING_DOOR(pos.x, pos.y, pos.z, util.joaat(model), door)
+
+            if door ~= 0 then
+                local hash = memory.read_int(door)
+                table.insert(hashes, {hash=hash, model=model, entity=entity})
+            end
+        end
+    end
+
+    return hashes
+end
+
+function script:FIND_ALL_GATES()
+    local hashes = {}
+    local door = memory.alloc(4)
+
+    for i, entity in pairs(entities.get_all_objects_as_handles()) do
+        local model = util.reverse_joaat(ENTITY.GET_ENTITY_MODEL(entity))
+        if (
+            model:find("h4_prop_h4_gate_r_01a")
+            or model:find("h4_prop_h4_gate_l_01a")
+            or model:find("h4_prop_h4_gate_02a")
+            or model:find("h4_prop_h4_gate_03a")
+            or model:find("h4_prop_h4_gate_04a")
+            or model:find("h4_prop_h4_gate_05a")
+        ) then
+            local pos = ENTITY.GET_ENTITY_COORDS(entity, true)
+            OBJECT.DOOR_SYSTEM_FIND_EXISTING_DOOR(pos.x, pos.y, pos.z, util.joaat(model), door)
+
+            if door ~= 0 then
+                local hash = memory.read_int(door)
+                table.insert(hashes, {hash=hash, entity=entity, model=model})
+            end
+        end
+    end
+
+    return hashes
+end
+
+function script:FIND_ALL_KEYPADS()
+    local hashes = {}
+
+    for i, entity in pairs(entities.get_all_objects_as_handles()) do
+        local model = util.reverse_joaat(ENTITY.GET_ENTITY_MODEL(entity))
+        if model:find("keypad") then
+            table.insert(hashes, entity)
+        end
+    end
+
+    return hashes
+end
+
+function script:FIND_ALL_FINGERPRINT_KEYPADS()
+    local hashes = {}
+
+    -- order = office, basement, basement gate
+
+    for i, entity in pairs(entities.get_all_objects_as_handles()) do
+        local model = util.reverse_joaat(ENTITY.GET_ENTITY_MODEL(entity))
+        if model:find("finger") then
+            table.insert(hashes, entity)
+        end
+    end
+
+    return hashes
+end
+
+function script:FIND_ALL_SECURITY_KEYCARDS()
+    local cards = {}
+
+    for i, entity in pairs(entities.get_all_pickups_as_handles()) do
+        local model = util.reverse_joaat(ENTITY.GET_ENTITY_MODEL(entity))
+        if model:find("securitycard") then
+            table.insert(cards, entity)
+        end
+    end
+
+    return cards
+end
+
+function script:CP_FIND_ALL_ELEVATORS()
+    local elevators = {}
+
+    for i, entity in pairs(entities.get_all_objects_as_handles()) do
+        local model = util.reverse_joaat(ENTITY.GET_ENTITY_MODEL(entity))
+        if model:find("office_elevator_door") or model:find("garageliftdoor") then
+            table.insert(elevators, entity)
+        end
+    end
+
+    return elevators
+end
+
+function script:CP_FIND_SECONDARY_TARGETS()
+    local targets = {
+        gold = {},
+        paintings = {},
+        cocaine = {},
+        cash = {},
+        weed = {}
+    }
+end
+
+function script:CP_FORCE_UNLOCK_DOOR(door)
+    OBJECT.DOOR_SYSTEM_SET_DOOR_STATE(door, 0, true, true)
+    OBJECT.DOOR_SYSTEM_SET_HOLD_OPEN(door, true, true)
+end
+
+function script:CP_FORCE_LOCK_DOOR(door)
+    OBJECT.DOOR_SYSTEM_SET_DOOR_STATE(door, 1, true, true)
+    OBJECT.DOOR_SYSTEM_SET_OPEN_RATIO(door, 0.0, true, true)
+    OBJECT.DOOR_SYSTEM_SET_HOLD_OPEN(door, true, true)
+end
+
+function script:SET_INT_LOCAL(script, script_local, value)
+    if memory.script_local(script, script_local) ~= 0 then
+        memory.write_int(memory.script_local(script, script_local), value)
+    end
+end
+
+function script:TELEPORT_TO_BLIP(blip_id)
+    local blip = HUD.GET_FIRST_BLIP_INFO_ID(blip_id)
+
+    if blip ~= 0 then
+        local coords = HUD.GET_BLIP_COORDS(blip)
+        ENTITY.SET_ENTITY_COORDS(script.me_ped, coords.x, coords.y, coords.z, true, true, true, true)
+    end
+end
+
+function script:CP_DOOR_BLIP(entity)
+    local blip = HUD.GET_BLIP_FROM_ENTITY(entity)
+
+    if blip ~= 0 then
+        util.remove_blip(blip)
+    else
+        blip = HUD.ADD_BLIP_FOR_ENTITY(entity)
+        HUD.SET_BLIP_SPRITE(blip, 730)
+        HUD.SET_BLIP_COLOUR(blip, 7)
+        HUD.SET_BLIP_DISPLAY(blip, 2)
+
+        return blip
+    end
+end
+
+function script:TELEPORT_TO_ENTITY(entity)
+    if ENTITY.DOES_ENTITY_EXIST(entity) then
+        local pos = ENTITY.GET_ENTITY_COORDS(entity, true)
+        ENTITY.SET_ENTITY_COORDS(script.me_ped, pos.x, pos.y, pos.z, true, true, true, true)
+    end
+end
+
+function script:GET_GATE_FROM_COORDS(coords)
+    local gate = memory.alloc(4)
+
+    for i, entity in pairs(entities.get_all_objects_as_handles()) do
+        local model = util.reverse_joaat(ENTITY.GET_ENTITY_MODEL(entity))
+        if OBJECT.DOOR_SYSTEM_FIND_EXISTING_DOOR(coords.x, coords.y, coords.z, util.joaat(model), gate) then
+            local hash = memory.read_int(gate)
+            return {hash=hash, entity=entity, model=model}
+        end
+    end
+
+    return 0
+end
+
+function script:CP_FORCE_UNLOCK_SECONDARY_TARGET_DOOR(hash, open_ratio)
+    open_ratio = open_ratio or 1.0
+    local ratio = OBJECT.DOOR_SYSTEM_GET_OPEN_RATIO(hash)
+    OBJECT.DOOR_SYSTEM_SET_AUTOMATIC_RATE(hash, 1.0, true, true)
+    OBJECT.DOOR_SYSTEM_SET_OPEN_RATIO(hash, open_ratio, true, true)
+    script:CP_FORCE_UNLOCK_DOOR(hash)
+    OBJECT.DOOR_SYSTEM_SET_OPEN_RATIO(hash, ratio, true, true)
+end
+
+function script:CP_FIND_ALL_SECONDARY_TARGET_DOORS()
+    local hashes = {}
+    local door = memory.alloc_int()
+
+    for i, entity in pairs(entities.get_all_objects_as_handles()) do
+        local model = util.reverse_joaat(ENTITY.GET_ENTITY_MODEL(entity))
+        local pos = ENTITY.GET_ENTITY_COORDS(entity, false)
+
+        if model:find("h4_prop_h4_door_01a") then
+            if OBJECT.DOOR_SYSTEM_FIND_EXISTING_DOOR(pos.x, pos.y, pos.z, util.joaat(model), door) then
+                local hash = memory.read_int(door)
+                if hash ~= 0 then
+                    table.insert(hashes, {hash=hash, entity=entity, model=model})
+                end
+            end
+        end
+    end
+
+    return hashes
+end
+
+function script:CP_IMMORTAL_GUARDS(state)
+    for i, entity in pairs(entities.get_all_peds_as_handles()) do
+        local model = util.reverse_joaat(ENTITY.GET_ENTITY_MODEL(entity))
+        if model:find("cartelguard") or model:find("hc_gun") then
+            if script:REQUEST_CONTROL(entity) then
+                ENTITY.SET_ENTITY_INVINCIBLE(entity, state)
+            else
+                script.cayo_perico_immortal_guards.value = false
+
+                local causes = script:CP_FIND_CAUSE_OF_REQUEST_CONTROL_FAILURE()
+                if #causes == 1 then
+                    for i, data in pairs(causes) do
+                        script:notify(data.name .. " is likely blocking the control request.")
+                    end
+                else
+                    if #causes == 0 then
+                        script:notify("Unknown cause of control request failure.")
+                    else
+                        local names = ""
+                        for i, data in pairs(causes) do
+                            names = names .. data.name .. ", "
+                        end
+
+                        script:notify("Multiple entities are likely blocking the control request: " .. names)
+                    end
+                end
+                break
+            end
+        end
+    end
+end
+
+function script:CP_GUARDS_DAMAGE_MODIFIER(value)
+    PED.SET_AI_WEAPON_DAMAGE_MODIFIER(value)
+end
+
+function script:CP_GIVE_GUARDS_MINIGUN()
+    local hash = memory.alloc_int()
+
+    for i, entity in pairs(entities.get_all_peds_as_handles()) do
+        local model = util.reverse_joaat(ENTITY.GET_ENTITY_MODEL(entity))
+        if model:find("cartelguard") or model:find("hc_gun") then
+            if script:REQUEST_CONTROL(entity) then
+                if WEAPON.GET_CURRENT_PED_WEAPON(entity, hash, true) then
+                    local weapon = util.reverse_joaat(memory.read_int(hash))
+                    if weapon ~= "WEAPON_MINIGUN" then
+                        WEAPON.REMOVE_ALL_PED_WEAPONS(entity, true)
+                        WEAPON.GIVE_WEAPON_TO_PED(entity, util.joaat("WEAPON_MINIGUN"), 9999, true)
+                        PED.SET_PED_FIRING_PATTERN(entity, util.joaat("FIRING_PATTERN_FULL_AUTO"))
+                        PED.SET_PED_ACCURACY(entity, 100)
+                    end
+                end
+            else
+                local causes = script:CP_FIND_CAUSE_OF_REQUEST_CONTROL_FAILURE()
+                if #causes == 1 then
+                    for i, data in pairs(causes) do
+                        script:notify(data.name .. " is likely blocking the control request.")
+                    end
+                else
+                    if #causes == 0 then
+                        script:notify("Unknown cause of control request failure.")
+                    else
+                        local names = ""
+                        for i, data in pairs(causes) do
+                            names = names .. data.name .. ", "
+                        end
+
+                        script:notify("Multiple entities are likely blocking the control request: " .. names)
+                    end
+                end
+                break
+            end
+        end
+    end
+end
+
+function script:FORCE_SCRIPTHOST()
+    menu.trigger_commands("scripthost")
+end
+
+function script:REQUEST_CONTROL(entity, timeout)
+    local start = os.time() + 5
+
+    while not NETWORK.NETWORK_HAS_CONTROL_OF_ENTITY(entity) do
+        NETWORK.NETWORK_REQUEST_CONTROL_OF_ENTITY(entity)
+
+        if os.time() > start then
+            return false
+        end
+
+        util.yield_once()
+    end
+
+    return NETWORK.NETWORK_HAS_CONTROL_OF_ENTITY(entity)
+end
+
+function script:CP_GUARDS_ITER(callback) -- need to implement this for other functions
+    for i, entity in pairs(entities.get_all_peds_as_handles()) do
+        local model = util.reverse_joaat(ENTITY.GET_ENTITY_MODEL(entity))
+        if model:find("cartelguard") or model:find("hc_gun") then
+            callback(entity)
+        end
+    end
+end
+
+function script:CP_FIND_CAUSE_OF_REQUEST_CONTROL_FAILURE()
+    local children = nil
+    local causes = {}
+
+    for i, pid in pairs(players.list(false, true, true)) do
+        local player_root = menu.player_root(pid)
+        if player_root:isValid() then
+            children = player_root:getChildren()
+            for i, child in pairs(children) do
+                if child:isValid() then
+                    local name = menu.get_menu_name(child)
+                    if type(name) == "string" then
+                        if name:find("Classification") then
+                            if menu.ref_by_rel_path(child, "Blocked Network Event"):isValid() then
+                                table.insert(causes, {pid=pid, name=players.get_name(pid)})
+                            end
+                        end
+                    end
+                end
+            end
+        end
+    end
+
+    return causes
+end
+
+function script:CP_SETUP_PRESET(target_index)
+    -- https://github.com/IceDoomfist/Stand-Heist-Control
+    script:STAT_SET_INT("H4CNF_BOLTCUT", -1)
+    script:STAT_SET_INT("H4CNF_UNIFORM", -1)
+    script:STAT_SET_INT("H4CNF_GRAPPEL", -1)
+    script:STAT_SET_INT("H4_MISSIONS", -1)
+    script:STAT_SET_INT("H4CNF_WEAPONS", 1)
+    script:STAT_SET_INT("H4CNF_TROJAN", 5)
+    script:STAT_SET_INT("H4_PLAYTHROUGH_STATUS", 100)
+    script:STAT_SET_INT("H4CNF_TARGET", target_index)
+    script:STAT_SET_INT("H4LOOT_CASH_I", 0)
+    script:STAT_SET_INT("H4LOOT_CASH_I_SCOPED", 0)
+    script:STAT_SET_INT("H4LOOT_CASH_C", 0)
+    script:STAT_SET_INT("H4LOOT_CASH_C_SCOPED", 0)
+    script:STAT_SET_INT("H4LOOT_COKE_I", 0)
+    script:STAT_SET_INT("H4LOOT_COKE_I_SCOPED", 0)
+    script:STAT_SET_INT("H4LOOT_COKE_C", 0)
+    script:STAT_SET_INT("H4LOOT_COKE_C_SCOPED", 0)
+    script:STAT_SET_INT("H4LOOT_GOLD_I", 0)
+    script:STAT_SET_INT("H4LOOT_GOLD_I_SCOPED", 0)
+    script:STAT_SET_INT("H4LOOT_GOLD_C", 0)
+    script:STAT_SET_INT("H4LOOT_GOLD_C_SCOPED", 0)
+    script:STAT_SET_INT("H4LOOT_WEED_I", 0)
+    script:STAT_SET_INT("H4LOOT_WEED_I_SCOPED", 0)
+    script:STAT_SET_INT("H4LOOT_WEED_C", 0)
+    script:STAT_SET_INT("H4LOOT_WEED_C_SCOPED", 0)
+    script:STAT_SET_INT("H4LOOT_PAINT", 0)
+    script:STAT_SET_INT("H4LOOT_PAINT_SCOPED", 0)
+    script:STAT_SET_INT("H4LOOT_CASH_V", 0)
+    script:STAT_SET_INT("H4LOOT_COKE_V", 0)
+    script:STAT_SET_INT("H4LOOT_GOLD_V", 0)
+    script:STAT_SET_INT("H4LOOT_PAINT_V", 0)
+    script:STAT_SET_INT("H4LOOT_WEED_V", 0)
+    script:STAT_SET_INT("H4_PROGRESS", 126823)
+    script:STAT_SET_INT("H4CNF_BS_GEN", -1)
+    script:STAT_SET_INT("H4CNF_BS_ENTR", -1)
+    script:STAT_SET_INT("H4CNF_BS_ABIL", -1)
+    script:STAT_SET_INT("H4CNF_WEP_DISRP", 3)
+    script:STAT_SET_INT("H4CNF_ARM_DISRP", 3)
+    script:STAT_SET_INT("H4CNF_HEL_DISRP", 3)
+    script:STAT_SET_INT("H4CNF_APPROACH", -1)
+
+    script:REFRESH_KOSATKA_BOARD()
+end
+
+function script:CP_SET_PLAYER_CUT(player_index, cut)
+    -- 1977693 + 823 + 56 + 1 = player 1
+    -- 1977693 + 823 + 56 + 2 = player 2
+    -- 1977693 + 823 + 56 + 3 = player 3
+    -- 1977693 + 823 + 56 + 4 = player 4
+
+    if player_index < 1 or player_index > 4 then
+        return
+    else
+        local global = memory.script_global(1977693 + 823 + 56 + player_index)
+        memory.write_int(global, cut)
+    end
+end
+
+function script:CP_CALCULATE_PLAYER_TAKE(players)
+    local amount = 2550000
+    local fees = 0.02 + 0.1
+    local take, cut = 0, 0
+
+    take = math.floor(amount * players) -- amount each player will get without pavel and fencing fees
+    take = math.floor(take + (take * fees)) -- add pavel and fencing fees
+
+    return take
+end
+
+function script:CP_FIND_BLIPS_BY_ID(blip_id)
+    local blips = {}
+    local blip = HUD.GET_FIRST_BLIP_INFO_ID(blip_id)
+
+    if blip ~= 0 then
+        table.insert(blips, blip)
+    end
+
+    while blip ~= 0 do
+        table.insert(blips, blip)
+        blip = HUD.GET_NEXT_BLIP_INFO_ID(blip_id)
+    end
+
+    return blips
+end
+
+function script:GET_ENTITY_FROM_BLIP(blip)
+    local entity = HUD.GET_BLIP_INFO_ID_ENTITY_INDEX(blip)
+    if entity ~= 0 then
+        return entity
+    end
+
+    return 0
+end
+
+function script:TELEPORT(x, y, z)
+    ENTITY.SET_ENTITY_COORDS_NO_OFFSET(script.me_ped, x, y, z, false, false, false)
+end
+
+function script:CP_CALCULATE_CUT_FOR_AMOUNT(take, amount)
+    local cut, fees = 1, 0.02 + 0.1
+
+    take = take - (take * fees) -- remove pavel and fencing fees
+    while amount - (take * cut) > 0 do -- find the cut that will give the player more than the specified amount
+        cut = cut + 0.01 -- increase the cut by 1%
+    end
+
+    if amount - (take * cut) < 0 then -- if the cut is higher than the amount needed
+        while amount - (take * cut) < 0 do -- find the cut that will give the player slightly less than the specified amount
+            cut = cut - 0.01 -- decrease the cut by 1%
+        end
+    end
+
+    cut = math.floor(cut * 100)
+
+    return cut -- return the cut
+end
+
+function script:GET_CURSOR_POSITION()
+    local x, y = 0, 0
+
+    --[[
+        x = 239
+        y = 240
+    ]]
+
+    x = PAD.GET_CONTROL_NORMAL(0, 239)
+    y = PAD.GET_CONTROL_NORMAL(0, 240)
+
+    return {
+        x = x,
+        y = y
+    }
 end
 
 return script

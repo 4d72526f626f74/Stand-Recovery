@@ -18,6 +18,8 @@ autoshop.globals = { -- autoshop specific globals
 
 autoshop.afk_options = {
     available = {"La Mesa", "Mission Row", "Burton"},
+    total_loops = 0,
+    total_earnings = 0
 }
 
 function autoshop:SELECT_INTERNET_FILTER(script)
@@ -253,26 +255,19 @@ function autoshop:init(script)
 
     -- add buy autoshop
     script:add(
-        script.autoshop_presets:action("Buy Autoshop", {}, "Automatically buys a autoshop for you", function()
+        script.autoshop_presets:action("Buy Autoshop", {}, "Automatically buys an autoshop for you", function()
             local owned_data = script:GET_OWNED_PROPERTY_DATA("autoshop")
             local choice = autoshop.afk_options.available[math.random(#autoshop.afk_options.available)]
+            local value = script:CONVERT_VALUE(script.money_options[script.autoshop_presets_money.value])
 
             while owned_data.name == choice do
                 choice = autoshop.afk_options.available[math.random(#autoshop.afk_options.available)]
                 util.yield()
             end
 
-            local price = memory.read_int(autoshop.globals.prices[choice])
-            if choice == "Mission Row" then price = price - 160000 end
-            if choice == "Burton" then price = price + 80000 end
-            local value = script:CONVERT_VALUE(script.money_options[script.autoshop_presets_money.value])
-            value = (value + price) * 2
-
-            script:STAT_SET_INT("PROP_AUTO_SHOP_VALUE", value, true)
-
-            utils:OPEN_INTERNET(script, 300, true)
+            utils:OPEN_INTERNET(script, 200, true)
             autoshop:SELECT_INTERNET_FILTER(script)
-            script:PURCHASE_PROPERTY(autoshop, choice, true)
+            script:PURCHASE_PROPERTY(autoshop, choice, true, value)
         end),
         "autoshop_presets_buy"
     )
@@ -311,6 +306,14 @@ function autoshop:init(script)
     -- add divider for afk loop
     script.autoshop_presets:divider("AFK Money Loop")
 
+    -- add override value to the menu
+    script:add(
+        script.autoshop_presets:toggle("Override Value", {}, "Overrides the afk loop value from 1.07B to the choice selected in money under options", function()
+        
+        end),
+        "autoshop_presets_override_value"
+    )
+
     -- block phone calls
     script:add(
         script.autoshop_presets:toggle("Block Phone Calls", {}, "Blocks incoming phones calls", function(state)
@@ -326,19 +329,54 @@ function autoshop:init(script)
             local afk = menu.ref_by_rel_path(script.autoshop_presets, "AFK Loop")
             local owned_data = script:GET_OWNED_PROPERTY_DATA("autoshop")
             local choice = autoshop.afk_options.available[math.random(#autoshop.afk_options.available)]
+            local override = menu.ref_by_rel_path(script.autoshop_presets, "Override Value")
+            local loop_delay = menu.ref_by_rel_path(script.autoshop_presets, "Loop Delay")
+            local loops = menu.ref_by_rel_path(script.autoshop_presets, "Loops")
+            local money_value = (script:CONVERT_VALUE(script.money_options[script.autoshop_presets_money.value]))
 
-            script:STAT_SET_INT("PROP_AUTO_SHOP_VALUE", script.MAX_INT, true) -- set value to max int
+            if not afk.value then util.stop_thread() end
+
+            if not override.value then
+                money_value = script.MAX_INT
+            end
+
+            if loops.value > 0 then
+                if autoshop.afk_options.total_loops >= loops.value then
+                    afk.value = false
+                    util.stop_thread()
+                end
+            end
+
             if not script:IS_SCREEN_OPEN() then
                 utils:OPEN_INTERNET(script, 200)
                 autoshop:SELECT_INTERNET_FILTER(script)
             end
-            script:PURCHASE_PROPERTY(autoshop, choice)
-            choice = autoshop.afk_options.available[math.random(#autoshop.afk_options.available)]
-            script:STAT_SET_INT("PROP_AUTO_SHOP_VALUE", script.MAX_INT, true) -- set value to max int
-            script:PURCHASE_PROPERTY(autoshop, choice)
-            util.yield(100)
+            
+            script:PURCHASE_PROPERTY(autoshop, choice, false, money_value)
+            autoshop.afk_options.total_loops = autoshop.afk_options.total_loops + 1
+            autoshop.afk_options.total_earnings = autoshop.afk_options.total_earnings + money_value
+            util.yield(loop_delay.value)
+        end,
+        function()
+            autoshop.afk_options.total_loops = 0
+            autoshop.afk_options.total_earnings = 0
         end),
         "autoshop_presets_afk_loop"
+    )
+
+    -- add divider for loop options
+    script.autoshop_presets:divider("Loop Options")
+
+    -- add loop delay option
+    script:add(
+        script.autoshop_presets:slider("Loop Delay", {"rsautoshopdelay"}, "The delay between each loop", 0, script.MAX_INT, 100, 100, function() end),
+        "autoshop_presets_loop_delay"
+    )
+
+    -- add loop count option
+    script:add(
+        script.autoshop_presets:slider("Loops", {"rsautoshopcount"}, "The amount of loops to do before stopping", -1, script.MAX_INT, 0, 1, function() end),
+        "autoshop_presets_loop_count"
     )
 
     -- add options for custom
@@ -359,29 +397,83 @@ function autoshop:init(script)
 
     -- add buy autoshop option to custom (works the same as the presets)
     script:add(
-        script.autoshop_custom:action("Buy Autoshop", {}, "Buys a autoshop", function()
+        script.autoshop_custom:action("Buy Autoshop", {}, "Automatically buys an autoshop for you", function()
             local owned_data = script:GET_OWNED_PROPERTY_DATA("autoshop")
             local choice = autoshop.afk_options.available[math.random(#autoshop.afk_options.available)]
+            local value = tonumber(script.autoshop_custom_money.value)
 
             while owned_data.name == choice do
                 choice = autoshop.afk_options.available[math.random(#autoshop.afk_options.available)]
                 util.yield()
             end
 
-            local price = memory.read_int(autoshop.globals.prices[choice])
-            if choice == "Mission Row" then price = price - 160000 end
-            if choice == "Burton" then price = price + 80000 end
-            local value = tonumber(script.autoshop_custom_money.value)
-
-            value = (value + price) * 2
-
-            script:STAT_SET_INT("PROP_AUTO_SHOP_VALUE", value, true)
-
             utils:OPEN_INTERNET(script, 300, true)
             autoshop:SELECT_INTERNET_FILTER(script)
-            script:PURCHASE_PROPERTY(autoshop, choice, true)
+            script:PURCHASE_PROPERTY(autoshop, choice, true, value)
         end),
         "autoshop_custom_buy"
+    )
+
+    -- add divider for afk loop
+    script.autoshop_custom:divider("AFK Money Loop")
+
+    -- add block phone calls option
+    script:add(
+        script.autoshop_custom:toggle("Block Phone Calls", {}, "Blocks incoming phones calls", function(state)
+            local phone_calls = menu.ref_by_command_name("nophonespam")
+            phone_calls.value = state
+        end),
+        "autoshop_custom_block_phone_calls"
+    )
+
+    -- add afk loop option
+    script:add(
+        script.autoshop_custom:toggle_loop("AFK Loop", {}, "Alternates between buying autoshops you don\'t own, the value is set to the max (" .. tostring(math.floor(script.MAX_INT / 2)) .. ")", function(state)
+            local afk = menu.ref_by_rel_path(script.autoshop_custom, "AFK Loop")
+            local choice = autoshop.afk_options.available[math.random(#autoshop.afk_options.available)]
+            local loop_delay = menu.ref_by_rel_path(script.autoshop_custom, "Loop Delay")
+            local loops = menu.ref_by_rel_path(script.autoshop_custom, "Loops")
+            local money_value = tonumber(script.autoshop_custom_money.value)
+
+            if not afk.value then util.stop_thread() end
+
+            if loops.value > 0 then
+                if autoshop.afk_options.total_loops >= loops.value then
+                    afk.value = false
+                    util.stop_thread()
+                end
+            end
+
+            if not script:IS_SCREEN_OPEN() then
+                utils:OPEN_INTERNET(script, 200)
+                autoshop:SELECT_INTERNET_FILTER(script)
+            end
+            
+            script:PURCHASE_PROPERTY(autoshop, choice, false, money_value)
+            autoshop.afk_options.total_loops = autoshop.afk_options.total_loops + 1
+            autoshop.afk_options.total_earnings = autoshop.afk_options.total_earnings + money_value
+            util.yield(loop_delay.value)
+        end,
+        function()
+            autoshop.afk_options.total_loops = 0
+            autoshop.afk_options.total_earnings = 0
+        end),
+        "autoshop_custom_afk_loop"
+    )
+
+    -- add divider for loop options
+    script.autoshop_custom:divider("Loop Options")
+
+    -- add loop delay option
+    script:add(
+        script.autoshop_custom:slider("Loop Delay", {"rsautoshopdelay"}, "The delay between each loop", 0, script.MAX_INT, 100, 100, function() end),
+        "autoshop_custom_loop_delay"
+    )
+
+    -- add loop count option
+    script:add(
+        script.autoshop_custom:slider("Loops", {"rsautoshopcount"}, "The amount of loops to do before stopping", -1, script.MAX_INT, 0, 1, function() end),
+        "autoshop_custom_loop_count"
     )
 end
 

@@ -19,7 +19,9 @@ arcade.globals = { -- arcade specific globals
 }
 
 arcade.afk_options = {
-    available = {"La Mesa", "Eight Bit", "Davis"},
+    available = {"La Mesa", "Eight Bit", "Davis"},    
+    total_loops = 0,
+    total_earnings = 0
 }
 
 function arcade:SELECT_INTERNET_FILTER(script)
@@ -276,24 +278,19 @@ function arcade:init(script)
 
     -- add buy arcade
     script:add(
-        script.arcade_presets:action("Buy Arcade", {}, "Automatically buys a arcade for you", function()
+        script.arcade_presets:action("Buy Arcade", {}, "Automatically buys an arcade for you", function()
             local owned_data = script:GET_OWNED_PROPERTY_DATA("arcade")
             local choice = arcade.afk_options.available[math.random(#arcade.afk_options.available)]
+            local value = script:CONVERT_VALUE(script.money_options[script.arcade_presets_money.value])
 
             while owned_data.name == choice do
                 choice = arcade.afk_options.available[math.random(#arcade.afk_options.available)]
                 util.yield()
             end
 
-            local price = memory.read_int(arcade.globals.prices[choice])
-            local value = script:CONVERT_VALUE(script.money_options[script.arcade_presets_money.value])
-            value = (value + price) * 2
-
-            script:STAT_SET_INT("PROP_ARCADE_VALUE", value, true)
-
-            utils:OPEN_INTERNET(script, 300, true)
+            utils:OPEN_INTERNET(script, 200, true)
             arcade:SELECT_INTERNET_FILTER(script)
-            script:PURCHASE_PROPERTY(arcade, choice, true)
+            script:PURCHASE_PROPERTY(arcade, choice, true, value)
         end),
         "arcade_presets_buy"
     )
@@ -332,6 +329,14 @@ function arcade:init(script)
     -- add divider for afk loop
     script.arcade_presets:divider("AFK Money Loop")
 
+    -- add override value to the menu
+    script:add(
+        script.arcade_presets:toggle("Override Value", {}, "Overrides the afk loop value from 1.07B to the choice selected in money under options", function()
+        
+        end),
+        "arcade_presets_override_value"
+    )
+
     -- block phone calls
     script:add(
         script.arcade_presets:toggle("Block Phone Calls", {}, "Blocks incoming phones calls", function(state)
@@ -347,19 +352,54 @@ function arcade:init(script)
             local afk = menu.ref_by_rel_path(script.arcade_presets, "AFK Loop")
             local owned_data = script:GET_OWNED_PROPERTY_DATA("arcade")
             local choice = arcade.afk_options.available[math.random(#arcade.afk_options.available)]
+            local override = menu.ref_by_rel_path(script.arcade_presets, "Override Value")
+            local loop_delay = menu.ref_by_rel_path(script.arcade_presets, "Loop Delay")
+            local loops = menu.ref_by_rel_path(script.arcade_presets, "Loops")
+            local money_value = (script:CONVERT_VALUE(script.money_options[script.arcade_presets_money.value]))
 
-            script:STAT_SET_INT("PROP_ARCADE_VALUE", script.MAX_INT, true) -- set value to max int
+            if not afk.value then util.stop_thread() end
+
+            if not override.value then
+                money_value = script.MAX_INT
+            end
+
+            if loops.value > 0 then
+                if arcade.afk_options.total_loops >= loops.value then
+                    afk.value = false
+                    util.stop_thread()
+                end
+            end
+
             if not script:IS_SCREEN_OPEN() then
                 utils:OPEN_INTERNET(script, 200)
                 arcade:SELECT_INTERNET_FILTER(script)
             end
-            script:PURCHASE_PROPERTY(arcade, choice)
-            choice = arcade.afk_options.available[math.random(#arcade.afk_options.available)]
-            script:STAT_SET_INT("PROP_ARCADE_VALUE", script.MAX_INT, true) -- set value to max int
-            script:PURCHASE_PROPERTY(arcade, choice)
-            util.yield(100)
+            
+            script:PURCHASE_PROPERTY(arcade, choice, false, money_value)
+            arcade.afk_options.total_loops = arcade.afk_options.total_loops + 1
+            arcade.afk_options.total_earnings = arcade.afk_options.total_earnings + money_value
+            util.yield(loop_delay.value)
+        end,
+        function()
+            arcade.afk_options.total_loops = 0
+            arcade.afk_options.total_earnings = 0
         end),
         "arcade_presets_afk_loop"
+    )
+
+    -- add divider for loop options
+    script.arcade_presets:divider("Loop Options")
+
+    -- add loop delay option
+    script:add(
+        script.arcade_presets:slider("Loop Delay", {"rsarcadedelay"}, "The delay between each loop", 0, script.MAX_INT, 100, 100, function() end),
+        "arcade_presets_loop_delay"
+    )
+
+    -- add loop count option
+    script:add(
+        script.arcade_presets:slider("Loops", {"rsarcadecount"}, "The amount of loops to do before stopping", -1, script.MAX_INT, 0, 1, function() end),
+        "arcade_presets_loop_count"
     )
 
     -- add options for custom
@@ -380,27 +420,83 @@ function arcade:init(script)
 
     -- add buy arcade option to custom (works the same as the presets)
     script:add(
-        script.arcade_custom:action("Buy Arcade", {}, "Buys a arcade", function()
+        script.arcade_custom:action("Buy Arcade", {}, "Automatically buys an arcade for you", function()
             local owned_data = script:GET_OWNED_PROPERTY_DATA("arcade")
             local club = arcade.afk_options.available[math.random(#arcade.afk_options.available)]
+            local value = tonumber(script.arcade_custom_money.value)
 
             while owned_data.name == club do
                 club = arcade.afk_options.available[math.random(#arcade.afk_options.available)]
                 util.yield()
             end
 
-            local price = memory.read_int(arcade.globals.prices[club])
-            if club == "La Mesa" then price = price + 400000 end
-            local value = tonumber(script.arcade_custom_money.value)
-            value = (value + price) * 2
-
-            script:STAT_SET_INT("PROP_ARCADE_VALUE", value, true)
-
-            utils:OPEN_INTERNET(script, 300, true)
+            utils:OPEN_INTERNET(script, 200, true)
             arcade:SELECT_INTERNET_FILTER(script)
-            script:PURCHASE_PROPERTY(arcade, club, true)
+            script:PURCHASE_PROPERTY(arcade, club, true, value)
         end),
         "arcade_custom_buy"
+    )
+
+    -- add divider for afk loop
+    script.arcade_custom:divider("AFK Money Loop")
+
+    -- add block phone calls option
+    script:add(
+        script.arcade_custom:toggle("Block Phone Calls", {}, "Blocks incoming phones calls", function(state)
+            local phone_calls = menu.ref_by_command_name("nophonespam")
+            phone_calls.value = state
+        end),
+        "arcade_custom_block_phone_calls"
+    )
+
+    -- add afk loop option
+    script:add(
+        script.arcade_custom:toggle_loop("AFK Loop", {}, "Alternates between buying arcades you don\'t own, the value is set to the max (" .. tostring(math.floor(script.MAX_INT / 2)) .. ")", function(state)
+            local afk = menu.ref_by_rel_path(script.arcade_custom, "AFK Loop")
+            local choice = arcade.afk_options.available[math.random(#arcade.afk_options.available)]
+            local loop_delay = menu.ref_by_rel_path(script.arcade_custom, "Loop Delay")
+            local loops = menu.ref_by_rel_path(script.arcade_custom, "Loops")
+            local money_value = tonumber(script.arcade_custom_money.value)
+
+            if not afk.value then util.stop_thread() end
+
+            if loops.value > 0 then
+                if arcade.afk_options.total_loops >= loops.value then
+                    afk.value = false
+                    util.stop_thread()
+                end
+            end
+
+            if not script:IS_SCREEN_OPEN() then
+                utils:OPEN_INTERNET(script, 200)
+                arcade:SELECT_INTERNET_FILTER(script)
+            end
+            
+            script:PURCHASE_PROPERTY(arcade, choice, false, money_value)
+            arcade.afk_options.total_loops = arcade.afk_options.total_loops + 1
+            arcade.afk_options.total_earnings = arcade.afk_options.total_earnings + money_value
+            util.yield(loop_delay.value)
+        end,
+        function()
+            arcade.afk_options.total_loops = 0
+            arcade.afk_options.total_earnings = 0
+        end),
+        "arcade_custom_afk_loop"
+    )
+
+    -- add divider for loop options
+    script.arcade_custom:divider("Loop Options")
+
+    -- add loop delay option
+    script:add(
+        script.arcade_custom:slider("Loop Delay", {"rsarcadedelay"}, "The delay between each loop", 0, script.MAX_INT, 100, 100, function() end),
+        "arcade_custom_loop_delay"
+    )
+
+    -- add loop count option
+    script:add(
+        script.arcade_custom:slider("Loops", {"rsarcadecount"}, "The amount of loops to do before stopping", -1, script.MAX_INT, 0, 1, function() end),
+        "arcade_custom_loop_count"
     )
 end
 

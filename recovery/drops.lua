@@ -13,7 +13,7 @@ function drops:init(script)
 
     -- add enable to the menu
     script:add(
-        script.drops:toggle_loop("Enable Drop", {}, "Enable money drop", function() 
+        script.drops:toggle_loop("Enable Drop (risky)", {}, "Enable money drop", function() 
             local amount = script.drops_drop_amount.value
             local delay = script.drops_loop_delay.value
 
