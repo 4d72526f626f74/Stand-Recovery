@@ -7,7 +7,7 @@ local json = require("json")
 
 local root = menu.my_root() -- root of the script
 local update_menu = root:list("Update", {}, "Update related stuff") -- update menu
-local DEV_MODE = true -- set to true so the script doesn't check for updates
+local DEV_MODE = false -- set to true so the script doesn't check for updates
 
 local lib_dir = filesystem.scripts_dir() .. "/lib/recovery"
 local settings_dir = filesystem.scripts_dir() .. "/Recovery"
