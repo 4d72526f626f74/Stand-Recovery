@@ -1,9 +1,6 @@
 local credits = setmetatable({}, {__index = _G})
 
 function credits:init(script)
-    -- add a divider for other
-    script.root:divider("Other")
-
     -- add credits to the menu
     script:add(
         script.root:list("Credits", {}, "Credits for the script"),
@@ -29,7 +26,7 @@ function credits:init(script)
     script.credits:divider("Other")
 
     -- add heist control credit
-    script.credits:hyperlink("IceDoomfist#0001", "https://github.com/IceDoomfist/Stand-Heist-Control", "Most of the features in heists recovery menu are from Heist Control")
+    script.credits:hyperlink("IceDoomfist#0001", "https://github.com/IceDoomfist/Stand-Heist-Control", "Most of the features in heists recovery menu are from/inspired by Heist Control")
 
     -- add a divider for discord
     script.credits:divider("Discord", "discord")

@@ -1,13 +1,53 @@
 util.keep_running()
 util.require_natives(1672190175)
 
-util.show_corner_help("This script is free, if you paid for it then you got scammed")
+util.show_corner_help("This ~r~SCRIPT~w~ is ~r~FREE~w~, if you paid for it then you got ~r~SCAMMED~w~")
 
 local json = require("json")
+local developer_mode = false
+
+--[[
+    -- Global_262145.f_28408 mk2 request cooldown
+    -- (BitTest(Global_1586468[Local_124.f_181.f_69 /*142*/].f_103, 2)) mors mutual insurance
+    -- Global_78558 = Previous_Owner check
+    -- Global_2793044.f_4648 = Pegasus
+    -- Global_1894573[bParam0 /*608*/].f_10.f_33;
+    -- Global_32315 = ? (some sort of state maybe)
+    -- Global_2793044.f_5150 = ?
+    -- Global_1894573[iVar0 /*608*/] ?
+    -- Global_1981293.f_10 = kosatka (bit 5)
+    -- Global_1836102 = VSLI Unlock App (Fleeca Heist)
+]]
+
+--[[
+    Global_262145.f_30939 = lester heist blip toggle
+    Global_1970832.f_22
+    bit 1 = lester
+    bit 2 = ?
+    bit 3 = arcade 
+    bit 4 = ?
+    bit 5 = ?
+    bit 6 = contacted
+
+    Global_262145.f_19128 /* Tunable: -475525840 */) something related to vehicles, line 175305 (freemode.c)
+    Global_262145.f_21092 /* Tunable: -1119737689 */) something related to vehicles, line 175327 (freemode.c)e
+    -- Global_4542297 -- bitfield for phone app
+    -- Global_1574918 temporarily corrupts your game (character swapping)
+    -- Global_8254 phone
+    -- Global_2359296[func_876() /*5568*/].f_681.f_2 >= 415 func_876() = 0
+    -- Global_1586468[func_1155() /*142*/].f_66 func_1155() = Global_2359296[func_876() /*5568*/].f_681.f_2
+    -- Global_1586468[func_1155() /*142*/].f_103 func_1155() = Global_2359296[func_876() /*5568*/].f_681.f_2
+    -- Global_2672505.f_61 = personal vehicle blip
+    BitTest(Global_1577915, PLAYER::PLAYER_ID()) unknown
+    Global_2793044.f_927 = request moc
+    Global_2793044.f_935 = request avenger
+    Global_2793044.f_940 = request acid lab
+    Global_2793044.f_939 = request terrorbyte
+]]
 
 local root = menu.my_root() -- root of the script
 local update_menu = root:list("Update", {}, "Update related stuff") -- update menu
-local DEV_MODE = false -- set to true so the script doesn't check for updates
+update_menu.visible = false -- hide the update menu
 
 local lib_dir = filesystem.scripts_dir() .. "/lib/recovery"
 local settings_dir = filesystem.scripts_dir() .. "/Recovery"
@@ -25,6 +65,9 @@ local required_files = { -- files required for the script to work
     "other.lua",
     "heists.lua",
     "hangar.lua",
+    "taxi_service.lua",
+    "acid_lab.lua",
+    "collectables.lua",
 }
 
 local function hash_file(path)
@@ -58,6 +101,11 @@ local UPDATER = {
     DOWNLOAD = {
         SCRIPT = function(self)
             async_http.init(update.host, update.path .. "/Recovery.lua", function(body, headers, status_code) 
+                if developer_mode then
+                    util.toast("Developer Mode is enabled, skipping download of script")
+                    return
+                end
+                
                 if status_code == 200 then
                     local file = io.open(filesystem.scripts_dir() .. "/" .. SCRIPT_RELPATH, "wb")
                     file:write(body)
@@ -69,6 +117,11 @@ local UPDATER = {
         end,
         LIB = function(self, file, success)
             async_http.init(update.host, update.path .. "/lib/" .. file, function(body, headers, status_code) 
+                if developer_mode then
+                    util.toast("Developer Mode is enabled, skipping download of " .. file)
+                    return
+                end
+                
                 if status_code == 200 then
                     local f = io.open(lib_dir .. "/" .. file, "wb")
                     f:write(body)
@@ -94,72 +147,81 @@ local UPDATER = {
 }
 
 local update_button = update_menu:action("Update Script", {}, "", function()
-    util.toast("Updating script ...")
     UPDATER.DOWNLOAD:SCRIPT()
-    menu.ref_by_rel_path(update_menu, "Update Libraries"):trigger()
-end)
 
-local update_libs_button = update_menu:action("Update Libraries", {}, "", function()
     for i, file in pairs(libs_to_update) do
         UPDATER.DOWNLOAD:LIB(file, function(file)
             util.toast("Updated " .. file)
         end)
     end
 
-    util.toast("Updated libraries successfully, restarting ...")
+    util.toast("Successfully updated! Restarting script ...")
     util.restart_script()
 end)
 
 update_menu.visible = false
 
-if not DEV_MODE then
-    if UPDATER:LIB_DIR_PRESENT() then
-        -- check if the script is up to date
-        for i, file in pairs(required_files) do
-            if not filesystem.exists(lib_dir .. "/" .. file) then
-                UPDATER.DOWNLOAD:LIB(file, function(file) 
-                    util.toast("Downloaded " .. file)
-                end)
+if UPDATER:LIB_DIR_PRESENT() then
+    -- check if the script is up to date
+    for i, file in pairs(required_files) do
+        if not filesystem.exists(lib_dir .. "/" .. file) then
+            UPDATER.DOWNLOAD:LIB(file, function(file) 
+                util.toast("Downloaded " .. file)
+            end)
+        end
+    end
+
+    UPDATER:UPDATE(update.path .. "/update.php", function(body, version)
+        if body.recovery ~= hash_file(filesystem.scripts_dir() .. "/" .. SCRIPT_RELPATH) then
+            if not developer_mode then
+                util.toast("New update is now available!")
+                update_menu.visible = true
+            else
+                util.toast("Developer Mode is enabled, skipping update")
             end
         end
-    
-        UPDATER:UPDATE(update.path .. "/update.php", function(body, version)
-            if body.recovery ~= hash_file(filesystem.scripts_dir() .. "/" .. SCRIPT_RELPATH) then
-                util.toast("New version of script is now available!")
+
+        for i, file in pairs(required_files) do
+            while not filesystem.exists(lib_dir .. "/" .. file) do
+                util.yield()
+            end
+
+            if body[string.gsub(file, ".lua", "")] ~= hash_file(lib_dir .. "/" .. file) then
+                table.insert(libs_to_update, file)
+            end
+        end
+
+        if #libs_to_update > 0 then
+            if not developer_mode then
                 update_menu.visible = true
             end
-    
-            for i, file in pairs(required_files) do
-                while not filesystem.exists(lib_dir .. "/" .. file) do
-                    util.yield()
-                end
-    
-                if body[string.gsub(file, ".lua", "")] ~= hash_file(lib_dir .. "/" .. file) then
-                    table.insert(libs_to_update, file)
-                end
-            end
-    
-            if #libs_to_update > 0 then
-                util.toast("New version of the libraries is available!")
-                update_menu.visible = true
-            end
-        end)
-    else
-        util.toast("There was an error creating the lib directory, please create it manually and restart the script")
-        util.stop_script()
-    end
+        end
+    end)
+else
+    util.toast("There was an error creating the lib directory, please create it manually and restart the script")
+    util.stop_script()
 end
 
-local lib_check_timeout = os.time() + 30 -- timeout for checking if the libraries are downloaded
+local lib_check_timeout = os.time() + 10 -- timeout for checking if the libraries are downloaded
 
 while #filesystem.list_files(lib_dir) ~= #required_files do
-    if os.time() > lib_check_timeout then
-        util.toast("Timeout reached, stopping script ...")
-        util.stop_script()
+    if developer_mode then break end
+    util.draw_debug_text("Timeout in: " .. lib_check_timeout - os.time() .. "s")
+
+    if os.time() >= lib_check_timeout then
+        for i, file in pairs(filesystem.list_files(lib_dir)) do
+            local name = string.match(file, "([^/]+)$")
+            name = string.gsub(name, "recovery\\", "")
+
+            if not table.contains(required_files, name) then
+                io.remove(file)
+            end
+        end
+        util.restart_script()
     end
 
     util.toast("Downloading libraries ...")
-    util.yield()
+    util.yield_once()
 end
 
 local script = require("lib.recovery.script") -- require the script module
@@ -176,6 +238,8 @@ script:CHECK_IF_USING_KEYBOARD_AND_MOUSE() -- check if the user is using keyboar
 while util.is_session_transition_active() do
     util.yield()
 end
+
+script.proot = menu.player_root(script.me)
 
 -- handle reading the delay settings
 if not filesystem.exists(settings_dir) then
@@ -237,44 +301,6 @@ script:add(
         utils.SIMULATE_CONTROL_KEY_DELAY_STATE = not state
     end, not utils.SIMULATE_CONTROL_KEY_DELAY_STATE),
     "settings_simulate_control_key_delay"
-)
-
--- add OPEN_INTERNET setting to the menu
-script:add(
-    script.settings_delays:list("Open Internet", {}, "Open Internet delay settings"),
-    "settings_open_internet"
-)
-
--- add MENU_OPEN_ERROR_DELAY setting to the menu
-script:add(
-    script.settings_open_internet:slider("Menu Open Error Delay", {}, "This is the delay after the menu open error disappears", script.delays.MIN_VALUE, 3000, script.delays.OPEN_INTERNET.MENU_OPEN_ERROR_DELAY, script.delays.STEP, function(value)
-        script.delays.OPEN_INTERNET.MENU_OPEN_ERROR_DELAY = tonumber(value)
-    end),
-    "settings_menu_open_error_delay"
-)
-
--- add SCROLL_DELAY setting to the menu
-script:add(
-    script.settings_open_internet:slider("Scroll Delay", {}, "This delay occurs that occur before scrolling down to the internet on your phone (WARNING: setting this delay to a low value might result in issues)", script.delays.MIN_VALUE, 1000, script.delays.OPEN_INTERNET.SCROLL_DELAY, script.delays.STEP, function(value)
-        script.delays.OPEN_INTERNET.SCROLL_DELAY = tonumber(value)
-    end),
-    "settings_scroll_delay"
-)
-
--- add OPEN_DELAY setting to the menu
-script:add(
-    script.settings_open_internet:slider("Open Delay", {}, "This delay occurs before clicking the internet icon to open the internet", script.delays.MIN_VALUE, 1000, script.delays.OPEN_INTERNET.OPEN_DELAY, script.delays.STEP, function(value)
-        script.delays.OPEN_INTERNET.OPEN_DELAY = tonumber(value)
-    end),
-    "settings_open_delay"
-)
-
--- add SELECT_DELAY setting to the menu
-script:add(
-    script.settings_open_internet:slider("Select Delay", {}, "This delay occurs before opening maze bank", script.delays.MIN_VALUE, 1000, script.delays.OPEN_INTERNET.SELECT_DELAY, script.delays.STEP, function(value)
-        script.delays.OPEN_INTERNET.SELECT_DELAY = tonumber(value)
-    end),
-    "settings_select_delay"
 )
 
 -- add PURCHASE setting to the menu 
@@ -351,18 +377,20 @@ script.tools:divider("Unlocks")
 -- add unlock arcades on maze bank
 script:add(
     script.tools:action("Unlocks Arcades On MazeBank", {}, "Does what it says", function()
-        util.teleport_2d(1120.0100097656, -225.07000732422) -- teleport to blip
-        util.yield(1000) -- give the game enough time to load before attempting to contact lester
-        utils:SIMULATE_CONTROL_KEY(52, 2) -- press e key to contact lester
-        util.teleport_2d(1048.7941894531, -721.57751464844) -- teleport to lester blip to start cutscene
-        
+        local bitfield = memory.read_int(script.globals.arcade_bitfield)
+        local mask = 0x14E -- 000101001110 (334)
+        local timeout = os.time() + 5
+
+        memory.write_int(script.globals.arcade_bitfield, bitfield | mask)
         while not CUTSCENE.IS_CUTSCENE_ACTIVE() or not CUTSCENE.IS_CUTSCENE_PLAYING() do
+            if os.time() > timeout then
+                util.stop_thread()
+            end
             util.yield_once()
         end
+        menu.trigger_commands("skipcutscene")
 
-        menu.trigger_commands("skipcutscene") -- skip the cutscene
-        util.yield(1000)
-        script:notify("Arcades should now be unlocked!")
+        script:notify("Arcades are now unlocked!")
     end),
     "tools_unlocks_arcades_on_mazebank"
 )
@@ -398,7 +426,7 @@ script:add(
     "tools_deposit_money"
 )
 
-if DEV_MODE then
+if developer_mode then
     -- add developer divider
     script.tools:divider("Developer")
 
@@ -429,10 +457,53 @@ if DEV_MODE then
 
         util.copy_to_clipboard(coords.x .. ", " .. coords.y)
     end)
-end
 
--- add recovery divider
-script.root:divider("Recovery")
+    script.tools:toggle_loop("Show Interior ID", {}, "", function()
+        local interior = INTERIOR.GET_INTERIOR_FROM_ENTITY(script.me_ped)
+        local hash = memory.alloc_int()
+        local coords = v3.new()
+        INTERIOR.GET_INTERIOR_LOCATION_AND_NAMEHASH(interior, coords, hash)
+        util.draw_debug_text("Interior ID: " .. interior)
+        util.draw_debug_text("Interior Hash: " .. memory.read_int(hash))
+    end)
+    
+    script.tools:toggle_loop("Vehicle Decors", {}, "", function()
+        local veh = PED.GET_VEHICLE_PED_IS_IN(script.me_ped, false)
+        if veh ~= 0 then
+            local not_allow = DECORATOR.DECOR_GET_INT(veh, "Not_Allow_As_Saved_Veh")
+            local player_vehicle = DECORATOR.DECOR_GET_INT(veh, "Player_Vehicle")
+            local previous_owner = DECORATOR.DECOR_GET_INT(veh, "Previous_Owner")
+            local pv_slot = DECORATOR.DECOR_GET_INT(veh, "PV_Slot")
+            local veh_modded_by_player = DECORATOR.DECOR_GET_INT(veh, "Veh_Modded_By_Player")
+            local company_suv = DECORATOR.DECOR_GET_INT(veh, "Company_SUV")
+            local player_sub = DECORATOR.DECOR_GET_INT(veh, "Player_Submarine")
+            local moon_pool = DECORATOR.DECOR_GET_INT(veh, "Player_Moon_Pool")
+            local avenger = DECORATOR.DECOR_GET_INT(veh, "Player_Avenger")
+            local mpbitset = DECORATOR.DECOR_GET_INT(veh, "MPBitset")
+    
+            util.draw_debug_text("Not_Allow_As_Saved_Veh: " .. not_allow)
+            util.draw_debug_text("Player_Vehicle: " .. player_vehicle)
+            util.draw_debug_text("Previous_Owner: " .. previous_owner)
+            util.draw_debug_text("PV_Slot: " .. pv_slot)
+            util.draw_debug_text("Veh_Modded_By_Player: " .. veh_modded_by_player)
+            util.draw_debug_text("Company_SUV: " .. company_suv)
+            util.draw_debug_text("Player_Submarine: " .. player_sub)
+            util.draw_debug_text("Player_Moon_Pool: " .. moon_pool)
+            util.draw_debug_text("Player_Avenger: " .. avenger)
+            
+            for i = 0, 26 do
+                util.draw_debug_text("MPBitset(" .. i .. "): " .. script:BitTest(mpbitset, i))
+            end
+        end
+    end)
+
+    script.tools:text_input("Bitmask", {"devbitmask"}, "", function(value)
+        local bitmask = script:BitMask(value)
+        if bitmask ~= 0 then
+            util.copy_to_clipboard(string.format("0x%x", script:BitMask(value)))
+        end
+    end, "")
+end
 
 local nightclub = require("lib.recovery.nightclub") -- require the nightclub module
 local arcade = require("lib.recovery.arcade") -- require the arcade module
@@ -443,7 +514,20 @@ local casino_figures = require("lib.recovery.casino_figures") -- require the cas
 local drops = require("lib.recovery.drops") -- require the drops module
 local other_methods = require("lib.recovery.other") -- require the other module
 local heists = require("lib.recovery.heists") -- require the heists module
+local taxi_service = require("lib.recovery.taxi_service") -- require the taxi service module
+local acid_lab = require("lib.recovery.acid_lab") -- require the acid lab module
 local credits = require("lib.recovery.credits") -- require the credits module
+local collectables = require("lib.recovery.collectables") -- require the collectables module
+
+
+if package.loaded["lib.recovery.credits"] then
+    credits:init(script) -- initalise credits menu
+else
+    script:notify("Credits module failed to load")
+end
+
+-- add recovery divider
+script.root:divider("Recovery")
 
 if package.loaded["lib.recovery.nightclub"] then
     nightclub:init(script) -- initalise nightclub menu
@@ -499,8 +583,47 @@ else
     script:notify("Heists module failed to load")
 end
 
-if package.loaded["lib.recovery.credits"] then
-    credits:init(script) -- initalise credits menu
+if package.loaded["lib.recovery.taxi_service"] then
+    taxi_service:init(script) -- initalise taxi service menu
 else
-    script:notify("Credits module failed to load")
+    script:notify("Taxi service module failed to load")
 end
+
+if package.loaded["lib.recovery.acid_lab"] then
+    acid_lab:init(script) -- initalise acid lab menu
+else
+    script:notify("Acid lab module failed to load")
+end
+
+
+-- add other divider
+script.root:divider("Other")
+
+if package.loaded["lib.recovery.collectables"] then
+    collectables:init(script) -- initalise collectables menu
+else
+    script:notify("Collectables module failed to load")
+end
+
+--[[root:toggle("VSLI App Unlocked", {}, "", function(state)
+    -- Global_1836102
+    local g = memory.script_global(1836102)
+    if state then
+        memory.write_int(g, 1)
+    else
+        memory.write_int(g, 0)
+    end
+end)
+
+script:test(function()
+    for event_num = 0, SCRIPT.GET_NUMBER_OF_EVENTS(1) - 1 do
+        local event_id = SCRIPT.GET_EVENT_AT_INDEX(1, event_num)
+        script:notify("Event ID: " .. event_id)
+    end
+end, "toggle_loop")
+
+script:test(function()
+    for i = 0, 27 do
+        script:global(2851323 + 1 + (i * 3)):write_int(i)
+    end
+end, "action")]]

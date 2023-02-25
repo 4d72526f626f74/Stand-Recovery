@@ -170,6 +170,7 @@ function nightclub:init(script)
             if owned_data == nil then
                 ref:focus() -- prevent access
                 script:notify("You do not own a nightclub, purchase a nightclub to access this feature")
+                return
             end
 
             script:SHOW_REQUIREMENTS_WARNING() -- show the requirements warning

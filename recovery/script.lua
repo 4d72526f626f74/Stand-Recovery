@@ -8,6 +8,8 @@ local utils = require("lib.recovery.utils") -- require the utils module
 
 -- add script root
 script.root = menu.my_root()
+script.sroot = menu.shadow_root()
+script.proot = nil -- will be set later
 
 -- script settings
 script.script_settings = {
@@ -55,7 +57,6 @@ script.me = players.user() -- you
 script.me_ped = players.user_ped() -- your ped
 script.MAX_INT = (2 << 30) - 1 -- max integer value
 script.char = util.get_char_slot() -- character slot
-script.update_backwards_compat = false -- update backwards compatibility
 
 -- ids for each property
 script.property_ids = {
@@ -124,22 +125,22 @@ script.globals = { -- script globals
         }
     },
     transaction_error = {
-        banner = memory.script_global(4536673),
-        notification = memory.script_global(4536674),
+        banner = memory.script_global(4536673), -- https://www.unknowncheats.me/forum/grand-theft-auto-v/500059-globals-locals-discussion-read-page-1-a.html
+        notification = memory.script_global(4536674), -- https://www.unknowncheats.me/forum/grand-theft-auto-v/500059-globals-locals-discussion-read-page-1-a.html
     },
     interaction_menu = {
-        menu = memory.script_global(2766485),
-        menu_item = memory.script_global(2766576 + 7531)
+        menu = memory.script_global(2766485), -- https://www.unknowncheats.me/forum/grand-theft-auto-v/500059-globals-locals-discussion-read-page-1-a.html
+        menu_item = memory.script_global(2766576 + 7531) -- https://www.unknowncheats.me/forum/grand-theft-auto-v/500059-globals-locals-discussion-read-page-1-a.html
     },
     ceo = {
         bst_cost = memory.script_global(262145 + 12849),
         bst_cooldown = memory.script_global(262145 + 12836),
         bst_disable = memory.script_global(262145 + 12902),
     },
-    is_screen_open = memory.script_global(75693),
-    transition_state = memory.script_global(1574993),
+    is_screen_open = memory.script_global(75693), -- https://www.unknowncheats.me/forum/grand-theft-auto-v/500059-globals-locals-discussion-read-page-1-a.html (unused)
+    transition_state = memory.script_global(1574993), -- https://www.unknowncheats.me/forum/grand-theft-auto-v/500059-globals-locals-discussion-read-page-1-a.html (unused)
     interior_id = function(pid)
-        local interior = memory.script_global(2657589 + 1 + (pid * 466) + 245)
+        local interior = memory.script_global(2657589 + 1 + (pid * 466) + 245) -- jinxscript
         return memory.read_int(interior)
     end,
     modifiers = {
@@ -157,7 +158,46 @@ script.globals = { -- script globals
         time_limit = memory.script_global(262145 + 11677),
         start_time = memory.script_global(262145 + 11678),
         players_required = memory.script_global(262145 + 11679),
-    }
+    },
+    vehicles = {
+        previous_owner_check = memory.script_global(78558),
+    },
+    taxi = {
+        fare_multiplier = memory.script_global(262145 + 33771),
+        tip = memory.script_global(262145 + 33772),
+        fare = memory.script_global(262145 + 33773),
+    },
+    acid_lab = {
+        support_bike_cooldown = memory.script_global(262145 + 21865), -- unused due to support bike having no cooldown yet
+        acid_lab_cooldown = memory.script_global(262145 + 21866),
+        supplies_cost_per_segment = memory.script_global(262145 + 21869), -- default is 1200
+        supplies_cost_per_segment_base = memory.script_global(262145 + 21870), -- default is 1200
+        boost_amount = memory.script_global(262145 + 21871),
+        boost_expiry = memory.script_global(262145 + 21872),
+        product_rename_price = memory.script_global(262145 + 21873),
+        rename_price = memory.script_global(262145 + 21874),
+        utility_fee = memory.script_global(262145 + 21867), -- not sure what this does yet
+        equipment_upgrade_utility_fee = memory.script_global(262145 + 21868), -- not sure what this does yet
+        product_capacity = memory.script_global(262145 + 18949),
+        product_value = memory.script_global(262145 + 17425), -- 1485 is the default value,
+        production_time = memory.script_global(262145 + 17396), -- default is 135000
+        utility_cost = memory.script_global(262145 + 18950),
+        resupply_crate_value = memory.script_global(262145 + 32700), -- default is 25
+        damage_scale = memory.script_global(262145 + 32693),
+        resupply_timer = memory.script_global(1648637 + 7), -- Global_1648637[iParam0]) >= Global_262145.f_18954,
+        supplies_delay = memory.script_global(262145 + 18954), -- default is 600,
+        request_acid_lab = memory.script_global(2793046 + 938), -- from heist control
+    },
+    vehicle_proximity = memory.script_global(262145 + 12833), -- default is 100,
+    hangar = {
+        airfreight = {
+            sell_start = 22810,
+            sell_end = 22818,
+            sell_cooldown = memory.script_global(262145 + 15449)
+        }
+    },
+    arcade_bitfield = memory.script_global(1970832 + 22),
+    phone_bitfield = memory.script_global(8254), -- bit 2 = internet is open, bit 8 = phone is open,
 }
 
 script.locals = { -- script locals
@@ -203,7 +243,8 @@ script.blips = {
     NIGHTCLUB = 614,
     ARCADE = 740,
     AUTOSHOP = 779,
-    HANGAR = 0 -- need to find the hangar blip
+    HANGAR = 569,
+    LAPTOP = 521
 }
 
 -- download function
@@ -235,6 +276,131 @@ end
 function script:notify(text, func, ...)
     func = func or util.toast -- default to toast if no function is provided
     func(text, ...) -- call the function with the text and any other arguments passed
+end
+
+-- notification function (wraps notify)
+function script:msg(text, func, ...)
+    self:notify(text, func, ...)
+end
+
+-- function for drawing debug text
+function script:dbg(text)
+    util.draw_debug_text(text)
+end
+
+-- function for checking a bit
+function script:BitTest(value, bit)
+    return value & (1 << bit) ~= 0
+end
+
+-- function for setting a bit
+function script:BitSet(value, bit)
+    value = value | (1 << bit)
+    return value
+end
+
+-- function for clearing a bit
+function script:BitClear(value, bit)
+    value = value & ~(1 << bit)
+    return value
+end
+
+-- function for toggling a bit
+function script:BitToggle(value, bit)
+    value = value ~ (1 << bit)
+    return value
+end
+
+-- function for enumerating a table with a callback
+function script:enumerate(tbl, callback)
+    for k, v in pairs(tbl) do
+        callback(k, v)
+    end
+end
+
+-- function for creating a bitmask
+function script:BitMask(str)
+    local mask = 0
+    for i = 1, #str do
+        local bit = tonumber(str:sub(i, i))
+        if bit == 1 then
+            mask = self:BitSet(mask, i - 1)
+        end
+    end
+    return mask
+end
+
+-- function for adding test items
+function script:test(callback, type)
+    local name = "test"
+    return menu[type](script.root, name, {}, "", callback)
+end
+
+-- function for handling script globals
+function script:global(script_global)
+    local class = {}
+    script_global = memory.script_global(script_global)
+
+    function class:get()
+        return script_global
+    end
+
+    function class:read_int()
+        return memory.read_int(script_global)
+    end
+
+    function class:write_int(value)
+        memory.write_int(script_global, value)
+    end
+
+    function class:read_float()
+        return memory.read_float(script_global)
+    end
+
+    function class:write_float(value)
+        memory.write_float(script_global, value)
+    end
+
+    return class
+end
+
+-- function for handling script locals
+function script:local(script_name, script_local)
+    local class = {}
+    script_local = memory.script_local(script_name, script_local)
+
+    function class:get()
+        return script_local
+    end
+
+    function class:read_int()
+        return memory.read_int(script_local)
+    end
+
+    function class:write_int(value)
+        memory.write_int(script_local, value)
+    end
+
+    function class:read_float()
+        return memory.read_float(script_local)
+    end
+
+    function class:write_float(value)
+        memory.write_float(script_local, value)
+    end
+
+    return class
+end
+
+-- function for starting scripts
+function script:START_SCRIPT(script_name, stack_size)
+    stack_size = stack_size or 5000
+
+    -- credit to IceDoomfist for this
+    SCRIPT.REQUEST_SCRIPT(script_name)
+    repeat util.yield_once() until SCRIPT.HAS_SCRIPT_LOADED(script_name)
+    SYSTEM.START_NEW_SCRIPT(script_name, stack_size)
+    SCRIPT.SET_SCRIPT_AS_NO_LONGER_NEEDED(script_name)
 end
 
 -- functions
@@ -440,18 +606,26 @@ end
 
 -- check if the screen is open (internet, terrorbyte etc)
 function script:IS_SCREEN_OPEN()
-    return memory.read_int(script.globals.is_screen_open) ~= 0
+    -- return memory.read_int(script.globals.is_screen_open) ~= 0
+    local bitfield = memory.read_int(script.globals.phone_bitfield)
+    return script:BitTest(bitfield, 2)
+end
+
+-- check if the phone is open
+function script:IS_PHONE_OPEN()
+    local bitfield = memory.read_int(script.globals.phone_bitfield)
+    return script:BitTest(bitfield, 8)
 end
 
 -- get transiton state
 function script:GET_TRANSITION_STATE()
-    return memory.read_int(script.globals.transition_state)
+    return util.is_session_transition_active()
 end
 
 -- get interior id
 function script:GET_INTERIOR_ID(player=nil)
     player = player or script.me
-    return script.globals.interior_id(player)
+    return INTERIOR.GET_INTERIOR_FROM_ENTITY(PLAYER.GET_PLAYER_PED(player))
 end
 
 -- check interior inside of
@@ -554,7 +728,7 @@ function script:DISPLAY_ONSCREEN_KEYBOARD()
 end
 
 function script:SHOW_REQUIREMENTS_WARNING()
-    script:notify("If you do not have arcades and autoshops unlocked on mazebank foreclosure then you may experience issues with the 1B recovery afk loop", util.show_corner_help)
+    script:notify("If you do not have ~BLIP_ARCADE~ and ~BLIP_AUTO_SHOP_PROPERTY~ unlocked on mazebank foreclosure then you may experience issues with the 1B recovery afk loop", util.show_corner_help)
 end
 
 function script:ARE_ARCADES_UNLOCKED()
@@ -623,9 +797,18 @@ function script:SET_CP_HEIST_PRIMARY_TARGET(target_index)
     script:STAT_SET_INT("H4CNF_TARGET", target_index, true)
 end
 
-function script:SET_INT_LOCAL(script, script_local, value)
+function script:SET_INT_LOCAL(script, script_local, value) -- HC SET_INT_LOCAL
     if memory.script_local(script, script_local) ~= 0 then
         memory.write_int(memory.script_local(script, script_local), value)
+    end
+end
+
+function script:GET_INT_LOCAL(script, script_local) -- HC GET_INT_LOCAL
+    if memory.script_local(script, script_local) ~= 0 then
+        local ReadLocal = memory.read_int(memory.script_local(script, script_local))
+        if ReadLocal ~= nil then
+            return ReadLocal
+        end
     end
 end
 
@@ -1161,11 +1344,6 @@ end
 function script:GET_CURSOR_POSITION()
     local x, y = 0, 0
 
-    --[[
-        x = 239
-        y = 240
-    ]]
-
     x = PAD.GET_CONTROL_NORMAL(0, 239)
     y = PAD.GET_CONTROL_NORMAL(0, 240)
 
@@ -1173,6 +1351,12 @@ function script:GET_CURSOR_POSITION()
         x = x,
         y = y
     }
+end
+
+function script:SET_PACKED_INT_GLOBAL(start_global, end_global, value)
+    for i = start_global, end_global do
+        memory.write_int(memory.script_global(262145 + i), value)
+    end
 end
 
 return script

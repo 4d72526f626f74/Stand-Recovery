@@ -152,6 +152,7 @@ function hangar:init(script)
             if owned_data == nil then
                 ref:focus() -- prevent access
                 script:notify("You do not own a hangar, purchase a hangar to access this feature")
+                return
             end
 
             script:SHOW_REQUIREMENTS_WARNING() -- show the requirements warning
@@ -172,20 +173,6 @@ function hangar:init(script)
     )
 
     script.hangar_recovery:divider("Other")
-
-    script:add(
-        script.hangar_recovery:action("Teleport To Hangar", {}, "Teleports to your hangar", function()
-            local hangar_blip = HUD.GET_FIRST_BLIP_INFO_ID(script.blips.HANGAR) -- get the hangar blip
-
-            if HUD.DOES_BLIP_EXIST(hangar_blip) then -- check if the blip exists on the map
-                local pos = HUD.GET_BLIP_INFO_ID_COORD(hangar_blip) -- get the coordinates of the blip
-                ENTITY.SET_ENTITY_COORDS(script.me_ped, pos.x, pos.y, pos.z) -- teleport to the coordinates
-            else
-                script:notify("Hangar blip not found")
-            end
-        end),
-        "hangar_teleport"
-    )
     
     -- add options divider
     script.hangar_presets:divider("Options")
@@ -416,6 +403,56 @@ function hangar:init(script)
     script:add(
         script.hangar_custom:slider("Loops", {"rshangarcount"}, "The amount of loops to do before stopping", 0, script.MAX_INT, 0, 1, function() end),
         "hangar_custom_loop_count"
+    )
+
+    -- add airfreight to the menu
+    script:add(
+        script.hangar_recovery:list("Airfreight", {}, "Airfreight Manager"),
+        "hangar_airfreight"
+    )
+
+    -- add set airfreight cargo sell value
+    script:add(
+        script.hangar_airfreight:text_input("Set Cargo Sell Value", {"rshangarairfreightsellvalue"}, "The value of the cargo you sell", function(value)
+            local start_global = script.globals.hangar.airfreight.sell_start
+            local end_global = script.globals.hangar.airfreight.sell_end
+            value = tonumber(value)
+
+            if value < 30000 then
+                value = 0
+            end
+
+            if value >= 10000000 then
+                value = 10000000
+            end
+
+            script:SET_PACKED_INT_GLOBAL(start_global, end_global, value + 30000)
+        end, 30000),
+        "hangar_airfreight_set_value"
+    )
+
+    -- add instant finish airfreight
+    script:add(
+        script.hangar_airfreight:action("Instant Finish", {}, "Instantly finishes airfreight", function()
+            script:SET_INT_LOCAL("gb_smuggler", 1928 + 1035, script:GET_INT_LOCAL("gb_smuggler", 1928 + 1078)) -- credit to IceDoomfist for this
+        end),
+        "hangar_airfreight_instant_finish"
+    )
+
+    -- add teleport to hangar
+    script:add(
+        script.hangar_recovery:action("Teleport To Hangar", {}, "Teleports you to your hangar", function()
+            script:TELEPORT_TO_BLIP(script.blips.HANGAR)
+        end),
+        "hangar_recovery_teleport"
+    )
+    
+    -- add teleport to laptop
+    script:add(
+        script.hangar_recovery:action("Teleport To Laptop", {}, "Teleports you to your laptop within your hangar", function()
+            script:TELEPORT_TO_BLIP(script.blips.LAPTOP)
+        end),
+        "hangar_recovery_teleport_laptop"
     )
 end
 

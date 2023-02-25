@@ -189,7 +189,7 @@ function other_methods:init(script)
             local bank = players.get_bank(script.me)
 
             HUD.CHANGE_FAKE_MP_CASH(0, (2 << 30) - 1)
-            util.yield(500)
+            --util.yield(500)
         end),
         "other_fake_money"
     )
@@ -306,13 +306,125 @@ function other_methods:init(script)
         "other_property_changer"
     )
 
-    script.other:action("Change Property", {}, "", function()
+    script.other:action("Change Property", {}, "Changes the property in slot 0", function()
         local p_index = script.other_property_changer.value
         local p_name = properties[p_index]
         local p_id = other_methods.property_changer.property_ids[p_name]
 
         script:STAT_SET_INT("PROPERTY_HOUSE", p_id)
         script:STAT_SET_INT("PROPERTY_HOUSE_NEW", p_id)
+    end)
+
+    -- add vehicles
+    script.other:divider("Vehicles")
+
+    -- add vehicle gifting
+    script:add(
+        script.other:action("Improved Gift Spawned Vehicle", {}, "Gifts you the vehicle you have spawned, this is an improved version of the built-in one", function()
+            if PED.IS_PED_IN_ANY_VEHICLE(script.me_ped) then
+                local veh = PED.GET_VEHICLE_PED_IS_IN(script.me_ped, false)
+                local start = os.time() + 15
+        
+                if veh ~= 0 then
+                    local owner_check = script.globals.vehicles.previous_owner_check
+                    local player_hash = NETWORK.NETWORK_HASH_FROM_PLAYER_HANDLE(script.me)
+                    local spawned_model = util.reverse_joaat(ENTITY.GET_ENTITY_MODEL(veh))
+                    local pos = ENTITY.GET_ENTITY_COORDS(script.me_ped, true)
+        
+                    if player_hash ~= 0 then
+                        local bitset = DECORATOR.DECOR_GET_INT(veh, "MPBitset")
+                        bitset = script:BitClear(bitset, 3) -- vehicle spawned bit
+                        bitset = script:BitSet(bitset, 24) -- personal vehicle bit
+                        VEHICLE.SET_VEHICLE_IS_STOLEN(veh, false)
+                        
+                        memory.write_int(owner_check, 0)
+                        DECORATOR.DECOR_SET_INT(veh, "MPBitset", bitset)
+                        DECORATOR.DECOR_SET_INT(veh, "Previous_Owner", 0)
+                        DECORATOR.DECOR_SET_INT(veh, "PV_Slot", 0)
+                        DECORATOR.DECOR_SET_INT(veh, "Player_Vehicle", player_hash)
+                        DECORATOR.DECOR_SET_INT(veh, "Veh_Modded_By_Player", player_hash)
+        
+                        local interior = INTERIOR.GET_INTERIOR_FROM_ENTITY(script.me_ped)
+                        while interior == 0 do
+                            interior = INTERIOR.GET_INTERIOR_FROM_ENTITY(script.me_ped)
+                            if os.time() >= start then
+                                memory.write_int(owner_check, 1)
+                                util.stop_thread()
+                            end
+                            util.yield_once()
+                        end
+        
+                        memory.write_int(owner_check, 1)
+        
+                        while interior ~= 0 do
+                            interior = INTERIOR.GET_INTERIOR_FROM_ENTITY(script.me_ped)
+                            util.yield_once()
+                        end
+        
+                        for i, veh in pairs(entities.get_all_vehicles_as_handles()) do
+                            local model = util.reverse_joaat(ENTITY.GET_ENTITY_MODEL(veh))
+                            if model:find(spawned_model) then
+                                local veh_pos = ENTITY.GET_ENTITY_COORDS(veh, true)
+                                if MISC.GET_DISTANCE_BETWEEN_COORDS(pos.x, pos.y, pos.z, veh_pos.x, veh_pos.y, veh_pos.z, true) < 10.0 then
+                                    entities.delete_by_handle(veh)
+                                end
+                            end
+                        end
+                    end
+                end
+            else
+                script:notify("You must be in a vehicle")
+            end
+        end),
+        "other_vehicle_gifting"
+    )
+
+    script.other:action("Claim All Personal Vehicles", {}, "Claims all destroyed/impounded personal vehicles", function()
+        for slot = 0, 415 do
+            local veh = memory.script_global(1586468 + 1 + (slot * 142) + 103)
+            local bitfield = memory.read_int(veh)
+
+            memory.write_int(veh, bitfield & ((bitfield & (1 << 1)) ~= 0 and ~0x26 or ~0x40))
+        end
+    end)
+
+    script.other:action("Claim Personal Vehicle", {}, "Claims the current active personal vehicle", function()
+        local pv_slot = memory.script_global(2359296 + 1 + (0 * 5568) + 681 + 2)
+        local veh = memory.script_global(1586468 + 1 + (memory.read_int(pv_slot) * 142) + 103)
+        local bitfield = memory.read_int(veh)
+
+        memory.write_int(veh, bitfield & ((bitfield & (1 << 1)) ~= 0 and ~0x26 or ~0x40))
+    end)
+
+    script.other:action("Add Insurance", {}, "Insures your personal vehicle", function()
+        local player_veh = PED.GET_VEHICLE_PED_IS_IN(players.user_ped(), false)
+        if player_veh ~= 0 then
+            local pv_slot = script:global(2359296 + 1 + (0 * 5568) + 681 + 2)
+            local veh = script:global(1586468 + 1 + (pv_slot:read_int() * 142) + 103)
+            local bitfield = veh:read_int()
+
+            if script:BitTest(bitfield, 2) then
+                script:msg("Vehicle is already insured!")
+            else
+                veh:write_int(script:BitSet(bitfield, 2))
+                script:msg("Vehicle is now insured, to make sure it stays insured goto LS Customs and change any upgrade on your vehicle")
+            end
+        end
+    end)
+
+    script.other:toggle_loop("Auto Claim All Personal Vehicles", {}, "Automatically claims all destroyed/impounded personal vehicles", function()
+        menu.ref_by_rel_path(script.other, "Claim All Personal Vehicles"):trigger()
+        util.yield_once()
+    end)
+
+    script.other:toggle_loop("Auto Claim Personal Vehicle", {}, "Automatically claims the current active personal vehicle", function()
+        menu.ref_by_rel_path(script.other, "Claim Personal Vehicle"):trigger()
+        util.yield_once()
+    end)
+
+    script.other:toggle_loop("Auto Add Insurance", {}, "Automatically insures your personal vehicle", function()
+        menu.ref_by_rel_path(script.other, "Add Insurance"):trigger()
+        util.yield_once()
     end)
 end
 

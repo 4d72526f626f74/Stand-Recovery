@@ -169,6 +169,7 @@ function arcade:init(script)
             if owned_data == nil then
                 ref:focus() -- prevent access
                 script:notify("You do not own a arcade, purchase a arcade to access this feature")
+                return
             end
 
             script:SHOW_REQUIREMENTS_WARNING() -- show the requirements warning

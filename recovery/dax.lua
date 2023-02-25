@@ -15,7 +15,7 @@ function dax:init(script)
     -- add dax to the menu
     script:add(
         script.root:list("Dax Missions", {}, "", function()
-            script:notify("Select a mission then press 'Start Mission' button, when you get into the mission make sure that you fail it (script should automatically start the mission and cause it to fail), you can also manually do this by going to the mission blip on the map and starting it with 'Enable Cash Boost' enabled (make sure it's enabled before failing the mission)", util.show_corner_help)
+            script:notify("Select a mission then press 'Start Mission' button, when you get into the mission make sure that you fail it (script should automatically start the mission and cause it to fail), you can also manually do this by going to the mission blip (~HUD_COLOUR_YELLOW~~BLIP_DEVIN~~s~) on the map and starting it with 'Enable Cash Boost' enabled (make sure it's enabled before failing the mission)", util.show_corner_help)
         end),
         "dax"
     )
@@ -26,7 +26,7 @@ function dax:init(script)
     -- add button for showing the help
     script:add(
         script.dax:action("How To Use", {}, "Shows a help message", function()
-            script:notify("Select a mission then press 'Start Mission' button, when you get into the mission make sure that you fail it (script should automatically start the mission and cause it to fail), you can also manually do this by going to the mission blip on the map and starting it with 'Enable Cash Boost' enabled (make sure it's enabled before failing the mission)", util.show_corner_help)
+            script:notify("Select a mission then press 'Start Mission' button, when you get into the mission make sure that you fail it (script should automatically start the mission and cause it to fail), you can also manually do this by going to the mission blip (~HUD_COLOUR_YELLOW~~BLIP_DEVIN~~s~) on the map and starting it with 'Enable Cash Boost' enabled (make sure it's enabled before failing the mission)", util.show_corner_help)
         end),
         "dax_help"
     )

@@ -4,7 +4,14 @@ local char = util.get_char_slot()
 function drops:init(script)
     -- add drops to the menu
     script:add(
-        script.root:list("Drops", {}, "Money drop"),
+        script.root:list("Drops", {}, "Money drop", function()
+            menu.show_warning(script.drops, CLICK_MENU, "These features are risky", function()
+                -- do nothing
+            end,
+            function()
+                script.drops:focus() -- kick the user back to main menu
+            end, false)
+        end),
         "drops"
     )
 

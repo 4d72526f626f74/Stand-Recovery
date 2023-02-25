@@ -78,30 +78,7 @@ local utils = {
         if should_continue then
             local current_state = self.SIMULATE_CONTROL_KEY_DELAY_STATE
             self:MENU_OPEN_ERROR() -- display an error message until the menu is closed
-            util.yield(script.delays.OPEN_INTERNET.MENU_OPEN_ERROR_DELAY) -- wait for x amount of time before continuing
-
-            self.SIMULATE_CONTROL_KEY_DELAY_STATE = true -- enable the delay
-            self:SIMULATE_CONTROL_KEY(
-                27, 
-                1, 
-                0, 
-                script.delays.OPEN_INTERNET.SCROLL_DELAY
-            ) -- open phone
-            
-            self:SIMULATE_CONTROL_KEY(
-                173, 
-                1, 
-                0, 
-                script.delays.OPEN_INTERNET.OPEN_DELAY
-            ) -- scroll down to internet
-            self.SIMULATE_CONTROL_KEY_DELAY_STATE = current_state -- restore the delay state
-            
-            self:SIMULATE_CONTROL_KEY(
-                176, 
-                1, 
-                0, 
-                script.delays.OPEN_INTERNET.SELECT_DELAY
-            ) -- press enter to open internet
+            script:START_SCRIPT("appinternet")
 
             self:MOVE_CURSOR(0.25, 0.70, hyperlink_delay, true) -- move to mazebank hyperlink
             self:MOVE_CURSOR(0.5, 0.83, hyperlink_delay, true) -- press enter on maze bank button
