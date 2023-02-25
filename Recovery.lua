@@ -376,7 +376,7 @@ script.tools:divider("Unlocks")
 
 -- add unlock arcades on maze bank
 script:add(
-    script.tools:action("Unlocks Arcades On MazeBank", {}, "Does what it says", function()
+    script.tools:action("Unlock Arcades On MazeBank", {}, "Does what it says", function()
         local bitfield = memory.read_int(script.globals.arcade_bitfield)
         local mask = 0x14E -- 000101001110 (334)
         local timeout = os.time() + 5
@@ -397,7 +397,7 @@ script:add(
 
 -- add unlock autoshops on mazebank
 script:add(
-    script.tools:action("Unlocks Autoshops On MazeBank", {}, "Does what it says", function()
+    script.tools:action("Unlock Autoshops On MazeBank", {}, "Does what it says", function()
         local pos = v3.new(778.99708076172, -1867.5257568359, 28.296264648438) -- ls tuners carmeet blip teleport
         ENTITY.SET_ENTITY_COORDS(players.user_ped(), pos.x, pos.y, pos.z, true, true, true, true) -- teleport to ls tuners carmeet
         
