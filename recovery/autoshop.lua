@@ -2,6 +2,7 @@ local autoshop = setmetatable({}, {__index = _G})
 local char = util.get_char_slot()
 
 local utils = require("lib.recovery.utils")
+local script = require("lib.recovery.script")
 
 autoshop.value = util.joaat("MP" .. char .. "_PROP_AUTO_SHOP_VALUE") -- stat for autoshop value
 autoshop.owned = util.joaat("MP" .. char .. "_AUTO_SHOP_OWNED") -- stat for owned autoshop id
@@ -10,9 +11,9 @@ autoshop.name = "autoshop"
 
 autoshop.globals = { -- autoshop specific globals
     prices = {
-        ["La Mesa"] = memory.script_global(262145 + 31246),
-        ["Mission Row"] = memory.script_global(262145 + 31248),
-        ["Burton"] = memory.script_global(262145 + 31249)
+        ["La Mesa"] = script:global(262145 + 31246), -- memory.script_global(262145 + 31246),
+        ["Mission Row"] = script:global(262145 + 31248), -- memory.script_global(262145 + 31248),
+        ["Burton"] = script:global(262145 + 31249), -- memory.script_global(262145 + 31249)
     }
 }
 

@@ -2,6 +2,7 @@ local nightclub = setmetatable({}, {__index = _G})
 local char = util.get_char_slot()
 
 local utils = require("lib.recovery.utils") -- require the utils module
+local script = require("lib.recovery.script") -- require the script module
 
 nightclub.value = util.joaat("MP" .. char .. "_PROP_NIGHTCLUB_VALUE") -- stat for nightclub value
 nightclub.owned = util.joaat("MP" .. char .. "_NIGHTCLUB_OWNED") -- stat for owned nightclub id
@@ -10,12 +11,16 @@ nightclub.name = "nightclub"
 
 nightclub.globals = { -- nightclub specific globals
     prices = {
-        ["La Mesa"] = memory.script_global(262145 + 24838),
-        ["Mission Row"] = memory.script_global(262145 + 24843),
-        ["Vespucci Canals"] = memory.script_global(262145 + 24845)
+        ["La Mesa"] = script:global(262145 + 24838), -- memory.script_global(262145 + 24838)
+        ["Mission Row"] = script:global(262145 + 24843), -- memory.script_global(262145 + 24843)
+        ["Vespucci Canals"] = script:global(262145 + 24845) -- memory.script_global(262145 + 24845)
     },
-    safe = memory.script_global(262145 + 24045),
-    income = memory.script_global(262145 + 24041),
+    safe = script:global(262145 + 24045), -- memory.script_global(262145 + 24045)
+    income = script:global(262145 + 24041), -- memory.script_global(262145 + 24041)
+    popularity_decay = script:global(262145 + 24042), -- memory.script_global(262145 + 24042)
+    popularity_per_mission = script:global(262145 + 24043), -- memory.script_global(262145 + 24043)
+    income_popularity_start = 24022,
+    income_popularity_end = 24041,
 }
 
 nightclub.afk_options = {
@@ -208,13 +213,60 @@ function nightclub:init(script)
 
     script:add(
         script.nightclub_recovery:action("Trigger Production", {}, "Triggers production at your nightclub", function()
-            memory.write_int(nightclub.globals.safe, 300000) -- set the maximum amount of money the safe can hold
-            memory.write_int(nightclub.globals.income, 300000) -- set the amount of income to maximum
+            nightclub.globals.safe:write_int(300000) -- set the maximum amount of money the safe can hold
+            nightclub.globals.income:write_int(300000) -- set the amount of income to maximum
+            script:packed_global(nightclub.globals.income_popularity_start, nightclub.globals.income_popularity_end):write_int(300000)
 
             script:STAT_SET_INT("CLUB_PAY_TIME_LEFT", 1, true) -- set the time left to 1 second
             script:STAT_SET_INT("CLUB_POPULARITY", 10000, true) -- set the popularity to 10000
         end),
         "nightclub_trigger_production"
+    )
+
+    script:add(
+        script.nightclub_recovery:action("Open Nightclub Screen", {}, "Opens the nightclub management screen", function()
+            script:START_SCRIPT("appbusinesshub")
+        end),
+        "nightclub_open_screen"
+    )
+
+    script:add(
+        script.nightclub_recovery:toggle_loop("Fuck Popularity", {}, "Stops popularity affecting your safe income", function()
+            script:packed_global(nightclub.globals.income_popularity_start, nightclub.globals.income_popularity_end):write_int(300000)
+        end,
+        function()
+            script:global(262145 + 24022):write_int(1500)
+            script:global(262145 + 24023):write_int(1600)
+            script:global(262145 + 24024):write_int(1800)
+            script:global(262145 + 24025):write_int(2000)
+            script:global(262145 + 24026):write_int(2200)
+            script:global(262145 + 24027):write_int(2500)
+            script:global(262145 + 24028):write_int(8000)
+            script:global(262145 + 24029):write_int(8500)
+            script:global(262145 + 24030):write_int(9000)
+            script:global(262145 + 24031):write_int(9500)
+            script:global(262145 + 24032):write_int(10000)
+            script:global(262145 + 24033):write_int(20000)
+            script:global(262145 + 24034):write_int(21000)
+            script:global(262145 + 24035):write_int(22000)
+            script:global(262145 + 24036):write_int(23000)
+            script:global(262145 + 24037):write_int(24000)
+            script:global(262145 + 24038):write_int(25000)
+            script:global(262145 + 24039):write_int(45000)
+            script:global(262145 + 24040):write_int(50000)
+            script:global(262145 + 24041):write_int(50000)
+        end),
+        "nightclub_fuck_popularity"
+    )
+
+    script:add(
+        script.nightclub_recovery:toggle_loop("Anti Popularity Decay", {}, "Prevents your nightclub from losing popularity", function()
+            nightclub.globals.popularity_decay:write_float(script.MAX_INT) -- reverse the popularity decay so popularity increases
+        end,
+        function()
+            nightclub.globals.popularity_decay:write_float(-0.1) -- set the popularity decay to default
+        end),
+        "nightclub_disable_popularity_decay"
     )
 
     script:add(

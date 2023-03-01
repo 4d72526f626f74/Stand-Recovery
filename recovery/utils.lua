@@ -77,8 +77,11 @@ local utils = {
         
         if should_continue then
             local current_state = self.SIMULATE_CONTROL_KEY_DELAY_STATE
+            self.SIMULATE_CONTROL_KEY_DELAY_STATE = true
             self:MENU_OPEN_ERROR() -- display an error message until the menu is closed
             script:START_SCRIPT("appinternet")
+            self.SIMULATE_CONTROL_KEY_DELAY_STATE = current_state
+
 
             self:MOVE_CURSOR(0.25, 0.70, hyperlink_delay, true) -- move to mazebank hyperlink
             self:MOVE_CURSOR(0.5, 0.83, hyperlink_delay, true) -- press enter on maze bank button

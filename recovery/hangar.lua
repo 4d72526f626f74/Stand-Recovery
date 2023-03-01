@@ -2,6 +2,7 @@ local hangar = setmetatable({}, {__index = _G})
 local char = util.get_char_slot()
 
 local utils = require("lib.recovery.utils") -- require the utils module
+local script = require("lib.recovery.script") -- require the script module
 
 hangar.value = util.joaat("MP" .. char .. "_PROP_HANGAR_VALUE") -- stat for hangar value
 hangar.owned = util.joaat("MP" .. char .. "_HANGAR_OWNED") -- stat for owned hangar id
@@ -10,8 +11,15 @@ hangar.name = "hangar"
 
 hangar.globals = { -- hangar specific globals
     prices = {
-        ["LSIA A17"] = memory.script_global(262145 + 22603),
-        ["LSIA 1"] = memory.script_global(262145 + 22604)
+        ["LSIA A17"] = script:global(262145 + 22603), -- memory.script_global(262145 + 22603),
+        ["LSIA 1"] = script:global(262145 + 22604) -- memory.script_global(262145 + 22604)
+    },
+    airfreight = {
+        sell_start = 22810,
+        sell_end = 22818,
+        source_cooldown_start = 22751,
+        source_cooldown_end = 22754,
+        rons_cut = script:global(262145 + 22793),
     }
 }
 
@@ -414,8 +422,9 @@ function hangar:init(script)
     -- add set airfreight cargo sell value
     script:add(
         script.hangar_airfreight:text_input("Set Cargo Sell Value", {"rshangarairfreightsellvalue"}, "The value of the cargo you sell", function(value)
-            local start_global = script.globals.hangar.airfreight.sell_start
-            local end_global = script.globals.hangar.airfreight.sell_end
+            local start_global = hangar.globals.airfreight.sell_start
+            local end_global = hangar.globals.airfreight.sell_end
+            local max_sell = menu.ref_by_rel_path(script.hangar_airfreight, "Max Sell Value")
             value = tonumber(value)
 
             if value < 30000 then
@@ -426,17 +435,90 @@ function hangar:init(script)
                 value = 10000000
             end
 
-            script:SET_PACKED_INT_GLOBAL(start_global, end_global, value + 30000)
+            if not max_sell.value then
+                script:packed_global(start_global, end_global):write_int(value)
+            end
         end, 30000),
         "hangar_airfreight_set_value"
     )
 
+    -- add max sell value
+    script:add(
+        script.hangar_airfreight:toggle_loop("Max Sell Value", {}, "Sets the sell value to maxmimum (2.1B)", function()
+            local start_global = hangar.globals.airfreight.sell_start
+            local end_global = hangar.globals.airfreight.sell_end
+            script:packed_global(start_global, end_global):write_int(script.MAX_INT)
+        end,
+        function()
+            local start_global = hangar.globals.airfreight.sell_start
+            local end_global = hangar.globals.airfreight.sell_end
+            script:packed_global(start_global, end_global):write_int(30000)
+        end),
+        "hangar_airfreight_max_value"
+    )
+
+    -- add remove source cooldown
+    --[[script:add(
+        script.hangar_airfreight:toggle_loop("Remove Source Cooldown", {}, "Removes the cooldown for the source", function()
+            local start_global = hangar.globals.airfreight.source_cooldown_start
+            local end_global = hangar.globals.airfreight.source_cooldown_end
+            script:packed_global(start_global, end_global):write_int(1)
+        end,
+        function()
+            local start_global = hangar.globals.airfreight.source_cooldown_start
+            script:global(262145 + start_global):write_int(120000)
+            script:global(262145 + start_global + 1):write_int(180000)
+            script:global(262145 + start_global + 2):write_int(240000)
+            script:global(262145 + start_global + 3):write_int(60000)
+        end),
+        "hangar_airfreight_remove_source_cooldown"
+    )]]
+
+    -- add remove sell cooldown
+    script:add(
+        script.hangar_airfreight:toggle_loop("Remove Sell Cooldown", {}, "Removes the cooldown for the sell", function(state)
+            script:global(262145 + 22792):write_int(1) -- remove cooldown
+        end,
+        function()
+            script:global(262145 + 22792):write_int(180000) -- reset cooldown
+        end),
+        "hangar_airfreight_remove_sell_cooldown"
+    )
+
+    -- add remove rons cut
+    script:add(
+        script.hangar_airfreight:toggle_loop("Remove Ron\'s Cut", {}, "Removes Ron\'s cut from the sell", function(state)
+            hangar.globals.airfreight.rons_cut:write_float(0.0) -- remove rons cut
+        end,
+        function()
+            hangar.globals.airfreight.rons_cut:write_float(0.025) -- reset rons cut
+        end),
+        "hangar_airfreight_remove_rons_cut"
+    )
+
     -- add instant finish airfreight
     script:add(
-        script.hangar_airfreight:action("Instant Finish", {}, "Instantly finishes airfreight", function()
-            script:SET_INT_LOCAL("gb_smuggler", 1928 + 1035, script:GET_INT_LOCAL("gb_smuggler", 1928 + 1078)) -- credit to IceDoomfist for this
+        script.hangar_airfreight:action("Instant Sell", {}, "Instantly finishes sell missions", function()
+            -- credit to IceDoomfist for this
+            script:local("gb_smuggler", 1928 + 1035):write_int(script:local("gb_smuggler", 1928 + 1078):read_int())
         end),
         "hangar_airfreight_instant_finish"
+    )
+
+    -- add instant source
+    script:add(
+        script.hangar_airfreight:action("Instant Source", {}, "Instantly finishes source missions (if cargo doesn\'t show change sessions)", function(state)
+            script:local("gb_smuggler", 1999):write_int(script.MAX_INT)
+        end),
+        "hangar_airfreight_instant_source"
+    )
+
+    -- add open airfreight screen
+    script:add(
+        script.hangar_airfreight:action("Open Airfreight Screen", {}, "Opens the airfreight screen", function()
+            script:START_SCRIPT("appsmuggler")
+        end),
+        "hangar_airfreight_open_screen"
     )
 
     -- add teleport to hangar

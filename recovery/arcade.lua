@@ -2,6 +2,7 @@ local arcade = setmetatable({}, {__index = _G})
 local char = util.get_char_slot()
 
 local utils = require("lib.recovery.utils")
+local script = require("lib.recovery.script")
 
 arcade.value = util.joaat("MP" .. char .. "_PROP_ARCADE_VALUE") -- stat for arcade value
 arcade.owned = util.joaat("MP" .. char .. "_ARCADE_OWNED") -- stat for owned arcade id
@@ -10,12 +11,13 @@ arcade.name = "arcade"
 
 arcade.globals = { -- arcade specific globals
     prices = {
-        ["La Mesa"] = memory.script_global(262145 + 28441),
-        ["Davis"] = memory.script_global(262145 + 28439),
-        ["Eight Bit"] = memory.script_global(262145 + 28444)
+        ["La Mesa"] = script:global(262145 + 28441), -- memory.script_global(262145 + 28441),
+        ["Davis"] = script:global(262145 + 28439), -- memory.script_global(262145 + 28439),
+        ["Eight Bit"] = script:global(262145 + 28444), --- memory.script_global(262145 + 28444)
     },
-    safe = memory.script_global(262145 + 29250),
-    income = memory.script_global(262145 + 29252),
+    safe = script:global(262145 + 29250), -- memory.script_global(262145 + 29250),
+    income_start = 29251,
+    income_end = 29258,
 }
 
 arcade.afk_options = {
@@ -207,11 +209,11 @@ function arcade:init(script)
 
     script:add(
         script.arcade_recovery:action("Trigger Production", {}, "Triggers production at your arcade", function()
-            memory.write_int(arcade.globals.safe, 200000) -- set the maximum amount of money the safe can hold
-            memory.write_int(arcade.globals.income, 200000) -- set the amount of income to maximum
+            arcade.globals.safe:write_int(200000) -- set the maximum amount of money the safe can hold
+            local income = script:packed_global(arcade.globals.income_start, arcade.globals.income_end) -- set the amount of income to maximum
+            income:write_int(200000)
 
             script:STAT_SET_INT("ARCADE_PAY_TIME_LEFT", 1, true) -- set the time left to 1 second
-            script:STAT_SET_INT("ARCADE_POPULARITY", 10000, true) -- set the popularity to 10000
         end),
         "arcade_trigger_production"
     )

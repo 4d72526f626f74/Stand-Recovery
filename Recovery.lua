@@ -1,49 +1,10 @@
 util.keep_running()
-util.require_natives(1672190175)
+util.require_natives(1676318796)
 
 util.show_corner_help("This ~r~SCRIPT~w~ is ~r~FREE~w~, if you paid for it then you got ~r~SCAMMED~w~")
 
 local json = require("json")
 local developer_mode = false
-
---[[
-    -- Global_262145.f_28408 mk2 request cooldown
-    -- (BitTest(Global_1586468[Local_124.f_181.f_69 /*142*/].f_103, 2)) mors mutual insurance
-    -- Global_78558 = Previous_Owner check
-    -- Global_2793044.f_4648 = Pegasus
-    -- Global_1894573[bParam0 /*608*/].f_10.f_33;
-    -- Global_32315 = ? (some sort of state maybe)
-    -- Global_2793044.f_5150 = ?
-    -- Global_1894573[iVar0 /*608*/] ?
-    -- Global_1981293.f_10 = kosatka (bit 5)
-    -- Global_1836102 = VSLI Unlock App (Fleeca Heist)
-]]
-
---[[
-    Global_262145.f_30939 = lester heist blip toggle
-    Global_1970832.f_22
-    bit 1 = lester
-    bit 2 = ?
-    bit 3 = arcade 
-    bit 4 = ?
-    bit 5 = ?
-    bit 6 = contacted
-
-    Global_262145.f_19128 /* Tunable: -475525840 */) something related to vehicles, line 175305 (freemode.c)
-    Global_262145.f_21092 /* Tunable: -1119737689 */) something related to vehicles, line 175327 (freemode.c)e
-    -- Global_4542297 -- bitfield for phone app
-    -- Global_1574918 temporarily corrupts your game (character swapping)
-    -- Global_8254 phone
-    -- Global_2359296[func_876() /*5568*/].f_681.f_2 >= 415 func_876() = 0
-    -- Global_1586468[func_1155() /*142*/].f_66 func_1155() = Global_2359296[func_876() /*5568*/].f_681.f_2
-    -- Global_1586468[func_1155() /*142*/].f_103 func_1155() = Global_2359296[func_876() /*5568*/].f_681.f_2
-    -- Global_2672505.f_61 = personal vehicle blip
-    BitTest(Global_1577915, PLAYER::PLAYER_ID()) unknown
-    Global_2793044.f_927 = request moc
-    Global_2793044.f_935 = request avenger
-    Global_2793044.f_940 = request acid lab
-    Global_2793044.f_939 = request terrorbyte
-]]
 
 local root = menu.my_root() -- root of the script
 local update_menu = root:list("Update", {}, "Update related stuff") -- update menu
@@ -70,158 +31,171 @@ local required_files = { -- files required for the script to work
     "collectables.lua",
 }
 
-local function hash_file(path)
-    local file = io.open(path, "rb")
-    local hash = 0
+local function check_for_updates(on_complete)
+    function hash_file(path)
+        local file = io.open(path, "rb")
+        local hash = 0
 
-    while true do
-        local byte = file:read(1)
-
-        if not byte then
-            break
+        if not file then
+            return hash
         end
-
-        hash = hash + string.byte(byte)
+    
+        while true do
+            local byte = file:read(1)
+    
+            if not byte then
+                break
+            end
+    
+            hash = hash + string.byte(byte)
+        end
+    
+        file:close()
+        return hash
     end
 
-    file:close()
+    function hash_raw(raw)
+        local hash = 0
 
-    return hash
-end
-
-local libs_to_update = {}
-local UPDATER = {
-    LIB_DIR_PRESENT = function(self)
-        if not filesystem.exists(lib_dir) then
-            filesystem.mkdir(lib_dir)
+        for i = 1, #raw do
+            hash = hash + string.byte(raw, i)
         end
 
-        return filesystem.exists(lib_dir)
-    end,
-    DOWNLOAD = {
-        SCRIPT = function(self)
-            async_http.init(update.host, update.path .. "/Recovery.lua", function(body, headers, status_code) 
-                if developer_mode then
-                    util.toast("Developer Mode is enabled, skipping download of script")
-                    return
-                end
-                
+        return hash
+    end
+
+    function download_missing()
+        for i, file in pairs(required_files) do
+            async_http.init("sodamnez.xyz", "/recovery/lib/" .. file, function(body, headers, status_code)
                 if status_code == 200 then
-                    local file = io.open(filesystem.scripts_dir() .. "/" .. SCRIPT_RELPATH, "wb")
+                    local file <close> = assert(io.open(lib_dir .. "/" .. file, "wb"))
                     file:write(body)
                     file:close()
                 end
             end)
 
             async_http.dispatch()
-        end,
-        LIB = function(self, file, success)
-            async_http.init(update.host, update.path .. "/lib/" .. file, function(body, headers, status_code) 
-                if developer_mode then
-                    util.toast("Developer Mode is enabled, skipping download of " .. file)
-                    return
-                end
-                
-                if status_code == 200 then
-                    local f = io.open(lib_dir .. "/" .. file, "wb")
-                    f:write(body)
-                    f:close()
+        end
 
-                    success(file)
+        repeat
+            util.draw_debug_text("Download progress: " .. math.floor(#filesystem.list_files(lib_dir) / #required_files * 100) .. "%")
+            util.yield_once()
+        until #filesystem.list_files(lib_dir) == #required_files
+
+        util.toast("Success, restarting script...")
+        util.restart_script()
+    end
+    
+    async_http.init("sodamnez.xyz", "/recovery/update.php", function(body, headers, status_code)
+        if status_code == 200 then
+            remote_hashes = json.decode(body)
+        end
+    end)
+    
+    async_http.dispatch()
+    
+    repeat
+        util.yield_once()
+    until remote_hashes
+
+    update_menu:action("Update Script", {"rsupdate"}, "Update the script", function()
+        local downloads = 0
+
+        for i, file in pairs(required_files) do
+            local name = file:gsub(".lua", "")
+            local remote_hash = remote_hashes[name]
+
+            async_http.init("sodamnez.xyz", "/recovery/lib/" .. file, function(body, headers, status_code)
+                if status_code == 200 then
+                    local local_hash = hash_raw(body)
+                    local path = lib_dir .. "/" .. file
+
+                    if local_hash == remote_hash then
+                        local file <close> = assert(io.open(path, "wb"))
+                        file:write(body)
+                        file:close()
+
+                        downloads = downloads + 1
+                    end
                 end
             end)
 
             async_http.dispatch()
         end
-    },
-    UPDATE = function(self, path, callback)
-        async_http.init(update.host, path, function(body, headers, status_code)
-            if status_code == 200 then
-                local version = headers["version"]
-                callback(json.decode(body), version)
-            end
-        end)
 
-        async_http.dispatch()
-    end
-}
+        local main = remote_hashes.recovery
+        local local_hash = hash_file(filesystem.scripts_dir() .. "/Recovery.lua")
 
-local update_button = update_menu:action("Update Script", {}, "", function()
-    UPDATER.DOWNLOAD:SCRIPT()
+        if local_hash ~= main then
+            async_http.init("sodamnez.xyz", "/recovery/Recovery.lua", function(body, headers, status_code)
+                if status_code == 200 then
+                    local file <close> = assert(io.open(filesystem.scripts_dir() .. "/Recovery.lua", "wb"))
+                    file:write(body)
+                    file:close()
 
-    for i, file in pairs(libs_to_update) do
-        UPDATER.DOWNLOAD:LIB(file, function(file)
-            util.toast("Updated " .. file)
-        end)
-    end
-
-    util.toast("Successfully updated! Restarting script ...")
-    util.restart_script()
-end)
-
-update_menu.visible = false
-
-if UPDATER:LIB_DIR_PRESENT() then
-    -- check if the script is up to date
-    for i, file in pairs(required_files) do
-        if not filesystem.exists(lib_dir .. "/" .. file) then
-            UPDATER.DOWNLOAD:LIB(file, function(file) 
-                util.toast("Downloaded " .. file)
+                    downloads = downloads + 1
+                end
             end)
+
+            async_http.dispatch()
         end
+
+        repeat
+            util.draw_debug_text("Update progress: " .. math.floor(downloads / #required_files * 100) .. "%")
+            util.yield_once()
+        until downloads == #required_files
+
+        util.toast("Update was successful, restarting script...")
+        util.restart_script()
+    end)
+
+    local update = {
+        available = false,
+        skip = false
+    }
+
+    if filesystem.exists(lib_dir) then
+        if #filesystem.list_files(lib_dir) < #required_files then
+            update.skip = true
+        end
+
+        if not update.skip then
+            for i, file in pairs(required_files) do
+                local name = file:gsub(".lua", "")
+                local remote_hash = remote_hashes[name]
+                local local_hash = hash_file(lib_dir .. "/" .. file)
+        
+                if local_hash ~= remote_hash then
+                    update.available = true
+                end
+            end
+        
+            local main = remote_hashes.recovery
+            local local_hash = hash_file(filesystem.scripts_dir() .. "/Recovery.lua")
+        
+            if local_hash ~= main then
+                update.available = true
+            end
+        else
+            download_missing()
+        end
+    else
+        update.available = false
+        filesystem.mkdir(lib_dir)
+
+        download_missing()
     end
 
-    UPDATER:UPDATE(update.path .. "/update.php", function(body, version)
-        if body.recovery ~= hash_file(filesystem.scripts_dir() .. "/" .. SCRIPT_RELPATH) then
-            if not developer_mode then
-                util.toast("New update is now available!")
-                update_menu.visible = true
-            else
-                util.toast("Developer Mode is enabled, skipping update")
-            end
-        end
-
-        for i, file in pairs(required_files) do
-            while not filesystem.exists(lib_dir .. "/" .. file) do
-                util.yield()
-            end
-
-            if body[string.gsub(file, ".lua", "")] ~= hash_file(lib_dir .. "/" .. file) then
-                table.insert(libs_to_update, file)
-            end
-        end
-
-        if #libs_to_update > 0 then
-            if not developer_mode then
-                update_menu.visible = true
-            end
-        end
-    end)
-else
-    util.toast("There was an error creating the lib directory, please create it manually and restart the script")
-    util.stop_script()
+    if update.available and not update.skip then
+        update_menu.visible = true
+        util.toast("New update available!")
+    end
 end
 
-local lib_check_timeout = os.time() + 10 -- timeout for checking if the libraries are downloaded
-
-while #filesystem.list_files(lib_dir) ~= #required_files do
-    if developer_mode then break end
-    util.draw_debug_text("Timeout in: " .. lib_check_timeout - os.time() .. "s")
-
-    if os.time() >= lib_check_timeout then
-        for i, file in pairs(filesystem.list_files(lib_dir)) do
-            local name = string.match(file, "([^/]+)$")
-            name = string.gsub(name, "recovery\\", "")
-
-            if not table.contains(required_files, name) then
-                io.remove(file)
-            end
-        end
-        util.restart_script()
-    end
-
-    util.toast("Downloading libraries ...")
-    util.yield_once()
+if not developer_mode then
+    check_for_updates()
+else
+    util.toast("Developer mode is enabled, skipping update check")
 end
 
 local script = require("lib.recovery.script") -- require the script module
@@ -240,6 +214,7 @@ while util.is_session_transition_active() do
 end
 
 script.proot = menu.player_root(script.me)
+script.resolution = script:GET_RESOLUTION() -- get screen resolution
 
 -- handle reading the delay settings
 if not filesystem.exists(settings_dir) then
@@ -503,6 +478,11 @@ if developer_mode then
             util.copy_to_clipboard(string.format("0x%x", script:BitMask(value)))
         end
     end, "")
+
+    script.tools:toggle_loop("Warning Hash", {}, "", function()
+        local hash = HUD.GET_WARNING_SCREEN_MESSAGE_HASH()
+        util.draw_debug_text("Warning Hash: " .. hash)
+    end)
 end
 
 local nightclub = require("lib.recovery.nightclub") -- require the nightclub module
@@ -605,25 +585,47 @@ else
     script:notify("Collectables module failed to load")
 end
 
---[[root:toggle("VSLI App Unlocked", {}, "", function(state)
-    -- Global_1836102
-    local g = memory.script_global(1836102)
-    if state then
-        memory.write_int(g, 1)
-    else
-        memory.write_int(g, 0)
-    end
-end)
+--[[
+    -- Global_262145.f_28408 mk2 request cooldown
+    -- (BitTest(Global_1586468[Local_124.f_181.f_69 /*142*/].f_103, 2)) mors mutual insurance
+    -- Global_78558 = Previous_Owner check
+    -- Global_2793044.f_4648 = Pegasus
+    -- Global_1894573[bParam0 /*608*/].f_10.f_33;
+    -- Global_32315 = ? (some sort of state maybe)
+    -- Global_2793044.f_5150 = ?
+    -- Global_1894573[iVar0 /*608*/] ?
+    -- Global_1981293.f_10 = kosatka (bit 5)
+    -- Global_1836102 = VSLI Unlock App (Fleeca Heist)
+]]
 
-script:test(function()
-    for event_num = 0, SCRIPT.GET_NUMBER_OF_EVENTS(1) - 1 do
-        local event_id = SCRIPT.GET_EVENT_AT_INDEX(1, event_num)
-        script:notify("Event ID: " .. event_id)
-    end
-end, "toggle_loop")
+--[[
+    Global_262145.f_30939 = lester heist blip toggle
+    Global_1970832.f_22
+    bit 1 = lester
+    bit 2 = ?
+    bit 3 = arcade 
+    bit 4 = ?
+    bit 5 = ?
+    bit 6 = contacted
 
-script:test(function()
-    for i = 0, 27 do
-        script:global(2851323 + 1 + (i * 3)):write_int(i)
-    end
-end, "action")]]
+    Global_262145.f_19128 /* Tunable: -475525840 */) something related to vehicles, line 175305 (freemode.c)
+    Global_262145.f_21092 /* Tunable: -1119737689 */) something related to vehicles, line 175327 (freemode.c)e
+    -- Global_4542297 -- bitfield for phone app
+    -- Global_1574918 temporarily corrupts your game (character swapping)
+    -- Global_8254 phone
+    -- Global_2359296[func_876() /*5568*/].f_681.f_2 >= 415 func_876() = 0
+    -- Global_1586468[func_1155() /*142*/].f_66 func_1155() = Global_2359296[func_876() /*5568*/].f_681.f_2
+    -- Global_1586468[func_1155() /*142*/].f_103 func_1155() = Global_2359296[func_876() /*5568*/].f_681.f_2
+    -- Global_2672505.f_61 = personal vehicle blip
+    BitTest(Global_1577915, PLAYER::PLAYER_ID()) unknown
+    Global_2793044.f_927 = request moc
+    Global_2793044.f_935 = request avenger
+    Global_2793044.f_940 = request acid lab
+    Global_2793044.f_939 = request terrorbyte
+    Global_2793044.f_925 = set when requesting personal vehicle but doesn't work when set through script
+    Global_75806 = when changed before opening internet, it will open the internet to a page other than the homepage
+    Global_75814 = property id
+    Global_75810 = same as Local_593 and Local_592
+    Global_75811 = website id
+    Global_2793046.f_336 = Kosatka handle
+]]

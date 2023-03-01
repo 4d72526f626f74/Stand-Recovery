@@ -1,15 +1,15 @@
 local script = setmetatable({}, {__index = _G})
 
 -- require modules
-local nightclub = require("lib.recovery.nightclub") -- require the nightclub module
-local arcade = require("lib.recovery.arcade") -- require the arcade module
-local autoshop = require("lib.recovery.autoshop") -- require the autoshop module
 local utils = require("lib.recovery.utils") -- require the utils module
 
 -- add script root
 script.root = menu.my_root()
 script.sroot = menu.shadow_root()
 script.proot = nil -- will be set later
+
+-- resolution
+script.resolution = nil
 
 -- script settings
 script.script_settings = {
@@ -57,6 +57,9 @@ script.me = players.user() -- you
 script.me_ped = players.user_ped() -- your ped
 script.MAX_INT = (2 << 30) - 1 -- max integer value
 script.char = util.get_char_slot() -- character slot
+
+-- warning hashes
+script.MH_BEFORE_PURCHASE = 377291349 -- hash for the final purchase confirmation screen
 
 -- ids for each property
 script.property_ids = {
@@ -111,19 +114,6 @@ script.property_ids = {
 }
 
 script.globals = { -- script globals
-    prices = { -- gloals for prices of different properties
-        
-        arcade = {
-            ["La Mesa"] = memory.script_global(262145 + 28441),
-            ["Davis"] = memory.script_global(262145 + 28439),
-            ["Eight Bit"] = memory.script_global(262145 + 28444)
-        },
-        autoshop = {
-            ["La Mesa"] = memory.script_global(262145 + 31246),
-            ["Mission Row"] = memory.script_global(262145 + 31248),
-            ["Burton"] = memory.script_global(262145 + 31249)
-        }
-    },
     transaction_error = {
         banner = memory.script_global(4536673), -- https://www.unknowncheats.me/forum/grand-theft-auto-v/500059-globals-locals-discussion-read-page-1-a.html
         notification = memory.script_global(4536674), -- https://www.unknowncheats.me/forum/grand-theft-auto-v/500059-globals-locals-discussion-read-page-1-a.html
@@ -167,41 +157,10 @@ script.globals = { -- script globals
         tip = memory.script_global(262145 + 33772),
         fare = memory.script_global(262145 + 33773),
     },
-    acid_lab = {
-        support_bike_cooldown = memory.script_global(262145 + 21865), -- unused due to support bike having no cooldown yet
-        acid_lab_cooldown = memory.script_global(262145 + 21866),
-        supplies_cost_per_segment = memory.script_global(262145 + 21869), -- default is 1200
-        supplies_cost_per_segment_base = memory.script_global(262145 + 21870), -- default is 1200
-        boost_amount = memory.script_global(262145 + 21871),
-        boost_expiry = memory.script_global(262145 + 21872),
-        product_rename_price = memory.script_global(262145 + 21873),
-        rename_price = memory.script_global(262145 + 21874),
-        utility_fee = memory.script_global(262145 + 21867), -- not sure what this does yet
-        equipment_upgrade_utility_fee = memory.script_global(262145 + 21868), -- not sure what this does yet
-        product_capacity = memory.script_global(262145 + 18949),
-        product_value = memory.script_global(262145 + 17425), -- 1485 is the default value,
-        production_time = memory.script_global(262145 + 17396), -- default is 135000
-        utility_cost = memory.script_global(262145 + 18950),
-        resupply_crate_value = memory.script_global(262145 + 32700), -- default is 25
-        damage_scale = memory.script_global(262145 + 32693),
-        resupply_timer = memory.script_global(1648637 + 7), -- Global_1648637[iParam0]) >= Global_262145.f_18954,
-        supplies_delay = memory.script_global(262145 + 18954), -- default is 600,
-        request_acid_lab = memory.script_global(2793046 + 938), -- from heist control
-    },
     vehicle_proximity = memory.script_global(262145 + 12833), -- default is 100,
-    hangar = {
-        airfreight = {
-            sell_start = 22810,
-            sell_end = 22818,
-            sell_cooldown = memory.script_global(262145 + 15449)
-        }
-    },
     arcade_bitfield = memory.script_global(1970832 + 22),
     phone_bitfield = memory.script_global(8254), -- bit 2 = internet is open, bit 8 = phone is open,
-}
-
-script.locals = { -- script locals
-    -- no locals yet
+    property_selection = memory.script_global(75814), 
 }
 
 -- money options for presets
@@ -346,19 +305,96 @@ function script:global(script_global)
     end
 
     function class:read_int()
-        return memory.read_int(script_global)
+        if script_global ~= 0 then
+            return memory.read_int(script_global)
+        else
+            return 0
+        end
     end
 
     function class:write_int(value)
-        memory.write_int(script_global, value)
+        if script_global ~= 0 then
+            memory.write_int(script_global, value)
+        end
     end
 
     function class:read_float()
-        return memory.read_float(script_global)
+        if script_global ~= 0 then
+            return memory.read_float(script_global)
+        else
+            return 0
+        end
     end
 
     function class:write_float(value)
-        memory.write_float(script_global, value)
+        if script_global ~= 0 then
+            memory.write_float(script_global, value)
+        end
+    end
+
+    function class:bit_test(bit)
+        if script_global ~= 0 then
+            return script:BitTest(memory.read_int(script_global), bit)
+        else
+            return false
+        end
+    end
+
+    function class:bit_set(bit)
+        if script_global ~= 0 then
+            memory.write_int(script_global, script:BitSet(memory.read_int(script_global), bit))
+        end
+    end
+
+    function class:bit_clear(bit)
+        if script_global ~= 0 then
+            memory.write_int(script_global, script:BitClear(memory.read_int(script_global), bit))
+        end
+    end
+
+    function class:bit_toggle(bit)
+        if script_global ~= 0 then
+            memory.write_int(script_global, script:BitToggle(memory.read_int(script_global), bit))
+        end
+    end
+
+    function class:bit_mask_set(mask)
+        if script_global ~= 0 then
+            memory.write_int(script_global, memory.read_int(script_global) | mask)
+        end
+    end
+
+    function class:bit_mask_clear(mask)
+        if script_global ~= 0 then
+            memory.write_int(script_global, memory.read_int(script_global) & ~mask)
+        end
+    end
+
+    function class:bit_mask_toggle(mask)
+        if script_global ~= 0 then
+            memory.write_int(script_global, memory.read_int(script_global) ~ mask)
+        end
+    end
+
+    function class:dbg(text)
+        text = text or ""
+        if script_global ~= 0 then
+            script:dbg(text .. memory.read_int(script_global))
+        end
+    end
+
+    function class:write_string(value)
+        if script_global ~= 0 then
+            memory.write_string(script_global, value)
+        end
+    end
+
+    function class:read_string(length)
+        if script_global ~= 0 then
+            return memory.read_string(script_global, length)
+        else
+            return ""
+        end
     end
 
     return class
@@ -374,26 +410,397 @@ function script:local(script_name, script_local)
     end
 
     function class:read_int()
-        return memory.read_int(script_local)
+        if script_local ~= 0 then
+            return memory.read_int(script_local)
+        else
+            return 0
+        end
     end
 
     function class:write_int(value)
-        memory.write_int(script_local, value)
+        if script_local ~= 0 then
+            memory.write_int(script_local, value)
+        end
     end
 
     function class:read_float()
-        return memory.read_float(script_local)
+        if script_local ~= 0 then
+            return memory.read_float(script_local)
+        else
+            return 0
+        end
     end
 
     function class:write_float(value)
-        memory.write_float(script_local, value)
+        if script_local ~= 0 then
+            memory.write_float(script_local, value)
+        end
+    end
+
+    function class:bit_test(bit)
+        if script_local ~= 0 then
+            return script:BitTest(memory.read_int(script_local), bit)
+        else
+            return false
+        end
+    end
+
+    function class:bit_set(bit)
+        if script_local ~= 0 then
+            memory.write_int(script_local, script:BitSet(memory.read_int(script_local), bit))
+        end
+    end
+
+    function class:bit_clear(bit)
+        if script_local ~= 0 then
+            memory.write_int(script_local, script:BitClear(memory.read_int(script_local), bit))
+        end
+    end
+
+    function class:bit_toggle(bit)
+        if script_local ~= 0 then
+            memory.write_int(script_local, script:BitToggle(memory.read_int(script_local), bit))
+        end
+    end
+
+    function class:bit_mask_set(mask)
+        if script_local ~= 0 then
+            memory.write_int(script_local, memory.read_int(script_local) | mask)
+        end
+    end
+
+    function class:bit_mask_clear(mask)
+        if script_local ~= 0 then
+            memory.write_int(script_local, memory.read_int(script_local) & ~mask)
+        end
+    end
+
+    function class:bit_mask_toggle(mask)
+        if script_local ~= 0 then
+            memory.write_int(script_local, memory.read_int(script_local) ~ mask)
+        end
+    end
+
+    function class:dbg(text)
+        text = text or ""
+        if script_local ~= 0 then
+            script:dbg(text .. memory.read_int(script_local))
+        end
+    end
+
+    function class:write_string(value)
+        if script_local ~= 0 then
+            memory.write_string(script_local, value)
+        end
+    end
+
+    function class:read_string()
+        if script_local ~= 0 then
+            return memory.read_string(script_local)
+        else
+            return ""
+        end
     end
 
     return class
 end
 
+-- function for handling memory allocations
+function script:alloc(size)
+    local class = {
+        ref = memory.alloc(size)
+    }
+
+    function class:read_byte()
+        if self.ref ~= 0 then
+            return memory.read_byte(self.ref)
+        else
+            return 0
+        end
+    end
+
+    function class:write_byte(value)
+        if self.ref ~= 0 then
+            memory.write_byte(self.ref, value)
+        end
+    end
+
+    function class:read_int()
+        if self.ref ~= 0 then
+            return memory.read_int(self.ref)
+        else
+            return 0
+        end
+    end
+
+    function class:write_int(value)
+        if self.ref ~= 0 then
+            memory.write_int(self.ref, value)
+        end
+    end
+
+    function class:read_float()
+        if self.ref ~= 0 then
+            return memory.read_float(self.ref)
+        else
+            return 0
+        end
+    end
+
+    function class:write_float(value)
+        if self.ref ~= 0 then
+            memory.write_float(self.ref, value)
+        end
+    end
+
+    function class:read_string(length)
+        if self.ref ~= 0 then
+            return memory.read_string(self.ref, length)
+        else
+            return ""
+        end
+    end
+
+    function class:write_string(value)
+        if self.ref ~= 0 then
+            memory.write_string(self.ref, value)
+        end
+    end
+
+    function class:read_long()
+        if self.ref ~= 0 then
+            return memory.read_long(self.ref)
+        else
+            return 0
+        end
+    end
+
+    function class:write_long(value)
+        if self.ref ~= 0 then
+            memory.write_long(self.ref, value)
+        end
+    end
+
+    return class
+end
+
+-- function for handling packed globals
+function script:packed_global(start_global, end_global)
+    local class = {}
+
+    function class:write_int(value)
+        for i = start_global, end_global do
+            script:global(262145 + i):write_int(value)
+        end
+    end
+
+    function class:write_float(value)
+        for i = start_global, end_global do
+            script:global(262145 + i):write_float(value)
+        end
+    end
+
+    function class:write_byte(value)
+        for i = start_global, end_global do
+            script:global(262145 + i):write_byte(value)
+        end
+    end
+
+    return class
+end
+
+-- function for checking if a certain warning message is on screen
+function script:WARNING_ACTIVE(hash)
+    if HUD.GET_WARNING_SCREEN_MESSAGE_HASH() ~= hash then
+        return false
+    end
+
+    return true
+end
+
+-- function for returning the current webpage and website ids
+function script:GET_WEBSITE_INFO()
+    return {
+        website_id = HUD.GET_CURRENT_WEBSITE_ID(),
+        webpage_id = HUD.GET_CURRENT_WEBPAGE_ID()
+    }
+end
+
+function script:GET_WEBSITE_PROPERTY_SELECTION()
+    -- Global_75814
+    return memory.read_int(script.globals.property_selection)
+end
+
+function script:WEBSITE_ID_TO_NAME(id)
+    if not script:IS_SCRIPT_RUNNING("appinternet") then
+        return "INTERNET_NOT_OPEN"
+    end
+
+    if id == 2 then
+        return "Main Menu"
+    end
+
+    if id == 10 then
+        return "Legendary Motorsport"
+    end
+
+    if id == 18 then
+        return "Dynasty8RealEstate"
+    end
+
+    if id == 27 then
+        return "Dynasty8Executive"
+    end
+
+    if id == 28 then
+        return "Maze Bank Foreclosures"
+    end
+end
+
+function script:WEBPAGE_ID_TO_STATE(id)
+    if not script:IS_SCRIPT_RUNNING("appinternet") then
+        return "INTERNET_NOT_OPEN"
+    end
+
+    if id == 1 then
+        return "WEBSITE_OPEN_NOT_ENTERED"
+    end
+
+    if id == 2 then
+        return "WEBSITE_OPEN_ENTERED"
+    end
+
+    return "UNKNOWN"
+end
+
+function script:SELECTION_ID_TO_NAME(id)
+    --[[
+        0 = NULL
+        1 = ALL_FILTER
+        2 = CLUBHOUSE_FILTER
+        3 = BUNKER_FILTER
+        4 = HANGAR_FILTER
+        5 = FACILITY_FILTER
+        6 = NIGHTCLUB_FILTER
+        7 = ARCADE_FILTER
+        8 = AUTO_SHOP_FILTER
+        42 = HANGAR_LSIA_A17
+        43 = HANGAR_LSIA_1
+        29 = NIGHTCLUB_LA_MESA
+        20 = NIGHTCLUB_VESPUCCI_CANALS
+        28 = NIGHTCLUB_MISSION_ROW
+        14 = ARCADE_LA_MESA
+        17 = ARCADE_DAVIS
+        16 = ARCADE_EIGHT_BIT
+        13 = AUTO_SHOP_LA_MESA
+        9 = AUTO_SHOP_MISSION_ROW
+        11 = AUTO_SHOP_BURTON
+    ]]
+
+    if not script:IS_SCRIPT_RUNNING("appinternet") then
+        memory.write_int(script.globals.property_selection, 0)
+        return "INTERNET_NOT_OPEN"
+    end
+
+    if id == 0 then
+        return "NULL"
+    end
+
+    if id == 1 then
+        return "ALL_FILTER"
+    end
+
+    if id == 2 then
+        return "CLUBHOUSE_FILTER"
+    end
+
+    if id == 3 then
+        return "BUNKER_FILTER"
+    end
+
+    if id == 4 then
+        return "HANGAR_FILTER"
+    end
+
+    if id == 5 then
+        return "FACILITY_FILTER"
+    end
+
+    if id == 6 then
+        return "NIGHTCLUB_FILTER"
+    end
+
+    if id == 7 then
+        return "ARCADE_FILTER"
+    end
+
+    if id == 8 then
+        return "AUTO_SHOP_FILTER"
+    end
+
+    if id == 42 then
+        return "HANGAR_LSIA_A17"
+    end
+
+    if id == 43 then
+        return "HANGAR_LSIA_1"
+    end
+
+    if id == 29 then
+        return "NIGHTCLUB_LA_MESA"
+    end
+
+    if id == 20 then
+        return "NIGHTCLUB_VESPUCCI_CANALS"
+    end
+
+    if id == 28 then
+        return "NIGHTCLUB_MISSION_ROW"
+    end
+
+    if id == 14 then
+        return "ARCADE_LA_MESA"
+    end
+
+    if id == 17 then
+        return "ARCADE_DAVIS"
+    end
+
+    if id == 16 then
+        return "ARCADE_EIGHT_BIT"
+    end
+
+    if id == 13 then
+        return "AUTO_SHOP_LA_MESA"
+    end
+
+    if id == 9 then
+        return "AUTO_SHOP_MISSION_ROW"
+    end
+
+    if id == 11 then
+        return "AUTO_SHOP_BURTON"
+    end
+end
+
 -- function for starting scripts
 function script:START_SCRIPT(script_name, stack_size)
+    stack_size = stack_size or 5000
+    local thread_id = 0
+
+    -- credit to IceDoomfist for this
+    if SCRIPT.GET_NUMBER_OF_THREADS_RUNNING_THE_SCRIPT_WITH_THIS_HASH(util.joaat(script_name)) <= 0 then
+        SCRIPT.REQUEST_SCRIPT(script_name)
+        repeat util.yield_once() until SCRIPT.HAS_SCRIPT_LOADED(script_name)
+        thread_id = SYSTEM.START_NEW_SCRIPT(script_name, stack_size)
+        SCRIPT.SET_SCRIPT_AS_NO_LONGER_NEEDED(script_name)
+    end
+
+    return thread_id
+end
+
+-- function for starting scripts without checking if it's already running
+function script:START_SCRIPT_NO_CHECK(script_name, stack_size)
     stack_size = stack_size or 5000
 
     -- credit to IceDoomfist for this
@@ -401,6 +808,11 @@ function script:START_SCRIPT(script_name, stack_size)
     repeat util.yield_once() until SCRIPT.HAS_SCRIPT_LOADED(script_name)
     SYSTEM.START_NEW_SCRIPT(script_name, stack_size)
     SCRIPT.SET_SCRIPT_AS_NO_LONGER_NEEDED(script_name)
+end
+
+-- function for checking if the script is running
+function script:IS_SCRIPT_RUNNING(script_name)
+    return SCRIPT.GET_NUMBER_OF_THREADS_RUNNING_THE_SCRIPT_WITH_THIS_HASH(util.joaat(script_name)) > 0
 end
 
 -- functions
@@ -448,7 +860,7 @@ function script:PURCHASE_PROPERTY(property, name, override=false, value=0)
         end
 
         if property.name == "nightclub" and value < script.MAX_INT / 2 then
-            local price = memory.read_int(property.globals.prices[name])
+            local price = property.globals.prices[name]:read_int()
             value = (value + price) * 2
 
             if name == "La Mesa" then
@@ -457,7 +869,7 @@ function script:PURCHASE_PROPERTY(property, name, override=false, value=0)
         end
 
         if property.name == "arcade" and value < script.MAX_INT / 2 then
-            local price = memory.read_int(property.globals.prices[name])
+            local price = property.globals.prices[name]:read_int()
             value = (value + price) * 2
 
             if name == "Davis" then
@@ -474,7 +886,7 @@ function script:PURCHASE_PROPERTY(property, name, override=false, value=0)
         end
 
         if property.name == "autoshop" and value < script.MAX_INT / 2 then
-            local price = memory.read_int(property.globals.prices[name])
+            local price = property.globals.prices[name]:read_int()
             value = (value + price) * 2
 
             if name == "Mission Row" then
@@ -487,7 +899,7 @@ function script:PURCHASE_PROPERTY(property, name, override=false, value=0)
         end
 
         if property.name == "hangar" and value < script.MAX_INT / 2 then
-            local price = memory.read_int(property.globals.prices[name])
+            local price = property.globals.prices[name]:read_int()
             value = (value + price) * 2
 
             if name == "LSIA A17" then
@@ -513,6 +925,18 @@ function script:PURCHASE_PROPERTY(property, name, override=false, value=0)
     else
         script:CLOSE_BROWSER()
     end 
+end
+
+-- function for getting your resolution
+function script:GET_RESOLUTION()
+    local xptr, yptr = memory.alloc_int(4), memory.alloc_int(4)
+    GRAPHICS.GET_ACTUAL_SCREEN_RESOLUTION(xptr, yptr)
+    local x, y = tonumber(memory.read_int(xptr)), tonumber(memory.read_int(yptr))
+
+    return {
+        x = x,
+        y = y
+    }
 end
 
 -- read stats using native (STATS::STAT_GET_INT)
@@ -1319,7 +1743,7 @@ function script:GET_ENTITY_FROM_BLIP(blip)
 end
 
 function script:TELEPORT(x, y, z)
-    ENTITY.SET_ENTITY_COORDS_NO_OFFSET(script.me_ped, x, y, z, false, false, false)
+    ENTITY.SET_ENTITY_COORDS_NO_OFFSET(players.user_ped(), x, y, z, false, false, false)
 end
 
 function script:CP_CALCULATE_CUT_FOR_AMOUNT(take, amount)

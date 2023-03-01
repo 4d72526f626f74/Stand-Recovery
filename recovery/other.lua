@@ -1,5 +1,7 @@
 local other_methods = setmetatable({}, {__index = _G})
 
+local loop_running = false
+
 other_methods.property_changer = {
     property_ids = {
         ["Invalid"] = 0,
@@ -384,7 +386,7 @@ function other_methods:init(script)
             local veh = memory.script_global(1586468 + 1 + (slot * 142) + 103)
             local bitfield = memory.read_int(veh)
 
-            memory.write_int(veh, bitfield & ((bitfield & (1 << 1)) ~= 0 and ~0x26 or ~0x40))
+            memory.write_int(veh, bitfield & ((bitfield & (1 << 1)) ~= 0 and ~0x42 or ~0x40))
         end
     end)
 
@@ -393,10 +395,11 @@ function other_methods:init(script)
         local veh = memory.script_global(1586468 + 1 + (memory.read_int(pv_slot) * 142) + 103)
         local bitfield = memory.read_int(veh)
 
-        memory.write_int(veh, bitfield & ((bitfield & (1 << 1)) ~= 0 and ~0x26 or ~0x40))
+        memory.write_int(veh, bitfield & ((bitfield & (1 << 1)) ~= 0 and ~0x42 or ~0x40))
     end)
 
     script.other:action("Add Insurance", {}, "Insures your personal vehicle", function()
+        -- bit 0 = whether the vehicle is in your garage or not
         local player_veh = PED.GET_VEHICLE_PED_IS_IN(players.user_ped(), false)
         if player_veh ~= 0 then
             local pv_slot = script:global(2359296 + 1 + (0 * 5568) + 681 + 2)
@@ -406,8 +409,8 @@ function other_methods:init(script)
             if script:BitTest(bitfield, 2) then
                 script:msg("Vehicle is already insured!")
             else
-                veh:write_int(script:BitSet(bitfield, 2))
-                script:msg("Vehicle is now insured, to make sure it stays insured goto LS Customs and change any upgrade on your vehicle")
+                veh:bit_mask_set(0x400804) -- 0000 0000 0000 0000 0000 0000 0100 0000 0000 0000 0000 0000 1000 0000 0100 0000
+                script:msg("WARNING: If you restart your game without going to LS Customs and changing any vehicle upgrade the insurance won\'t stick after the game is restarted!")
             end
         end
     end)
@@ -426,6 +429,158 @@ function other_methods:init(script)
         menu.ref_by_rel_path(script.other, "Add Insurance"):trigger()
         util.yield_once()
     end)
+
+    script:add(
+        script.other:list("Vehicle Manager", {"rsvehmanager"}, "Personal Vehicle Manager", function()
+            loop_running = true
+
+            for i, child in pairs(menu.ref_by_rel_path(script.other, "Vehicle Manager"):getChildren()) do
+                if child:isValid() then
+                    child:delete()
+                end
+            end
+
+            for slot = 0, 415 do
+                local pv_slot = script:global(2359296 + 1 + (0 * 5568) + 681 + 2)
+                local veh = script:global(1586468 + 1 + (slot * 142) + 103)
+                local hash = script:global(1586468 + 1 + (slot * 142) + 66)
+                local name = util.get_label_text(util.reverse_joaat(hash:read_int()))
+
+                if name ~= "NULL" then
+                    local ref = script.other_vehicle_manager:list(name, {"rspv" .. slot}, name)
+                    ref:divider("Vehicle Info")
+                    local active = ref:readonly(veh:bit_test(0) and "Active: Yes" or "Active: No")
+                    local destroyed = ref:readonly(((veh:bit_test(1) or veh:bit_test(16)) and "Destroyed: Yes" or "Destroyed: No"))
+                    local insured = ref:readonly(veh:bit_test(2) and "Insured: Yes" or "Insured: No")
+                    local impounded = ref:readonly(veh:bit_test(6) and "Impounded: Yes" or "Impounded: No")
+                    
+                    util.create_tick_handler(function()
+                        if not ref:isValid() then
+                            return false
+                        end
+
+                        if not loop_running then
+                            return false
+                        end
+
+                        if veh:bit_test(0) then
+                            menu.set_menu_name(active, "Active: Yes")
+                        else
+                            menu.set_menu_name(active, "Active: No")
+                        end
+
+                        if veh:bit_test(1) or veh:bit_test(16) then
+                            menu.set_menu_name(destroyed, "Destroyed: Yes")
+                        else
+                            menu.set_menu_name(destroyed, "Destroyed: No")
+                        end
+
+                        if veh:bit_test(2) then
+                            menu.set_menu_name(insured, "Insured: Yes")
+                        else
+                            menu.set_menu_name(insured, "Insured: No")
+                        end
+
+                        if veh:bit_test(6) then
+                            menu.set_menu_name(impounded, "Impounded: Yes")
+                        else
+                            menu.set_menu_name(impounded, "Impounded: No")
+                        end
+                    end)
+                    
+                    ref:divider("Vehicle Actions")
+                    ref:action("Return To Garage", {"rspv" .. slot .. "return"}, "Returns the vehicle to your garage", function()
+                        if veh:bit_test(0) then
+                            veh:bit_clear(0)
+                            if not veh:bit_test(0) then
+                                menu.set_menu_name(active, "Active: No")
+                            end
+                        else
+                            script:msg("Vehicle is already in your garage!")
+                        end
+                    end)
+
+                    ref:action("Request", {"rspv" .. slot .. "request"}, "Requests the vehicle", function()
+                        if not veh:bit_test(0) then
+                            pv_slot:write_int(slot)
+                            veh:bit_set(0)
+                            if veh:bit_test(0) then
+                                if veh:bit_test(1) then
+                                    veh:bit_clear(1)
+                                    menu.set_menu_name(destroyed, "Destroyed: No")
+                                end
+                                menu.set_menu_name(active, "Active: Yes")
+                            end
+                        else
+                            script:msg("Vehicle is not in your garage!")
+                        end
+                    end)
+
+                    ref:action("Claim", {"rspv" .. slot .. "claim"}, "Claims the vehicle from Mors Mutual Insurance", function()
+                        if veh:bit_test(1) then
+                            veh:bit_mask_clear(0x42)
+                            if not veh:bit_test(1) then
+                                menu.set_menu_name(destroyed, "Destroyed: No")
+                            end
+                        else
+                            script:msg("Vehicle is not destroyed!")
+                        end
+                    end)
+
+                    ref:action("Claim From Impound", {"rspv" .. slot .. "claimimpounded"}, "Claims the vehicle from the impound", function()
+                        if veh:bit_test(6) then
+                            veh:bit_mask_clear(0x43)
+                            if not veh:bit_test(6) then
+                                menu.set_menu_name(impounded, "Impounded: No")
+                            end
+                        else
+                            script:msg("Vehicle is not impounded!")
+                        end
+                    end)
+
+                    ref:action("Change Model", {"rspv" .. slot .. "model"}, "Changes the vehicle model", function()
+                        local model = script:DISPLAY_ONSCREEN_KEYBOARD()
+                        if model ~= 0 then
+                            local label = util.get_label_text(model)
+                            if label ~= "NULL" then
+                                hash:write_int(util.joaat(model))
+                                menu.set_menu_name(ref, label)
+                            else
+                                script:msg("Invalid vehicle model!")
+                            end
+                        end
+                    end)
+
+                    ref:action("Add Insurance", {"rspv" .. slot .. "insure"}, "Insures the vehicle", function()
+                        if not veh:bit_test(2) then
+                            veh:bit_mask_set(0x804)
+                            if veh:bit_test(2) then
+                                menu.set_menu_name(insured, "Insured: Yes")
+                            end
+                        else
+                            script:msg("Vehicle is already insured!")
+                        end
+                    end)
+
+                    ref:action("Remove Insurance", {"rspv" .. slot .. "uninsure"}, "Uninsures the vehicle", function()
+                        if veh:bit_test(2) then
+                            veh:bit_mask_clear(0xFFFF)
+                            if not veh:bit_test(2) then
+                                veh:bit_mask_set(0x10040)
+                                menu.set_menu_name(insured, "Insured: No")
+                            end
+                        else
+                            script:msg("Vehicle is not insured!")
+                        end
+                    end)
+                end
+            end
+        end,
+        function()
+            loop_running = false
+        end),
+        "other_vehicle_manager"
+    )
 end
 
 return other_methods
