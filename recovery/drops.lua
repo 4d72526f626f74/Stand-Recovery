@@ -5,7 +5,7 @@ function drops:init(script)
     -- add drops to the menu
     script:add(
         script.root:list("Drops", {}, "Money drop", function()
-            menu.show_warning(script.drops, CLICK_MENU, "These features are risky", function()
+            menu.show_warning(script.drops, CLICK_MENU, "These features are risky, trash and were a complete waste of time adding and the same can be said for using them (emphasis on 'complete waste of time')", function()
                 -- do nothing
             end,
             function()

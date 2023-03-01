@@ -153,7 +153,7 @@ function hangar:init(script)
 
     -- add hangar recovery option to the menu
     script:add(
-        script.root:list("Hangar", {}, "Hangar recovery options", function()
+        script.root:list("Hangar", {"rshangar"}, "Hangar recovery options", function()
             local ref = menu.ref_by_rel_path(script.root, "Hangar")
             local owned_data = script:GET_OWNED_PROPERTY_DATA("hangar")
             
@@ -171,12 +171,12 @@ function hangar:init(script)
     script.hangar_recovery:divider("1B Recovery")
 
     script:add(
-        script.hangar_recovery:list("Presets", {}, "Presets for 1B Recovery"),
+        script.hangar_recovery:list("Presets", {"rshapresets"}, "Presets for 1B Recovery"),
         "hangar_presets"
     )
 
     script:add(
-        script.hangar_recovery:list("Custom", {}, "Customisable options for 1B Recovery"),
+        script.hangar_recovery:list("Custom", {"rshapcustom"}, "Customisable options for 1B Recovery"),
         "hangar_custom"
     )
 
@@ -187,13 +187,13 @@ function hangar:init(script)
 
     -- add the hangar presets
     script:add(
-        script.hangar_presets:list_select("Money", {}, "Setting this does not change the amount you get from the afk loop", script.money_options, 1, function() end),
+        script.hangar_presets:list_select("Money", {"rsphamoney"}, "Setting this does not change the amount you get from the afk loop", script.money_options, 1, function() end),
         "hangar_presets_money"
     )
 
     -- add buy hangar
     script:add(
-        script.hangar_presets:action("Buy Hangar", {}, "Automatically buys a hangar for you", function()
+        script.hangar_presets:action("Buy Hangar", {"rspbuyha"}, "Automatically buys a hangar for you", function()
             local owned_data = script:GET_OWNED_PROPERTY_DATA("hangar")
             local choice = hangar.afk_options.available[math.random(#hangar.afk_options.available)]
             local value = script:CONVERT_VALUE(script.money_options[script.hangar_presets_money.value])
@@ -212,7 +212,7 @@ function hangar:init(script)
 
     -- add set value
     script:add(
-        script.hangar_presets:action("Set Value", {}, "Sets the value of your hangar (this is for manual purchases)", function()
+        script.hangar_presets:action("Set Value", {"rsphasetval"}, "Sets the value of your hangar (this is for manual purchases)", function()
             local money = script:CONVERT_VALUE(script.money_options[script.hangar_presets_money.value])
             local current_value = script:STAT_GET_INT("PROP_HANGAR_VALUE")
             
@@ -227,7 +227,7 @@ function hangar:init(script)
 
     -- add loop set value
     script:add(
-        script.hangar_presets:toggle_loop("Loop Set Value", {}, "Does the same as set value but instead of setting it once it sets it repeatedly", function()
+        script.hangar_presets:toggle_loop("Loop Set Value", {"rsphasetvalloop"}, "Does the same as set value but instead of setting it once it sets it repeatedly", function()
             local afk = menu.ref_by_rel_path(script.hangar_presets, "AFK Loop")
             local loop_set = menu.ref_by_rel_path(script.hangar_presets, "Loop Set Value")
 
@@ -245,7 +245,7 @@ function hangar:init(script)
     script.hangar_presets:divider("AFK Money Loop")
 
     script:add(
-        script.hangar_presets:toggle("Override Value", {}, "Overrides the afk loop value from 1.07B to the choice selected in money under options", function()
+        script.hangar_presets:toggle("Override Value", {"rsphaoverride"}, "Overrides the afk loop value from 1.07B to the choice selected in money under options", function()
         
         end),
         "hangar_presets_override_value"
@@ -253,7 +253,7 @@ function hangar:init(script)
 
     -- block phone calls
     script:add(
-        script.hangar_presets:toggle("Block Phone Calls", {}, "Blocks incoming phones calls", function(state)
+        script.hangar_presets:toggle("Block Phone Calls", {"rsblockcalls"}, "Blocks incoming phones calls", function(state)
             local phone_calls = menu.ref_by_command_name("nophonespam")
             phone_calls.value = state
         end),
@@ -262,7 +262,7 @@ function hangar:init(script)
 
     -- add afk loop option
     script:add(
-        script.hangar_presets:toggle_loop("AFK Loop", {}, "Alternates between buying hangars you don\'t own, the value is set to the max (" .. tostring(math.floor(script.MAX_INT / 2)) .. ")", function(state)
+        script.hangar_presets:toggle_loop("AFK Loop", {"rsphaloop"}, "Alternates between buying hangars you don\'t own, the value is set to the max (" .. tostring(math.floor(script.MAX_INT / 2)) .. ")", function(state)
             local afk = menu.ref_by_rel_path(script.hangar_presets, "AFK Loop")
             local owned_data = script:GET_OWNED_PROPERTY_DATA("hangar")
             local choice = hangar.afk_options.available[math.random(#hangar.afk_options.available)]
@@ -306,19 +306,19 @@ function hangar:init(script)
 
     -- add loop delay option
     script:add(
-        script.hangar_presets:slider("Loop Delay", {"rshangardelay"}, "The delay between each loop", 0, script.MAX_INT, 100, 100, function() end),
+        script.hangar_presets:slider("Loop Delay", {"rsphaloopdelay"}, "The delay between each loop", 0, script.MAX_INT, 100, 100, function() end),
         "hangar_presets_loop_delay"
     )
 
     -- add loop count option
     script:add(
-        script.hangar_presets:slider("Loops", {"rshangarcount"}, "The amount of loops to do before stopping", 0, script.MAX_INT, 0, 1, function() end),
+        script.hangar_presets:slider("Loops", {"rsphaloops"}, "The amount of loops to do before stopping", 0, script.MAX_INT, 0, 1, function() end),
         "hangar_presets_loop_count"
     )
 
     -- add options for custom
     script:add(
-        script.hangar_custom:text_input("Money", {"rshangarvalue"}, "The hangar value", function(value)
+        script.hangar_custom:text_input("Money", {"rschamoney"}, "The hangar value", function(value)
             value = tonumber(value) -- ensure that the value is a number
             
             if value ~= nil then -- prevents an error when stopping the script
@@ -334,7 +334,7 @@ function hangar:init(script)
 
     -- add buy hangar option to custom (works the same as the presets)
     script:add(
-        script.hangar_custom:action("Buy Hangar", {}, "Automatically buys a hangar for you", function()
+        script.hangar_custom:action("Buy Hangar", {"rscbuyha"}, "Automatically buys a hangar for you", function()
             local owned_data = script:GET_OWNED_PROPERTY_DATA("hangar")
             local choice = hangar.afk_options.available[math.random(#hangar.afk_options.available)]
             local value = tonumber(script.hangar_custom_money.value)
@@ -356,7 +356,7 @@ function hangar:init(script)
 
     -- add block phone calls option
     script:add(
-        script.hangar_custom:toggle("Block Phone Calls", {}, "Blocks incoming phones calls", function(state)
+        script.hangar_custom:toggle("Block Phone Calls", {"rsblockcalls"}, "Blocks incoming phones calls", function(state)
             local phone_calls = menu.ref_by_command_name("nophonespam")
             phone_calls.value = state
         end),
@@ -365,7 +365,7 @@ function hangar:init(script)
 
     -- add afk loop option
     script:add(
-        script.hangar_custom:toggle_loop("AFK Loop", {}, "Alternates between buying hangars you don\'t own, the value is set to the max (" .. tostring(math.floor(script.MAX_INT / 2)) .. ")", function(state)
+        script.hangar_custom:toggle_loop("AFK Loop", {"rschaloop"}, "Alternates between buying hangars you don\'t own, the value is set to the max (" .. tostring(math.floor(script.MAX_INT / 2)) .. ")", function(state)
             local afk = menu.ref_by_rel_path(script.hangar_custom, "AFK Loop")
             local choice = hangar.afk_options.available[math.random(#hangar.afk_options.available)]
             local loop_delay = menu.ref_by_rel_path(script.hangar_custom, "Loop Delay")
@@ -403,91 +403,25 @@ function hangar:init(script)
 
     -- add loop delay option
     script:add(
-        script.hangar_custom:slider("Loop Delay", {"rshangardelay"}, "The delay between each loop", 0, script.MAX_INT, 100, 100, function() end),
+        script.hangar_custom:slider("Loop Delay", {"rschaloopdelay"}, "The delay between each loop", 0, script.MAX_INT, 100, 100, function() end),
         "hangar_custom_loop_delay"
     )
 
     -- add loop count option
     script:add(
-        script.hangar_custom:slider("Loops", {"rshangarcount"}, "The amount of loops to do before stopping", 0, script.MAX_INT, 0, 1, function() end),
+        script.hangar_custom:slider("Loops", {"rschaloops"}, "The amount of loops to do before stopping", 0, script.MAX_INT, 0, 1, function() end),
         "hangar_custom_loop_count"
     )
 
     -- add airfreight to the menu
     script:add(
-        script.hangar_recovery:list("Airfreight", {}, "Airfreight Manager"),
+        script.hangar_recovery:list("Airfreight", {"rsairfreight"}, "Airfreight Manager"),
         "hangar_airfreight"
-    )
-
-    -- add set airfreight cargo sell value
-    script:add(
-        script.hangar_airfreight:text_input("Set Cargo Sell Value", {"rshangarairfreightsellvalue"}, "The value of the cargo you sell", function(value)
-            local start_global = hangar.globals.airfreight.sell_start
-            local end_global = hangar.globals.airfreight.sell_end
-            local max_sell = menu.ref_by_rel_path(script.hangar_airfreight, "Max Sell Value")
-            value = tonumber(value)
-
-            if value < 30000 then
-                value = 0
-            end
-
-            if value >= 10000000 then
-                value = 10000000
-            end
-
-            if not max_sell.value then
-                script:packed_global(start_global, end_global):write_int(value)
-            end
-        end, 30000),
-        "hangar_airfreight_set_value"
-    )
-
-    -- add max sell value
-    script:add(
-        script.hangar_airfreight:toggle_loop("Max Sell Value", {}, "Sets the sell value to maxmimum (2.1B)", function()
-            local start_global = hangar.globals.airfreight.sell_start
-            local end_global = hangar.globals.airfreight.sell_end
-            script:packed_global(start_global, end_global):write_int(script.MAX_INT)
-        end,
-        function()
-            local start_global = hangar.globals.airfreight.sell_start
-            local end_global = hangar.globals.airfreight.sell_end
-            script:packed_global(start_global, end_global):write_int(30000)
-        end),
-        "hangar_airfreight_max_value"
-    )
-
-    -- add remove source cooldown
-    --[[script:add(
-        script.hangar_airfreight:toggle_loop("Remove Source Cooldown", {}, "Removes the cooldown for the source", function()
-            local start_global = hangar.globals.airfreight.source_cooldown_start
-            local end_global = hangar.globals.airfreight.source_cooldown_end
-            script:packed_global(start_global, end_global):write_int(1)
-        end,
-        function()
-            local start_global = hangar.globals.airfreight.source_cooldown_start
-            script:global(262145 + start_global):write_int(120000)
-            script:global(262145 + start_global + 1):write_int(180000)
-            script:global(262145 + start_global + 2):write_int(240000)
-            script:global(262145 + start_global + 3):write_int(60000)
-        end),
-        "hangar_airfreight_remove_source_cooldown"
-    )]]
-
-    -- add remove sell cooldown
-    script:add(
-        script.hangar_airfreight:toggle_loop("Remove Sell Cooldown", {}, "Removes the cooldown for the sell", function(state)
-            script:global(262145 + 22792):write_int(1) -- remove cooldown
-        end,
-        function()
-            script:global(262145 + 22792):write_int(180000) -- reset cooldown
-        end),
-        "hangar_airfreight_remove_sell_cooldown"
     )
 
     -- add remove rons cut
     script:add(
-        script.hangar_airfreight:toggle_loop("Remove Ron\'s Cut", {}, "Removes Ron\'s cut from the sell", function(state)
+        script.hangar_airfreight:toggle_loop("Remove Ron\'s Cut", {"rsaffuckoff4eyes"}, "Removes Ron\'s cut from the sell", function(state)
             hangar.globals.airfreight.rons_cut:write_float(0.0) -- remove rons cut
         end,
         function()
@@ -496,34 +430,9 @@ function hangar:init(script)
         "hangar_airfreight_remove_rons_cut"
     )
 
-    -- add instant finish airfreight
-    script:add(
-        script.hangar_airfreight:action("Instant Sell", {}, "Instantly finishes sell missions", function()
-            -- credit to IceDoomfist for this
-            script:local("gb_smuggler", 1928 + 1035):write_int(script:local("gb_smuggler", 1928 + 1078):read_int())
-        end),
-        "hangar_airfreight_instant_finish"
-    )
-
-    -- add instant source
-    script:add(
-        script.hangar_airfreight:action("Instant Source", {}, "Instantly finishes source missions (if cargo doesn\'t show change sessions)", function(state)
-            script:local("gb_smuggler", 1999):write_int(script.MAX_INT)
-        end),
-        "hangar_airfreight_instant_source"
-    )
-
-    -- add open airfreight screen
-    script:add(
-        script.hangar_airfreight:action("Open Airfreight Screen", {}, "Opens the airfreight screen", function()
-            script:START_SCRIPT("appsmuggler")
-        end),
-        "hangar_airfreight_open_screen"
-    )
-
     -- add teleport to hangar
     script:add(
-        script.hangar_recovery:action("Teleport To Hangar", {}, "Teleports you to your hangar", function()
+        script.hangar_recovery:action("Teleport To Hangar", {"rstphangar"}, "Teleports you to your hangar", function()
             script:TELEPORT_TO_BLIP(script.blips.HANGAR)
         end),
         "hangar_recovery_teleport"
@@ -531,7 +440,7 @@ function hangar:init(script)
     
     -- add teleport to laptop
     script:add(
-        script.hangar_recovery:action("Teleport To Laptop", {}, "Teleports you to your laptop within your hangar", function()
+        script.hangar_recovery:action("Teleport To Laptop", {"rstplaptop"}, "Teleports you to your laptop within your hangar", function()
             script:TELEPORT_TO_BLIP(script.blips.LAPTOP)
         end),
         "hangar_recovery_teleport_laptop"

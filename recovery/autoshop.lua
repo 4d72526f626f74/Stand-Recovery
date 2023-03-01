@@ -203,7 +203,7 @@ function autoshop:init(script)
 
     -- add autoshop recovery option to the menu
     script:add(
-        script.root:list("Autoshop", {}, "autoshop recovery options", function()
+        script.root:list("Autoshop", {"rsautoshop"}, "autoshop recovery options", function()
             local ref = menu.ref_by_rel_path(script.root, "Autoshop")
             local owned_data = script:GET_OWNED_PROPERTY_DATA("autoshop")
             
@@ -221,19 +221,19 @@ function autoshop:init(script)
     script.autoshop_recovery:divider("1B Recovery")
 
     script:add(
-        script.autoshop_recovery:list("Presets", {}, "Presets for 1B Recovery"),
+        script.autoshop_recovery:list("Presets", {"rsaspresets"}, "Presets for 1B Recovery"),
         "autoshop_presets"
     )
 
     script:add(
-        script.autoshop_recovery:list("Custom", {}, "Customisable options for 1B Recovery"),
+        script.autoshop_recovery:list("Custom", {"rsascustom"}, "Customisable options for 1B Recovery"),
         "autoshop_custom"
     )
 
     script.autoshop_recovery:divider("Other")
 
     script:add(
-        script.autoshop_recovery:action("Teleport To Autoshop", {}, "Teleports to your autoshop", function()
+        script.autoshop_recovery:action("Teleport To Autoshop", {"rstpautoshop"}, "Teleports to your autoshop", function()
             local autoshop_blip = HUD.GET_FIRST_BLIP_INFO_ID(script.blips.AUTOSHOP) -- get the autoshop blip
 
             if HUD.DOES_BLIP_EXIST(autoshop_blip) then -- check if the blip exists on the map
@@ -251,13 +251,13 @@ function autoshop:init(script)
 
     -- add the autoshop presets
     script:add(
-        script.autoshop_presets:list_select("Money", {}, "Setting this does not change the amount you get from the afk loop", script.money_options, 1, function() end),
+        script.autoshop_presets:list_select("Money", {"rspasmoney"}, "Setting this does not change the amount you get from the afk loop", script.money_options, 1, function() end),
         "autoshop_presets_money"
     )
 
     -- add buy autoshop
     script:add(
-        script.autoshop_presets:action("Buy Autoshop", {}, "Automatically buys an autoshop for you", function()
+        script.autoshop_presets:action("Buy Autoshop", {"rspbuyas"}, "Automatically buys an autoshop for you", function()
             local owned_data = script:GET_OWNED_PROPERTY_DATA("autoshop")
             local choice = autoshop.afk_options.available[math.random(#autoshop.afk_options.available)]
             local value = script:CONVERT_VALUE(script.money_options[script.autoshop_presets_money.value])
@@ -276,7 +276,7 @@ function autoshop:init(script)
 
     -- add set value
     script:add(
-        script.autoshop_presets:action("Set Value", {}, "Sets the value of your autoshop (this is for manual purchases)", function()
+        script.autoshop_presets:action("Set Value", {"rspassetval"}, "Sets the value of your autoshop (this is for manual purchases)", function()
             local money = script:CONVERT_VALUE(script.money_options[script.autoshop_presets_money.value])
             local current_value = script:STAT_GET_INT("PROP_AUTO_SHOP_VALUE")
             
@@ -291,7 +291,7 @@ function autoshop:init(script)
 
     -- add loop set value
     script:add(
-        script.autoshop_presets:toggle_loop("Loop Set Value", {}, "Does the same as set value but instead of setting it once it sets it repeatedly", function()
+        script.autoshop_presets:toggle_loop("Loop Set Value", {"rspassetvalloop"}, "Does the same as set value but instead of setting it once it sets it repeatedly", function()
             local afk = menu.ref_by_rel_path(script.autoshop_presets, "AFK Loop")
             local loop_set = menu.ref_by_rel_path(script.autoshop_presets, "Loop Set Value")
 
@@ -310,7 +310,7 @@ function autoshop:init(script)
 
     -- add override value to the menu
     script:add(
-        script.autoshop_presets:toggle("Override Value", {}, "Overrides the afk loop value from 1.07B to the choice selected in money under options", function()
+        script.autoshop_presets:toggle("Override Value", {"rspasoverride"}, "Overrides the afk loop value from 1.07B to the choice selected in money under options", function()
         
         end),
         "autoshop_presets_override_value"
@@ -318,7 +318,7 @@ function autoshop:init(script)
 
     -- block phone calls
     script:add(
-        script.autoshop_presets:toggle("Block Phone Calls", {}, "Blocks incoming phones calls", function(state)
+        script.autoshop_presets:toggle("Block Phone Calls", {"rsblockcalls"}, "Blocks incoming phones calls", function(state)
             local phone_calls = menu.ref_by_command_name("nophonespam")
             phone_calls.value = state
         end),
@@ -327,7 +327,7 @@ function autoshop:init(script)
 
     -- add afk loop option
     script:add(
-        script.autoshop_presets:toggle_loop("AFK Loop", {}, "Alternates between buying autoshops you don\'t own, the value is set to the max (" .. tostring(math.floor(script.MAX_INT / 2)) .. ")", function(state)
+        script.autoshop_presets:toggle_loop("AFK Loop", {"rspasloop"}, "Alternates between buying autoshops you don\'t own, the value is set to the max (" .. tostring(math.floor(script.MAX_INT / 2)) .. ")", function(state)
             local afk = menu.ref_by_rel_path(script.autoshop_presets, "AFK Loop")
             local owned_data = script:GET_OWNED_PROPERTY_DATA("autoshop")
             local choice = autoshop.afk_options.available[math.random(#autoshop.afk_options.available)]
@@ -371,19 +371,19 @@ function autoshop:init(script)
 
     -- add loop delay option
     script:add(
-        script.autoshop_presets:slider("Loop Delay", {"rsautoshopdelay"}, "The delay between each loop", 0, script.MAX_INT, 100, 100, function() end),
+        script.autoshop_presets:slider("Loop Delay", {"rspasloopdelay"}, "The delay between each loop", 0, script.MAX_INT, 100, 100, function() end),
         "autoshop_presets_loop_delay"
     )
 
     -- add loop count option
     script:add(
-        script.autoshop_presets:slider("Loops", {"rsautoshopcount"}, "The amount of loops to do before stopping", -1, script.MAX_INT, 0, 1, function() end),
+        script.autoshop_presets:slider("Loops", {"rspasloops"}, "The amount of loops to do before stopping", -1, script.MAX_INT, 0, 1, function() end),
         "autoshop_presets_loop_count"
     )
 
     -- add options for custom
     script:add(
-        script.autoshop_custom:text_input("Money", {"rsautoshopvalue"}, "The autoshop value", function(value)
+        script.autoshop_custom:text_input("Money", {"rscasmoney"}, "The autoshop value", function(value)
             value = tonumber(value) -- ensure that the value is a number
             
             if value ~= nil then -- prevents an error when stopping the script
@@ -399,7 +399,7 @@ function autoshop:init(script)
 
     -- add buy autoshop option to custom (works the same as the presets)
     script:add(
-        script.autoshop_custom:action("Buy Autoshop", {}, "Automatically buys an autoshop for you", function()
+        script.autoshop_custom:action("Buy Autoshop", {"rscbuyas"}, "Automatically buys an autoshop for you", function()
             local owned_data = script:GET_OWNED_PROPERTY_DATA("autoshop")
             local choice = autoshop.afk_options.available[math.random(#autoshop.afk_options.available)]
             local value = tonumber(script.autoshop_custom_money.value)
@@ -421,7 +421,7 @@ function autoshop:init(script)
 
     -- add block phone calls option
     script:add(
-        script.autoshop_custom:toggle("Block Phone Calls", {}, "Blocks incoming phones calls", function(state)
+        script.autoshop_custom:toggle("Block Phone Calls", {"rsblockcalls"}, "Blocks incoming phones calls", function(state)
             local phone_calls = menu.ref_by_command_name("nophonespam")
             phone_calls.value = state
         end),
@@ -430,7 +430,7 @@ function autoshop:init(script)
 
     -- add afk loop option
     script:add(
-        script.autoshop_custom:toggle_loop("AFK Loop", {}, "Alternates between buying autoshops you don\'t own, the value is set to the max (" .. tostring(math.floor(script.MAX_INT / 2)) .. ")", function(state)
+        script.autoshop_custom:toggle_loop("AFK Loop", {"rscasloop"}, "Alternates between buying autoshops you don\'t own, the value is set to the max (" .. tostring(math.floor(script.MAX_INT / 2)) .. ")", function(state)
             local afk = menu.ref_by_rel_path(script.autoshop_custom, "AFK Loop")
             local choice = autoshop.afk_options.available[math.random(#autoshop.afk_options.available)]
             local loop_delay = menu.ref_by_rel_path(script.autoshop_custom, "Loop Delay")
@@ -468,13 +468,13 @@ function autoshop:init(script)
 
     -- add loop delay option
     script:add(
-        script.autoshop_custom:slider("Loop Delay", {"rsautoshopdelay"}, "The delay between each loop", 0, script.MAX_INT, 100, 100, function() end),
+        script.autoshop_custom:slider("Loop Delay", {"rscasloopdelay"}, "The delay between each loop", 0, script.MAX_INT, 100, 100, function() end),
         "autoshop_custom_loop_delay"
     )
 
     -- add loop count option
     script:add(
-        script.autoshop_custom:slider("Loops", {"rsautoshopcount"}, "The amount of loops to do before stopping", -1, script.MAX_INT, 0, 1, function() end),
+        script.autoshop_custom:slider("Loops", {"rscasloops"}, "The amount of loops to do before stopping", -1, script.MAX_INT, 0, 1, function() end),
         "autoshop_custom_loop_count"
     )
 end

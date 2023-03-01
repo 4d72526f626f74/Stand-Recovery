@@ -232,13 +232,13 @@ end
 
 -- add settings to the menu
 script:add(
-    script.root:list("Settings", {}, "Settings for the script"),
+    script.root:list("Settings", {"rssettings"}, "Settings for the script"),
     "settings"
 )
 
 -- add auto accept transaction errors setting to the menu
 script:add(
-    script.settings:toggle("Auto Accept Transaction Errors", {}, "Automatically accept transaction errors", function(state)
+    script.settings:toggle("Auto Accept Transaction Errors", {"rsaccepterror"}, "Automatically accept transaction errors", function(state)
         local ref = menu.ref_by_rel_path(script.settings, "Auto Accept Transaction Errors")
         util.create_tick_handler(function()
             if ref.value then
@@ -266,13 +266,13 @@ script:add(
 
 -- add delays to the settings menu
 script:add(
-    script.settings:list("Delays", {}, "Delays for the script"),
+    script.settings:list("Delays", {"rsdelays"}, "Delays for the script"),
     "settings_delays"
 )
 
 -- add SIMULATE_CONTROL_KEY_DELAY setting to the menu
 script:add(
-    script.settings_delays:toggle("Disable Simulate Control Key Delay", {}, "This is the delay that occur after user input has been simulated", function(state)
+    script.settings_delays:toggle("Disable Simulate Control Key Delay", {"rsdisablecontrolkeydelay"}, "This is the delay that occur after user input has been simulated", function(state)
         utils.SIMULATE_CONTROL_KEY_DELAY_STATE = not state
     end, not utils.SIMULATE_CONTROL_KEY_DELAY_STATE),
     "settings_simulate_control_key_delay"
@@ -280,13 +280,13 @@ script:add(
 
 -- add PURCHASE setting to the menu 
 script:add(
-    script.settings_delays:list("Purchase", {}, "Purchase delay settings"),
+    script.settings_delays:list("Purchase", {"rspurchasedelays"}, "Purchase delay settings"),
     "settings_purchase"
 )
 
 -- add Save setting to the menu
 script:add(
-    script.settings_delays:action("Save", {}, "Save the delay settings", function()
+    script.settings_delays:action("Save", {"rssavedelays"}, "Save the delay settings", function()
         local file = io.open(settings_dir .. "/delays.json", "wb")
         file:write(json.encode(script.delays))
         file:close()
@@ -342,7 +342,7 @@ script.settings_auto_accept_transaction_errors.value = true
 
 -- add tools to the menu
 script:add(
-    script.root:list("Tools", {}, "Tools for the script"),
+    script.root:list("Tools", {"rstools"}, "Tools for the script"),
     "tools"
 )
 
@@ -351,7 +351,7 @@ script.tools:divider("Unlocks")
 
 -- add unlock arcades on maze bank
 script:add(
-    script.tools:action("Unlock Arcades On MazeBank", {}, "Does what it says", function()
+    script.tools:action("Unlock Arcades On MazeBank", {"rsarcadeunlock"}, "Does what it says", function()
         local bitfield = memory.read_int(script.globals.arcade_bitfield)
         local mask = 0x14E -- 000101001110 (334)
         local timeout = os.time() + 5
@@ -372,7 +372,7 @@ script:add(
 
 -- add unlock autoshops on mazebank
 script:add(
-    script.tools:action("Unlock Autoshops On MazeBank", {}, "Does what it says", function()
+    script.tools:action("Unlock Autoshops On MazeBank", {"rsautoshopunlock"}, "Does what it says", function()
         local pos = v3.new(778.99708076172, -1867.5257568359, 28.296264648438) -- ls tuners carmeet blip teleport
         ENTITY.SET_ENTITY_COORDS(players.user_ped(), pos.x, pos.y, pos.z, true, true, true, true) -- teleport to ls tuners carmeet
         
@@ -392,7 +392,7 @@ script.tools:divider("Money")
 
 -- add deposit money
 script:add(
-    script.tools:action("Deposit Wallet", {}, "Deposits all the money from your wallet into bank", function()
+    script.tools:action("Deposit Wallet", {"rsdepositall"}, "Deposits all the money from your wallet into bank", function()
         local wallet = players.get_wallet(script.me)
         if NETSHOPPING.NET_GAMESERVER_TRANSFER_WALLET_TO_BANK(script.char, wallet) then
             script:notify("Deposited $" .. wallet .. " into bank")

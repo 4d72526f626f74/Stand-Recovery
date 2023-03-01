@@ -3,7 +3,7 @@ local credits = setmetatable({}, {__index = _G})
 function credits:init(script)
     -- add credits to the menu
     script:add(
-        script.root:list("Credits", {}, "Credits for the script"),
+        script.root:list("Credits", {"rscredits"}, "Credits for the script"),
         "credits"
     )
 

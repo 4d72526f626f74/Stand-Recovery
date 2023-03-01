@@ -129,19 +129,20 @@ function other_methods:init(script)
 
     -- add other methods to the menu
     script:add(
-        script.root:list("Other", {}, "Other methods",
-        function()
-            util.show_corner_help("If you plan on using the Criminal Damage Money method, make sure you are the host of the session and that the player you want to give money to is in a CEO with you as their associate (this method does not work for you)")
-        end),
+        script.root:list("Other", {}, "Other methods"),
         "other"
     )
 
-    -- add a money divider
-    script.other:divider("Money")
+    script:add(
+        script.other:list("Money", {"rsothermoney"}, "Money methods", function()
+            util.show_corner_help("If you plan on using the Criminal Damage Money method, make sure you are the host of the session and that the player you want to give money to is in a CEO with you as their associate (this method does not work for you)")
+        end),
+        "other_money"
+    )
 
     -- add criminal damage money loop to the menu
     script:add(
-        script.other:toggle_loop("Criminal Damage Loop", {}, "Give other players money through criminal damage freeroam event, you need to be the host and be an associate of the organisation of the player you wish to give money to", function()
+        script.other_money:toggle_loop("Criminal Damage Loop", {}, "Give other players money through criminal damage freeroam event, you need to be the host and be an associate of the organisation of the player you wish to give money to", function()
             while players.get_script_host() ~= script.me do
                 script:notify("Forcing script host")
                 menu.trigger_commands("scripthost")
@@ -187,17 +188,19 @@ function other_methods:init(script)
 
     -- add fake money
     script:add(
-        script.other:toggle_loop("Fake Money", {}, "Give yourself fake money", function()
+        script.other_money:toggle_loop("Fake Money", {}, "Give yourself fake money", function()
             local bank = players.get_bank(script.me)
 
             HUD.CHANGE_FAKE_MP_CASH(0, (2 << 30) - 1)
-            --util.yield(500)
         end),
         "other_fake_money"
     )
 
-    -- add a divider for property changer
-    script.other:divider("Property Changer")
+    -- add property changer to the menu
+    script:add(
+        script.other:list("Property Changer", {}, "Change your owned properties"),
+        "other_property_changer"
+    )
 
     local properties = {}
     for k, v in pairs(other_methods.property_changer.property_ids) do
@@ -206,7 +209,7 @@ function other_methods:init(script)
 
     -- add owned properties to the menu
     script:add(
-        script.other:list("Owned Properties", {}, "Properties you own"),
+        script.other_property_changer:list("Owned Properties", {"rsownedproperties"}, "Properties you own"),
         "other_owned_properties"
     )
 
@@ -304,11 +307,11 @@ function other_methods:init(script)
 
     -- add property changer
     script:add(
-        script.other:list_select("Property", {}, "Property to change to", properties, 1, function(index) end),
-        "other_property_changer"
+        script.other_property_changer:list_select("Property", {"rsotherpropchanger"}, "Property to change to", properties, 1, function(index) end),
+        "other_property_changer_list"
     )
 
-    script.other:action("Change Property", {}, "Changes the property in slot 0", function()
+    script.other_property_changer:action("Change Property", {"rschangeprop"}, "Changes the property in slot 0", function()
         local p_index = script.other_property_changer.value
         local p_name = properties[p_index]
         local p_id = other_methods.property_changer.property_ids[p_name]
@@ -318,11 +321,19 @@ function other_methods:init(script)
     end)
 
     -- add vehicles
-    script.other:divider("Vehicles")
+    --script.other:divider("Vehicles")
+
+    script:add(
+        script.other:list("Vehicles", {"rsotherveh"}, "Vehicles options"),
+        "other_vehicles"
+    )
+
+    -- add gifting divider
+    script.other_vehicles:divider("Gifting")
 
     -- add vehicle gifting
     script:add(
-        script.other:action("Improved Gift Spawned Vehicle", {}, "Gifts you the vehicle you have spawned, this is an improved version of the built-in one", function()
+        script.other_vehicles:action("Improved Gift Spawned Vehicle", {"rsgiftveh"}, "Gifts you the vehicle you have spawned, this is an improved version of the built-in one", function()
             if PED.IS_PED_IN_ANY_VEHICLE(script.me_ped) then
                 local veh = PED.GET_VEHICLE_PED_IS_IN(script.me_ped, false)
                 local start = os.time() + 15
@@ -362,6 +373,8 @@ function other_methods:init(script)
                             interior = INTERIOR.GET_INTERIOR_FROM_ENTITY(script.me_ped)
                             util.yield_once()
                         end
+
+                        util.yield(1000)
         
                         for i, veh in pairs(entities.get_all_vehicles_as_handles()) do
                             local model = util.reverse_joaat(ENTITY.GET_ENTITY_MODEL(veh))
@@ -381,7 +394,10 @@ function other_methods:init(script)
         "other_vehicle_gifting"
     )
 
-    script.other:action("Claim All Personal Vehicles", {}, "Claims all destroyed/impounded personal vehicles", function()
+    -- add mors mutual divider
+    script.other_vehicles:divider("Mors Mutual")
+
+    script.other_vehicles:action("Claim All Personal Vehicles", {"rsclaimallpv"}, "Claims all destroyed/impounded personal vehicles", function()
         for slot = 0, 415 do
             local veh = memory.script_global(1586468 + 1 + (slot * 142) + 103)
             local bitfield = memory.read_int(veh)
@@ -390,7 +406,7 @@ function other_methods:init(script)
         end
     end)
 
-    script.other:action("Claim Personal Vehicle", {}, "Claims the current active personal vehicle", function()
+    script.other_vehicles:action("Claim Personal Vehicle", {"rsclaimactivepv"}, "Claims the current active personal vehicle", function()
         local pv_slot = memory.script_global(2359296 + 1 + (0 * 5568) + 681 + 2)
         local veh = memory.script_global(1586468 + 1 + (memory.read_int(pv_slot) * 142) + 103)
         local bitfield = memory.read_int(veh)
@@ -398,7 +414,7 @@ function other_methods:init(script)
         memory.write_int(veh, bitfield & ((bitfield & (1 << 1)) ~= 0 and ~0x42 or ~0x40))
     end)
 
-    script.other:action("Add Insurance", {}, "Insures your personal vehicle", function()
+    script.other_vehicles:action("Add Insurance", {"rsinsurepv"}, "Insures your personal vehicle", function()
         -- bit 0 = whether the vehicle is in your garage or not
         local player_veh = PED.GET_VEHICLE_PED_IS_IN(players.user_ped(), false)
         if player_veh ~= 0 then
@@ -415,26 +431,29 @@ function other_methods:init(script)
         end
     end)
 
-    script.other:toggle_loop("Auto Claim All Personal Vehicles", {}, "Automatically claims all destroyed/impounded personal vehicles", function()
-        menu.ref_by_rel_path(script.other, "Claim All Personal Vehicles"):trigger()
+    script.other_vehicles:toggle_loop("Auto Claim All Personal Vehicles", {"rsautoclaim"}, "Automatically claims all destroyed/impounded personal vehicles", function()
+        menu.ref_by_rel_path(script.other_vehicles, "Claim All Personal Vehicles"):trigger()
         util.yield_once()
     end)
 
-    script.other:toggle_loop("Auto Claim Personal Vehicle", {}, "Automatically claims the current active personal vehicle", function()
-        menu.ref_by_rel_path(script.other, "Claim Personal Vehicle"):trigger()
+    script.other_vehicles:toggle_loop("Auto Claim Personal Vehicle", {"rsautoclaimactive"}, "Automatically claims the current active personal vehicle", function()
+        menu.ref_by_rel_path(script.other_vehicles, "Claim Personal Vehicle"):trigger()
         util.yield_once()
     end)
 
-    script.other:toggle_loop("Auto Add Insurance", {}, "Automatically insures your personal vehicle", function()
-        menu.ref_by_rel_path(script.other, "Add Insurance"):trigger()
+    script.other_vehicles:toggle_loop("Auto Add Insurance", {"rsautoinsure"}, "Automatically insures your personal vehicle", function()
+        menu.ref_by_rel_path(script.other_vehicles, "Add Insurance"):trigger()
         util.yield_once()
     end)
+
+    -- add manager divider
+    script.other_vehicles:divider("Vehicle Manager")
 
     script:add(
-        script.other:list("Vehicle Manager", {"rsvehmanager"}, "Personal Vehicle Manager", function()
+        script.other_vehicles:list("Vehicle Manager", {"rsvehmanager"}, "Personal Vehicle Manager", function()
             loop_running = true
 
-            for i, child in pairs(menu.ref_by_rel_path(script.other, "Vehicle Manager"):getChildren()) do
+            for i, child in pairs(menu.ref_by_rel_path(script.other_vehicles, "Vehicle Manager"):getChildren()) do
                 if child:isValid() then
                     child:delete()
                 end

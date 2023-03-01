@@ -168,7 +168,7 @@ function nightclub:init(script)
 
     -- add nightclub recovery option to the menu
     script:add(
-        script.root:list("Nightclub", {}, "Nightclub recovery options", function()
+        script.root:list("Nightclub", {"rsnightclub"}, "Nightclub recovery options", function()
             local ref = menu.ref_by_rel_path(script.root, "Nightclub")
             local owned_data = script:GET_OWNED_PROPERTY_DATA("nightclub")
             
@@ -186,19 +186,19 @@ function nightclub:init(script)
     script.nightclub_recovery:divider("1B Recovery")
 
     script:add(
-        script.nightclub_recovery:list("Presets", {}, "Presets for 1B Recovery"),
+        script.nightclub_recovery:list("Presets", {"rsncpresets"}, "Presets for 1B Recovery"),
         "nightclub_presets"
     )
 
     script:add(
-        script.nightclub_recovery:list("Custom", {}, "Customisable options for 1B Recovery"),
+        script.nightclub_recovery:list("Custom", {"rsnccustom"}, "Customisable options for 1B Recovery"),
         "nightclub_custom"
     )
 
     script.nightclub_recovery:divider("Nightclub Safe")
 
     script:add(
-        script.nightclub_recovery:action("Teleport To Nightclub", {}, "Teleports to your nightclub", function()
+        script.nightclub_recovery:action("Teleport To Nightclub", {"rstpnightclub"}, "Teleports to your nightclub", function()
             local nightclub_blip = HUD.GET_FIRST_BLIP_INFO_ID(script.blips.NIGHTCLUB) -- get the nightclub blip
 
             if HUD.DOES_BLIP_EXIST(nightclub_blip) then -- check if the blip exists on the map
@@ -212,7 +212,7 @@ function nightclub:init(script)
     )
 
     script:add(
-        script.nightclub_recovery:action("Trigger Production", {}, "Triggers production at your nightclub", function()
+        script.nightclub_recovery:action("Trigger Production", {"rsncsafe_triggerprod"}, "Triggers production at your nightclub", function()
             nightclub.globals.safe:write_int(300000) -- set the maximum amount of money the safe can hold
             nightclub.globals.income:write_int(300000) -- set the amount of income to maximum
             script:packed_global(nightclub.globals.income_popularity_start, nightclub.globals.income_popularity_end):write_int(300000)
@@ -224,14 +224,14 @@ function nightclub:init(script)
     )
 
     script:add(
-        script.nightclub_recovery:action("Open Nightclub Screen", {}, "Opens the nightclub management screen", function()
+        script.nightclub_recovery:action("Open Nightclub Screen", {"rsnc_manager"}, "Opens the nightclub management screen", function()
             script:START_SCRIPT("appbusinesshub")
         end),
         "nightclub_open_screen"
     )
 
     script:add(
-        script.nightclub_recovery:toggle_loop("Fuck Popularity", {}, "Stops popularity affecting your safe income", function()
+        script.nightclub_recovery:toggle_loop("Fuck Popularity", {"rsfuckpopularity"}, "Stops popularity affecting your safe income", function()
             script:packed_global(nightclub.globals.income_popularity_start, nightclub.globals.income_popularity_end):write_int(300000)
         end,
         function()
@@ -260,7 +260,7 @@ function nightclub:init(script)
     )
 
     script:add(
-        script.nightclub_recovery:toggle_loop("Anti Popularity Decay", {}, "Prevents your nightclub from losing popularity", function()
+        script.nightclub_recovery:toggle_loop("Anti Popularity Decay", {"rsncantidecay"}, "Prevents your nightclub from losing popularity", function()
             nightclub.globals.popularity_decay:write_float(script.MAX_INT) -- reverse the popularity decay so popularity increases
         end,
         function()
@@ -270,14 +270,14 @@ function nightclub:init(script)
     )
 
     script:add(
-        script.nightclub_recovery:toggle_loop("Fill Safe", {}, "Fills your nightclub safe", function()
+        script.nightclub_recovery:toggle_loop("Fill Safe", {"rsncfillsafe"}, "Fills your nightclub safe", function()
             menu.trigger_command(script.nightclub_trigger_production) -- trigger production
         end),
         "nightclub_fill_safe"
     )
 
     script:add(
-        script.nightclub_recovery:toggle_loop("AFK Loop", {}, "AFK Money Loop", function()
+        script.nightclub_recovery:toggle_loop("AFK Loop", {"rsncsafeloop"}, "AFK Money Loop", function()
             local fill = script.nightclub_fill_safe
             local afk = menu.ref_by_rel_path(script.nightclub_recovery, "AFK Loop")
 
@@ -326,13 +326,13 @@ function nightclub:init(script)
 
     -- add the nightclub presets
     script:add(
-        script.nightclub_presets:list_select("Money", {}, "Setting this does not change the amount you get from the afk loop", script.money_options, 1, function() end),
+        script.nightclub_presets:list_select("Money", {"rsncpmoney"}, "Setting this does not change the amount you get from the afk loop", script.money_options, 1, function() end),
         "nightclub_presets_money"
     )
 
     -- add buy nightclub
     script:add(
-        script.nightclub_presets:action("Buy Nightclub", {}, "Automatically buys a nightclub for you", function()
+        script.nightclub_presets:action("Buy Nightclub", {"rspbuync"}, "Automatically buys a nightclub for you", function()
             local owned_data = script:GET_OWNED_PROPERTY_DATA("nightclub")
             local club = nightclub.afk_options.available[math.random(#nightclub.afk_options.available)]
             local value = script:CONVERT_VALUE(script.money_options[script.nightclub_presets_money.value])
@@ -351,7 +351,7 @@ function nightclub:init(script)
 
     -- add set value
     script:add(
-        script.nightclub_presets:action("Set Value", {}, "Sets the value of your nightclub (this is for manual purchases)", function()
+        script.nightclub_presets:action("Set Value", {"rspncsetval"}, "Sets the value of your nightclub (this is for manual purchases)", function()
             local money = script:CONVERT_VALUE(script.money_options[script.nightclub_presets_money.value])
             local current_value = script:STAT_GET_INT("PROP_NIGHTCLUB_VALUE")
             
@@ -366,7 +366,7 @@ function nightclub:init(script)
 
     -- add loop set value
     script:add(
-        script.nightclub_presets:toggle_loop("Loop Set Value", {}, "Does the same as set value but instead of setting it once it sets it repeatedly", function()
+        script.nightclub_presets:toggle_loop("Loop Set Value", {"rsncpsetvalloop"}, "Does the same as set value but instead of setting it once it sets it repeatedly", function()
             local afk = menu.ref_by_rel_path(script.nightclub_presets, "AFK Loop")
             local loop_set = menu.ref_by_rel_path(script.nightclub_presets, "Loop Set Value")
 
@@ -384,7 +384,7 @@ function nightclub:init(script)
     script.nightclub_presets:divider("AFK Money Loop")
 
     script:add(
-        script.nightclub_presets:toggle("Override Value", {}, "Overrides the afk loop value from 1.07B to the choice selected in money under options", function()
+        script.nightclub_presets:toggle("Override Value", {"rsncpoverride"}, "Overrides the afk loop value from 1.07B to the choice selected in money under options", function()
         
         end),
         "nightclub_presets_override_value"
@@ -392,7 +392,7 @@ function nightclub:init(script)
 
     -- block phone calls
     script:add(
-        script.nightclub_presets:toggle("Block Phone Calls", {}, "Blocks incoming phones calls", function(state)
+        script.nightclub_presets:toggle("Block Phone Calls", {"rsncp_blockcalls"}, "Blocks incoming phones calls", function(state)
             local phone_calls = menu.ref_by_command_name("nophonespam")
             phone_calls.value = state
         end),
@@ -401,7 +401,7 @@ function nightclub:init(script)
 
     -- add afk loop option
     script:add(
-        script.nightclub_presets:toggle_loop("AFK Loop", {}, "Alternates between buying nightclubs you don\'t own, the value is set to the max (" .. tostring(math.floor(script.MAX_INT / 2)) .. ")", function(state)
+        script.nightclub_presets:toggle_loop("AFK Loop", {"rsncploop"}, "Alternates between buying nightclubs you don\'t own, the value is set to the max (" .. tostring(math.floor(script.MAX_INT / 2)) .. ")", function(state)
             local afk = menu.ref_by_rel_path(script.nightclub_presets, "AFK Loop")
             local owned_data = script:GET_OWNED_PROPERTY_DATA("nightclub")
             local club = nightclub.afk_options.available[math.random(#nightclub.afk_options.available)]
@@ -445,19 +445,19 @@ function nightclub:init(script)
 
     -- add loop delay option
     script:add(
-        script.nightclub_presets:slider("Loop Delay", {"rsnightclubdelay"}, "The delay between each loop", 0, script.MAX_INT, 100, 100, function() end),
+        script.nightclub_presets:slider("Loop Delay", {"rsncploopdelay"}, "The delay between each loop", 0, script.MAX_INT, 100, 100, function() end),
         "nightclub_presets_loop_delay"
     )
 
     -- add loop count option
     script:add(
-        script.nightclub_presets:slider("Loops", {"rsnightclubcount"}, "The amount of loops to do before stopping", 0, script.MAX_INT, 0, 1, function() end),
+        script.nightclub_presets:slider("Loops", {"rsncploops"}, "The amount of loops to do before stopping", 0, script.MAX_INT, 0, 1, function() end),
         "nightclub_presets_loop_count"
     )
 
     -- add options for custom
     script:add(
-        script.nightclub_custom:text_input("Money", {"rsnightclubvalue"}, "The nightclub value", function(value)
+        script.nightclub_custom:text_input("Money", {"rsnccmoney"}, "The nightclub value", function(value)
             value = tonumber(value) -- ensure that the value is a number
             
             if value ~= nil then -- prevents an error when stopping the script
@@ -473,7 +473,7 @@ function nightclub:init(script)
 
     -- add buy nightclub option to custom (works the same as the presets)
     script:add(
-        script.nightclub_custom:action("Buy Nightclub", {}, "Automatically buys a nightclub for you", function()
+        script.nightclub_custom:action("Buy Nightclub", {"rscbuync"}, "Automatically buys a nightclub for you", function()
             local owned_data = script:GET_OWNED_PROPERTY_DATA("nightclub")
             local club = nightclub.afk_options.available[math.random(#nightclub.afk_options.available)]
             local value = tonumber(script.nightclub_custom_money.value)
@@ -495,7 +495,7 @@ function nightclub:init(script)
 
     -- add block phone calls option
     script:add(
-        script.nightclub_custom:toggle("Block Phone Calls", {}, "Blocks incoming phones calls", function(state)
+        script.nightclub_custom:toggle("Block Phone Calls", {"rsblockcalls"}, "Blocks incoming phones calls", function(state)
             local phone_calls = menu.ref_by_command_name("nophonespam")
             phone_calls.value = state
         end),
@@ -504,7 +504,7 @@ function nightclub:init(script)
 
     -- add afk loop option
     script:add(
-        script.nightclub_custom:toggle_loop("AFK Loop", {}, "Alternates between buying nightclubs you don\'t own, the value is set to the max (" .. tostring(math.floor(script.MAX_INT / 2)) .. ")", function(state)
+        script.nightclub_custom:toggle_loop("AFK Loop", {"rsnccloop"}, "Alternates between buying nightclubs you don\'t own, the value is set to the max (" .. tostring(math.floor(script.MAX_INT / 2)) .. ")", function(state)
             local afk = menu.ref_by_rel_path(script.nightclub_custom, "AFK Loop")
             local club = nightclub.afk_options.available[math.random(#nightclub.afk_options.available)]
             local loop_delay = menu.ref_by_rel_path(script.nightclub_custom, "Loop Delay")
@@ -542,13 +542,13 @@ function nightclub:init(script)
 
     -- add loop delay option
     script:add(
-        script.nightclub_custom:slider("Loop Delay", {"rsnightclubdelay"}, "The delay between each loop", 0, script.MAX_INT, 100, 100, function() end),
+        script.nightclub_custom:slider("Loop Delay", {"rscncloopdelay"}, "The delay between each loop", 0, script.MAX_INT, 100, 100, function() end),
         "nightclub_custom_loop_delay"
     )
 
     -- add loop count option
     script:add(
-        script.nightclub_custom:slider("Loops", {"rsnightclubcount"}, "The amount of loops to do before stopping", 0, script.MAX_INT, 0, 1, function() end),
+        script.nightclub_custom:slider("Loops", {"rscncloops"}, "The amount of loops to do before stopping", 0, script.MAX_INT, 0, 1, function() end),
         "nightclub_custom_loop_count"
     )
 end

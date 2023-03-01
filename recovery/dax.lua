@@ -14,7 +14,7 @@ dax.missions = {
 function dax:init(script)
     -- add dax to the menu
     script:add(
-        script.root:list("Dax Missions", {}, "", function()
+        script.root:list("Dax Missions", {"rsdax"}, "", function()
             script:notify("Select a mission then press 'Start Mission' button, when you get into the mission make sure that you fail it (script should automatically start the mission and cause it to fail), you can also manually do this by going to the mission blip (~HUD_COLOUR_YELLOW~~BLIP_DEVIN~~s~) on the map and starting it with 'Enable Cash Boost' enabled (make sure it's enabled before failing the mission)", util.show_corner_help)
         end),
         "dax"
@@ -44,10 +44,10 @@ function dax:init(script)
     script.dax:divider("Missions")
 
     -- add mission selector
-    script.dax:list_select("Mission", {}, "Select a mission to start", dax.missions, 1, function() end)
+    script.dax:list_select("Mission", {"rsdaxmission"}, "Select a mission to start", dax.missions, 1, function() end)
 
     -- add start mission button
-    script.dax:action("Start Mission", {}, "Start the selected mission to make an ez $1,000,000", function()
+    script.dax:action("Start Mission", {"rsdaxstart"}, "Start the selected mission to make an ez $1,000,000", function()
         local index = menu.ref_by_rel_path(script.dax, "Mission").value
         local mission = dax.missions[index]
 
@@ -207,14 +207,14 @@ function dax:init(script)
     -- add options divider
     script.dax:divider("Options")
 
-    script.dax:toggle_loop("Enable Cash Boost", {}, "Modifies cash multiplier", function()
+    script.dax:toggle_loop("Enable Cash Boost", {"rsdaxcashboost"}, "Modifies cash multiplier", function()
         memory.write_float(script.globals.modifiers.cash, 5000.0)
     end,
     function()
         memory.write_float(script.globals.modifiers.cash, 1.0)
     end)
 
-    script.dax:toggle_loop("Enable RP Boost", {}, "Modifies RP multiplier", function()
+    script.dax:toggle_loop("Enable RP Boost", {"rsdaxrpboost"}, "Modifies RP multiplier", function()
         memory.write_float(script.globals.modifiers.rp, 2000.0)
     end,
     function()

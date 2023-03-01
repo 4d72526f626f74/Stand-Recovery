@@ -164,7 +164,7 @@ function arcade:init(script)
 
     -- add arcade to the menu
     script:add(
-        script.root:list("Arcade", {}, "Arcade recovery options", function()
+        script.root:list("Arcade", {"rsarcade"}, "Arcade recovery options", function()
             local ref = menu.ref_by_rel_path(script.root, "Arcade")
             local owned_data = script:GET_OWNED_PROPERTY_DATA("arcade")
             
@@ -182,19 +182,19 @@ function arcade:init(script)
     script.arcade_recovery:divider("1B Recovery")
 
     script:add(
-        script.arcade_recovery:list("Presets", {}, "Presets for 1B Recovery"),
+        script.arcade_recovery:list("Presets", {"rsarpresets"}, "Presets for 1B Recovery"),
         "arcade_presets"
     )
 
     script:add(
-        script.arcade_recovery:list("Custom", {}, "Customisable options for 1B Recovery"),
+        script.arcade_recovery:list("Custom", {"rsarcustom"}, "Customisable options for 1B Recovery"),
         "arcade_custom"
     )
 
     script.arcade_recovery:divider("Arcade Safe")
 
     script:add(
-        script.arcade_recovery:action("Teleport To Arcade", {}, "Teleports to your arcade", function()
+        script.arcade_recovery:action("Teleport To Arcade", {"rstparcade"}, "Teleports to your arcade", function()
             local arcade_blip = HUD.GET_FIRST_BLIP_INFO_ID(script.blips.ARCADE) -- get the arcade blip
 
             if HUD.DOES_BLIP_EXIST(arcade_blip) then -- check if the blip exists on the map
@@ -208,7 +208,7 @@ function arcade:init(script)
     )
 
     script:add(
-        script.arcade_recovery:action("Trigger Production", {}, "Triggers production at your arcade", function()
+        script.arcade_recovery:action("Trigger Production", {"rsartriggerprod"}, "Triggers production at your arcade", function()
             arcade.globals.safe:write_int(200000) -- set the maximum amount of money the safe can hold
             local income = script:packed_global(arcade.globals.income_start, arcade.globals.income_end) -- set the amount of income to maximum
             income:write_int(200000)
@@ -219,14 +219,14 @@ function arcade:init(script)
     )
 
     script:add(
-        script.arcade_recovery:toggle_loop("Fill Safe", {}, "Fills your arcade safe", function()
+        script.arcade_recovery:toggle_loop("Fill Safe", {"rsarfillsafe"}, "Fills your arcade safe", function()
             menu.trigger_command(script.arcade_trigger_production) -- trigger production
         end),
         "arcade_fill_safe"
     )
 
     script:add(
-        script.arcade_recovery:toggle_loop("AFK Loop", {}, "AFK Money Loop", function()
+        script.arcade_recovery:toggle_loop("AFK Loop", {"rsarsafeloop"}, "AFK Money Loop", function()
             local fill = script.arcade_fill_safe
             local afk = menu.ref_by_rel_path(script.arcade_recovery, "AFK Loop")
 
@@ -275,13 +275,13 @@ function arcade:init(script)
 
     -- add the arcade presets
     script:add(
-        script.arcade_presets:list_select("Money", {}, "Setting this does not change the amount you get from the afk loop", script.money_options, 1, function() end),
+        script.arcade_presets:list_select("Money", {"rsparmoney"}, "Setting this does not change the amount you get from the afk loop", script.money_options, 1, function() end),
         "arcade_presets_money"
     )
 
     -- add buy arcade
     script:add(
-        script.arcade_presets:action("Buy Arcade", {}, "Automatically buys an arcade for you", function()
+        script.arcade_presets:action("Buy Arcade", {"rspbuyar"}, "Automatically buys an arcade for you", function()
             local owned_data = script:GET_OWNED_PROPERTY_DATA("arcade")
             local choice = arcade.afk_options.available[math.random(#arcade.afk_options.available)]
             local value = script:CONVERT_VALUE(script.money_options[script.arcade_presets_money.value])
@@ -300,7 +300,7 @@ function arcade:init(script)
 
     -- add set value
     script:add(
-        script.arcade_presets:action("Set Value", {}, "Sets the value of your arcade (this is for manual purchases)", function()
+        script.arcade_presets:action("Set Value", {"rsparsetval"}, "Sets the value of your arcade (this is for manual purchases)", function()
             local money = script:CONVERT_VALUE(script.money_options[script.arcade_presets_money.value])
             local current_value = script:STAT_GET_INT("PROP_ARCADE_VALUE")
             
@@ -315,7 +315,7 @@ function arcade:init(script)
 
     -- add loop set value
     script:add(
-        script.arcade_presets:toggle_loop("Loop Set Value", {}, "Does the same as set value but instead of setting it once it sets it repeatedly", function()
+        script.arcade_presets:toggle_loop("Loop Set Value", {"rsparsetvalloop"}, "Does the same as set value but instead of setting it once it sets it repeatedly", function()
             local afk = menu.ref_by_rel_path(script.arcade_presets, "AFK Loop")
             local loop_set = menu.ref_by_rel_path(script.arcade_presets, "Loop Set Value")
 
@@ -334,7 +334,7 @@ function arcade:init(script)
 
     -- add override value to the menu
     script:add(
-        script.arcade_presets:toggle("Override Value", {}, "Overrides the afk loop value from 1.07B to the choice selected in money under options", function()
+        script.arcade_presets:toggle("Override Value", {"rsparoverride"}, "Overrides the afk loop value from 1.07B to the choice selected in money under options", function()
         
         end),
         "arcade_presets_override_value"
@@ -342,7 +342,7 @@ function arcade:init(script)
 
     -- block phone calls
     script:add(
-        script.arcade_presets:toggle("Block Phone Calls", {}, "Blocks incoming phones calls", function(state)
+        script.arcade_presets:toggle("Block Phone Calls", {"rsblockcalls"}, "Blocks incoming phones calls", function(state)
             local phone_calls = menu.ref_by_command_name("nophonespam")
             phone_calls.value = state
         end),
@@ -351,7 +351,7 @@ function arcade:init(script)
 
     -- add afk loop option
     script:add(
-        script.arcade_presets:toggle_loop("AFK Loop", {}, "Alternates between buying arcades you don\'t own, the value is set to the max (" .. tostring(math.floor(script.MAX_INT / 2)) .. ")", function(state)
+        script.arcade_presets:toggle_loop("AFK Loop", {"rsploop"}, "Alternates between buying arcades you don\'t own, the value is set to the max (" .. tostring(math.floor(script.MAX_INT / 2)) .. ")", function(state)
             local afk = menu.ref_by_rel_path(script.arcade_presets, "AFK Loop")
             local owned_data = script:GET_OWNED_PROPERTY_DATA("arcade")
             local choice = arcade.afk_options.available[math.random(#arcade.afk_options.available)]
@@ -395,19 +395,19 @@ function arcade:init(script)
 
     -- add loop delay option
     script:add(
-        script.arcade_presets:slider("Loop Delay", {"rsarcadedelay"}, "The delay between each loop", 0, script.MAX_INT, 100, 100, function() end),
+        script.arcade_presets:slider("Loop Delay", {"rsparloopdelay"}, "The delay between each loop", 0, script.MAX_INT, 100, 100, function() end),
         "arcade_presets_loop_delay"
     )
 
     -- add loop count option
     script:add(
-        script.arcade_presets:slider("Loops", {"rsarcadecount"}, "The amount of loops to do before stopping", -1, script.MAX_INT, 0, 1, function() end),
+        script.arcade_presets:slider("Loops", {"rsparloops"}, "The amount of loops to do before stopping", -1, script.MAX_INT, 0, 1, function() end),
         "arcade_presets_loop_count"
     )
 
     -- add options for custom
     script:add(
-        script.arcade_custom:text_input("Money", {"rsarcadevalue"}, "The arcade value", function(value)
+        script.arcade_custom:text_input("Money", {"rscarmoney"}, "The arcade value", function(value)
             value = tonumber(value) -- ensure that the value is a number
             
             if value ~= nil then -- prevents an error when stopping the script
@@ -423,7 +423,7 @@ function arcade:init(script)
 
     -- add buy arcade option to custom (works the same as the presets)
     script:add(
-        script.arcade_custom:action("Buy Arcade", {}, "Automatically buys an arcade for you", function()
+        script.arcade_custom:action("Buy Arcade", {"rscbuyar"}, "Automatically buys an arcade for you", function()
             local owned_data = script:GET_OWNED_PROPERTY_DATA("arcade")
             local club = arcade.afk_options.available[math.random(#arcade.afk_options.available)]
             local value = tonumber(script.arcade_custom_money.value)
@@ -445,7 +445,7 @@ function arcade:init(script)
 
     -- add block phone calls option
     script:add(
-        script.arcade_custom:toggle("Block Phone Calls", {}, "Blocks incoming phones calls", function(state)
+        script.arcade_custom:toggle("Block Phone Calls", {"rsblockcalls"}, "Blocks incoming phones calls", function(state)
             local phone_calls = menu.ref_by_command_name("nophonespam")
             phone_calls.value = state
         end),
@@ -454,7 +454,7 @@ function arcade:init(script)
 
     -- add afk loop option
     script:add(
-        script.arcade_custom:toggle_loop("AFK Loop", {}, "Alternates between buying arcades you don\'t own, the value is set to the max (" .. tostring(math.floor(script.MAX_INT / 2)) .. ")", function(state)
+        script.arcade_custom:toggle_loop("AFK Loop", {"rscarloop"}, "Alternates between buying arcades you don\'t own, the value is set to the max (" .. tostring(math.floor(script.MAX_INT / 2)) .. ")", function(state)
             local afk = menu.ref_by_rel_path(script.arcade_custom, "AFK Loop")
             local choice = arcade.afk_options.available[math.random(#arcade.afk_options.available)]
             local loop_delay = menu.ref_by_rel_path(script.arcade_custom, "Loop Delay")
@@ -492,13 +492,13 @@ function arcade:init(script)
 
     -- add loop delay option
     script:add(
-        script.arcade_custom:slider("Loop Delay", {"rsarcadedelay"}, "The delay between each loop", 0, script.MAX_INT, 100, 100, function() end),
+        script.arcade_custom:slider("Loop Delay", {"rscarloopdelay"}, "The delay between each loop", 0, script.MAX_INT, 100, 100, function() end),
         "arcade_custom_loop_delay"
     )
 
     -- add loop count option
     script:add(
-        script.arcade_custom:slider("Loops", {"rsarcadecount"}, "The amount of loops to do before stopping", -1, script.MAX_INT, 0, 1, function() end),
+        script.arcade_custom:slider("Loops", {"rscarloops"}, "The amount of loops to do before stopping", -1, script.MAX_INT, 0, 1, function() end),
         "arcade_custom_loop_count"
     )
 end
