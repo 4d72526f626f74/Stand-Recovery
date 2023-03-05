@@ -4,10 +4,9 @@ util.require_natives(1676318796)
 util.show_corner_help("This ~r~SCRIPT~w~ is ~r~FREE~w~, if you paid for it then you got ~r~SCAMMED~w~")
 
 local json = require("json")
-local developer_mode = false
 
 local root = menu.my_root() -- root of the script
-local update_menu = root:list("Update", {}, "Update related stuff") -- update menu
+local update_menu = root:list("Update", {"rsupdatemenu"}, "") -- update menu
 update_menu.visible = false -- hide the update menu
 
 local lib_dir = filesystem.scripts_dir() .. "/lib/recovery"
@@ -192,18 +191,19 @@ local function check_for_updates(on_complete)
     end
 end
 
-if not developer_mode then
-    check_for_updates()
-else
-    util.toast("Developer mode is enabled, skipping update check")
-end
-
 local script = require("lib.recovery.script") -- require the script module
 local utils = require("lib.recovery.utils") -- require the utils module
+script.shadow_root = menu.shadow_root() -- get the shadow root
 
 if not package.loaded["lib.recovery.script"] or not package.loaded["lib.recovery.utils"] then
     util.toast("Failed to load script or utils modules, stopping script ...")
     util.stop_script()
+end
+
+if not script.developer_mode then
+    check_for_updates()
+else
+    util.toast("Developer mode is enabled, skipping update check")
 end
 
 script:DISPLAY_WARNING_MESSAGE() -- display warning
@@ -262,6 +262,54 @@ script:add(
         end)
     end, script.script_settings.auto_accept_transaction_errors),
     "settings_auto_accept_transaction_errors"
+)
+
+-- add enable 1B Recovery setting to the menu
+script:add(
+    script.settings:toggle("Enable 1B Recovery", {"rsenable1brecovery"}, "Enables 1B Recovery", function(state)
+        if not script.developer_mode then
+            if state and SCRIPT_CAN_CONTINUE then
+                script:msg("This feature is currently detected, it is recommended not to use it in a blatant way as it could get you banned (smaller amounts could get you banned too). Use at your own risk.")
+            end
+
+            script.nightclub_presets.visible = state
+            script.nightclub_custom.visible = state
+            script.arcade_presets.visible = state
+            script.arcade_custom.visible = state
+            script.autoshop_presets.visible = state
+            script.autoshop_custom.visible = state
+            script.hangar_presets.visible = state
+            script.hangar_custom.visible = state
+
+            if state then
+                local d1 = script.shadow_root:divider("1B Recovery")
+                local d2 = script.shadow_root:divider("1B Recovery")
+                local d3 = script.shadow_root:divider("1B Recovery")
+                local d4 = script.shadow_root:divider("1B Recovery")
+                local ref = nil
+
+                ref = menu.ref_by_rel_path(script.nightclub_recovery, "Presets")
+                if ref:isValid() then menu.attach_before(ref, d1) end
+                ref = menu.ref_by_rel_path(script.arcade_recovery, "Presets")
+                if ref:isValid() then menu.attach_before(ref, d2) end
+                ref = menu.ref_by_rel_path(script.autoshop_recovery, "Presets")
+                if ref:isValid() then menu.attach_before(ref, d3) end
+                ref = menu.ref_by_rel_path(script.hangar_recovery, "Presets")
+                if ref:isValid() then menu.attach_before(ref, d4) end
+            else
+                local ref = nil
+                ref = script.nightclub_recovery:getChildren()[1]
+                if ref.menu_name == "1B Recovery" then ref:delete() end
+                ref = script.arcade_recovery:getChildren()[1]
+                if ref.menu_name == "1B Recovery" then ref:delete() end
+                ref = script.autoshop_recovery:getChildren()[1]
+                if ref.menu_name == "1B Recovery" then ref:delete() end
+                ref = script.hangar_recovery:getChildren()[1]
+                if ref.menu_name == "1B Recovery" then ref:delete() end
+            end
+        end
+    end, false),
+    "settings_enable_1b_recovery"
 )
 
 -- add delays to the settings menu
@@ -401,7 +449,7 @@ script:add(
     "tools_deposit_money"
 )
 
-if developer_mode then
+if script.developer_mode then
     -- add developer divider
     script.tools:divider("Developer")
 
@@ -583,6 +631,27 @@ if package.loaded["lib.recovery.collectables"] then
     collectables:init(script) -- initalise collectables menu
 else
     script:notify("Collectables module failed to load")
+end
+
+if not script.developer_mode then
+    script.nightclub_presets.visible = false
+    script.nightclub_custom.visible = false
+    script.arcade_presets.visible = false
+    script.arcade_custom.visible = false
+    script.autoshop_presets.visible = false
+    script.autoshop_custom.visible = false
+    script.hangar_presets.visible = false
+    script.hangar_custom.visible = false
+
+    local ref = nil
+    ref = script.nightclub_recovery:getChildren()[1]
+    if ref.menu_name == "1B Recovery" then ref:delete() end
+    ref = script.arcade_recovery:getChildren()[1]
+    if ref.menu_name == "1B Recovery" then ref:delete() end
+    ref = script.autoshop_recovery:getChildren()[1]
+    if ref.menu_name == "1B Recovery" then ref:delete() end
+    ref = script.hangar_recovery:getChildren()[1]
+    if ref.menu_name == "1B Recovery" then ref:delete() end
 end
 
 --[[

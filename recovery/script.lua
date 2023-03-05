@@ -7,6 +7,7 @@ local utils = require("lib.recovery.utils") -- require the utils module
 script.root = menu.my_root()
 script.sroot = menu.shadow_root()
 script.proot = nil -- will be set later
+script.developer_mode = false
 
 -- resolution
 script.resolution = nil
