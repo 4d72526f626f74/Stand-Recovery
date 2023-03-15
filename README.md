@@ -1,6 +1,8 @@
 
 # Stand Recovery Lua Script
 
+NOTE: This repository will no longer be updated, the updated version of this script will now be available at repo https://github.com/4d72526f626f74/MrRobot, the reason for the repository change is because the script is no longer going to be a recovery only script but it will still contain recovery methods
+
 Manual installation
 --------------------
 
